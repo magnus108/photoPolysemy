@@ -1,3 +1,4 @@
+{-# LANGUAGE TemplateHaskell #-}
 module Dump
     ( State
     , state
@@ -6,6 +7,7 @@ module Dump
     , getDump
     ) where
 
+import Control.Lens
 
 newtype State = State
     { _path :: FilePath
@@ -19,7 +21,10 @@ state = State
 data Dump
     = YesDump FilePath
     | NoDump
+    deriving (Eq, Ord, Show)
+
+makeLenses ''Dump
 
 
 getDump :: FilePath -> Dump
-getDump f = NoDump
+getDump _ = NoDump
