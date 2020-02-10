@@ -2,6 +2,7 @@ module State
     ( State
     , state
     , _dump
+    , _doneshooting
     ) where
 
 
