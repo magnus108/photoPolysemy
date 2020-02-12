@@ -5,6 +5,7 @@ module Doneshooting
     , Doneshooting
     , getDoneshooting
     , _path
+    , _backup
     ) where
 
 import Control.Lens
@@ -20,13 +21,16 @@ state = State
 
 -------------------------------------------------------------------------------
 
+newtype Path = Path { path :: FilePath } deriving (Eq, Ord, Show)
+newtype Backup = Backup { backup :: FilePath } deriving (Eq, Ord, Show)
+
 data Doneshooting
-    = YesDoneshooting FilePath
+    = YesDoneshooting Path Backup
     | NoDoneshooting
     deriving (Eq, Ord, Show)
 
 makeLenses ''Doneshooting
 
 
-getDoneshooting :: FilePath -> Doneshooting
-getDoneshooting _ = NoDoneshooting
+getDoneshooting :: FilePath -> FilePath -> Doneshooting
+getDoneshooting _ _ = NoDoneshooting
