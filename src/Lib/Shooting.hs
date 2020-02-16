@@ -1,9 +1,10 @@
-module Camera
-    ( state
-    , State
+module Lib.Shooting
+    ( State
+    , state
     ) where
 
 
+import Prelude hiding (State, state)
 newtype State = State
     { _path :: FilePath
     }

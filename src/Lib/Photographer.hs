@@ -1,7 +1,8 @@
-module Session
+module Lib.Photographer
     ( State
     , state
     ) where
+import Prelude hiding (State, state)
 
 
 newtype State = State

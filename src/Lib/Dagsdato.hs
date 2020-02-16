@@ -1,7 +1,8 @@
-module Dagsdato
+module Lib.Dagsdato
     ( State
     , state
     ) where
+import Prelude hiding (State, state)
 
 
 data State = State

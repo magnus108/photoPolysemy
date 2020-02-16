@@ -1,24 +1,22 @@
-module State
+module Lib.State
     ( State
     , state
-    , _dump
-    , _doneshooting
     ) where
 
 
-import qualified Doneshooting
-import qualified Dagsdato
-import qualified Dump
-import qualified Shooting
-import qualified Session
-import qualified Photographer
-import qualified Camera
+import qualified Lib.Dagsdato as Dagsdato
+import qualified Lib.Shooting as Shooting
+import qualified Lib.Session as Session
+import qualified Lib.Photographer as Photographer
+import qualified Lib.Camera as Camera
 
+
+import Prelude hiding (State, state)
 
 data State = State
-    { _dump :: Dump.State
-    , _doneshooting :: Doneshooting.State
-    , _dagsdato :: Dagsdato.State
+--    { _dump :: Dump.State
+--    , _doneshooting :: Doneshooting.State
+    { _dagsdato :: Dagsdato.State
     , _shooting :: Shooting.State
     , _session :: Session.State
     , _photographer :: Photographer.State
@@ -32,9 +30,8 @@ data State = State
     }
 
 
-state :: Dump.State
-        -> Doneshooting.State
-        -> Dagsdato.State
+state ::
+        Dagsdato.State
         -> Shooting.State
         -> Session.State
         -> Photographer.State

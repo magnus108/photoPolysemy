@@ -1,7 +1,9 @@
-module Photographer
-    ( State
-    , state
+module Lib.Camera
+    ( state
+    , State
     ) where
+
+import Prelude hiding (State, state)
 
 
 newtype State = State

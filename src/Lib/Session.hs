@@ -1,7 +1,8 @@
-module Shooting
+module Lib.Session
     ( State
     , state
     ) where
+import Prelude hiding (State, state)
 
 
 newtype State = State
