@@ -1,18 +1,15 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE DeriveAnyClass #-}
+
 module Lib.Dump
-    ( Dump
-    , getDump
+    ( Dump(..)
+    , get
     ) where
 
-import Control.Lens
-
-data Dump
-    = YesDump FilePath
-    | NoDump
+data Dump = Dump FilePath
     deriving (Eq, Ord, Show)
-
-makeLenses ''Dump
+    deriving (Generic)
+    deriving (FromJSON, ToJSON)
 
 
 getDump :: (MonadIO m, MonadThrow m) => FilePath -> m Dump
-getDump _ = return NoDump
+getDump = readJSONFile

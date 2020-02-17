@@ -10,60 +10,55 @@ import Control.Concurrent.MVar (withMVar, modifyMVar_)
 import qualified Data.HashMap.Strict as HashMap
 import System.FSNotify
 
-import Lib.App (Env(..))
+import Lib.App (Files(..),loadFiles, Env(..))
 import Lib.Config (Config (..), loadConfig)
 
 import Lib.Dump
 import Lib.Doneshooting
 
+
 mkEnv :: Config -> IO Env
-mkEnv config@Config{..} = do
-    dump <- newMVar =<< getDump cDump -- skal watche _dump og cdump
-    doneshooting <- newMVar =<< getDoneshooting cDoneshooting
-
-    configDump <- newMVar cDump
-    configDoneshooting <- newMVar cDoneshooting
-
+mkEnv _ = do
+    files <- newMVar =<< loadFiles "config.json"
     pure Env{..}
 
 
 runServer :: Env -> IO ()
-runServer env@Env{..} = do
+runServer env@Env{..} =
     withManager $ \mgr -> do
         watchers <- newMVar mempty
 
-        sDoneshooting mgr watchers env
-        sConfigDoneshooting mgr watchers env
+        pathDoneshooting mgr watchers env
+        configDoneshooting mgr watchers env
 
         forever $ threadDelay 1000000
 
 
-sConfigDoneshooting :: WatchManager -> MVar (HashMap String (IO ())) -> Env -> IO ()
-sConfigDoneshooting mgr watchers Env{..} = do
-    filepath <- readMVar configDoneshooting
-    stop <- watchDir
-        mgr
-        (dropFileName filepath)
-        (\e -> eventPath e == filepath)
-        (\e -> withMVar watchers (HashMap.! "doneshooting"))
-    return ()
+configDoneshooting :: WatchManager -> MVar (HashMap String (IO ())) -> Env -> IO ()
+configDoneshooting mgr watchers Env{..} =
+    withMVar files $ \ Files{..} -> do
+        stop <- watchDir
+            mgr
+            (dropFileName doneshooting)
+            (\e -> eventPath e == doneshooting)
+            (\e -> withMVar watchers (HashMap.! "doneshooting"))
+        return ()
 
 
-sDoneshooting :: WatchManager -> MVar (HashMap String (IO ())) -> Env -> IO ()
-sDoneshooting mgr watchers env@Env{..} = do
-    doneshooting' <- readMVar doneshooting
-    case doneshooting' of
-        NoDoneshooting -> return ()
-        YesDoneshooting doneshootingDir _ ->  do
-            stop <- watchDir
-                mgr
-                doneshootingDir
-                (const True)
-                print
+pathDoneshooting :: WatchManager -> MVar (HashMap String (IO ())) -> Env -> IO ()
+pathDoneshooting mgr watchers env@Env{..} =
+    withMVar files $ \ Files{..} -> do
+        (Doneshooting path) <- getDoneshooting doneshooting
+        stop <- watchDir
+            mgr
+            path
+            (const True)
+            print
 
-            modifyMVar_ watchers (return . HashMap.insert "doneshooting" (stop >> sDoneshooting mgr watchers env))
-            return ()
+        modifyMVar_ watchers $ return
+                             . HashMap.insert "doneshooting"
+                             (stop >> pathDoneshooting mgr watchers env)
 
 
 main :: IO ()
-main = loadConfig "config.json" >>= mkEnv >>= runServer
+main = loadConfig >>= mkEnv >>= runServer

@@ -1,19 +1,27 @@
+{-# LANGUAGE DeriveAnyClass #-}
 module Lib.App.Env
        ( Env(..)
+       , Files(..)
+       , loadFiles
        ) where
 
 import Control.Concurrent.MVar
 
-import Lib.Config
-import Control.Concurrent (threadDelay)
+data Files = Files
+    { dump :: !FilePath
+    , doneshooting :: !FilePath
+    , dagsdato :: !FilePath
+    , shooting :: !FilePath
+    , session :: !FilePath
+    , photographer :: !FilePath
+    , camera :: !FilePath
+    } deriving (Generic)
+      deriving (FromJSON, ToJSON)
+      deriving (Show)
 
-import Lib.Dump (Dump)
-import Lib.Doneshooting (Doneshooting)
-
+loadFiles :: (MonadIO m, MonadThrow m) => FilePath -> m Files
+loadFiles = readJSONFile
 
 data Env = Env
-    { dump :: MVar Dump
-    , configDump :: MVar FilePath
-    , doneshooting :: MVar Doneshooting
-    , configDoneshooting :: MVar FilePath
+    { files :: MVar Files
     }

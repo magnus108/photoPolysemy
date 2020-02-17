@@ -1,4 +1,3 @@
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE DeriveAnyClass #-}
 
 module Lib.Doneshooting
@@ -6,20 +5,11 @@ module Lib.Doneshooting
     , getDoneshooting
     ) where
 
-import Control.Lens
-
-data Doneshooting
-    = YesDoneshooting FilePath FilePath
-    | NoDoneshooting
+data Doneshooting = Doneshooting FilePath
     deriving (Eq, Ord, Show)
     deriving (Generic)
     deriving (FromJSON, ToJSON)
 
-makeLenses ''Doneshooting
-
 
 getDoneshooting :: (MonadIO m, MonadThrow m) => FilePath -> m Doneshooting
-getDoneshooting filepath = liftIO
-           $ runConduitRes
-           $ sourceFileBS filepath
-           .| sinkFromJSON
+getDoneshooting = readJSONFile

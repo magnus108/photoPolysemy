@@ -1,3 +1,7 @@
-{"cDump":"/home/magnus/Documents/projects/photoPolysemy/config/dump.json"
-    , "cDoneshooting":"/home/magnus/Documents/projects/photoPolysemy/config/doneshooting.json"
-    , "cDagsdato":"/home/magnus/Documents/projects/photoPolysemy/config/dagsdato.json", "cShooting":"/home/magnus/Documents/projects/photoPolysemy/config/shooting.json", "cSession":"/home/magnus/Documents/projects/photoPolysemy/config/session.json", "cPhotographer":"/home/magnus/Documents/projects/photoPolysemy/config/photographer.json", "cCamera":"/home/magnus/Documents/projects/photoPolysemy/config/camera.json"}
+{ "dump":"/home/magnus/Documents/projects/photoPolysemy/config/dump.json"
+, "doneshooting":"/home/magnus/Documents/projects/photoPolysemy/config/doneshooting.json"
+, "dagsdato":"/home/magnus/Documents/projects/photoPolysemy/config/dagsdato.json"
+, "shooting":"/home/magnus/Documents/projects/photoPolysemy/config/shooting.json"
+, "session":"/home/magnus/Documents/projects/photoPolysemy/config/session.json"
+, "photographer":"/home/magnus/Documents/projects/photoPolysemy/config/photographer.json"
+, "camera":"/home/magnus/Documents/projects/photoPolysemy/config/camera.json"}
