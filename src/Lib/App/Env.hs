@@ -1,18 +1,19 @@
-{-# LANGUAGE TemplateHaskell #-}
 module Lib.App.Env
        ( Env(..)
-       , dump
-       , doneshooting
        ) where
 
-import Control.Lens
+import Control.Concurrent.MVar
+
+import Lib.Config
+import Control.Concurrent (threadDelay)
+
 import Lib.Dump (Dump)
 import Lib.Doneshooting (Doneshooting)
 
 
 data Env = Env
-    { _dump :: !Dump
-    , _doneshooting :: !Doneshooting
-    } deriving (Show)
-
-makeClassy ''Env
+    { dump :: MVar Dump
+    , configDump :: MVar FilePath
+    , doneshooting :: MVar Doneshooting
+    , configDoneshooting :: MVar FilePath
+    }

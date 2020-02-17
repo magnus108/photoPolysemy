@@ -18,8 +18,8 @@ data Config = Config
       deriving (Show)
 
 
-loadConfig :: (MonadIO m, MonadThrow m) => m Config
-loadConfig = liftIO
+loadConfig :: (MonadIO m, MonadThrow m) => FilePath -> m Config
+loadConfig filepath = liftIO
            $ runConduitRes
-           $ sourceFileBS "config.json"
+           $ sourceFileBS filepath
            .| sinkFromJSON

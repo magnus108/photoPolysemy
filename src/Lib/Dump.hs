@@ -14,5 +14,5 @@ data Dump
 makeLenses ''Dump
 
 
-getDump :: FilePath -> Dump
-getDump _ = NoDump
+getDump :: (MonadIO m, MonadThrow m) => FilePath -> m Dump
+getDump _ = return NoDump
