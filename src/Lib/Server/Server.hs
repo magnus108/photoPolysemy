@@ -8,6 +8,7 @@ import qualified Graphics.UI.Threepenny as UI
 import Control.Concurrent.MVar (withMVar)
 import Lib.App (Env(..), Files(..))
 import Lib.Doneshooting
+import System.FilePath
 
 run :: Env -> UI.Event String -> p -> IO ()
 run Env{..} eAccept _ = do
@@ -24,7 +25,7 @@ run Env{..} eAccept _ = do
         UI.on UI.click myButton $ \_ -> liftIO $
             withMVar files $ \ Files{..} -> do
                 (Doneshooting path) <- getDoneshooting doneshooting
-                writeDoneshooting (Doneshooting "lol") path
+                writeFile (path </> "foo.txt") "gg"
 
         _ <- UI.getBody win #+ [element entree, element myButton]
         return ()
