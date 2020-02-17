@@ -5,8 +5,6 @@ module Lib.App.Env
        , loadFiles
        ) where
 
-import Control.Concurrent.MVar
-
 data Files = Files
     { dump :: !FilePath
     , doneshooting :: !FilePath

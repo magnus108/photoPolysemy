@@ -13,7 +13,6 @@ import System.FSNotify
 import Lib.App (Files(..),loadFiles, Env(..))
 import Lib.Config (Config (..), loadConfig)
 
-import Lib.Dump
 import Lib.Doneshooting
 
 
@@ -37,11 +36,11 @@ runServer env@Env{..} =
 configDoneshooting :: WatchManager -> MVar (HashMap String (IO ())) -> Env -> IO ()
 configDoneshooting mgr watchers Env{..} =
     withMVar files $ \ Files{..} -> do
-        stop <- watchDir
+        _ <- watchDir
             mgr
             (dropFileName doneshooting)
             (\e -> eventPath e == doneshooting)
-            (\e -> withMVar watchers (HashMap.! "doneshooting"))
+            (\_ -> withMVar watchers (HashMap.! "doneshooting"))
         return ()
 
 

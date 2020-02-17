@@ -2,7 +2,7 @@
 
 module Lib.Dump
     ( Dump(..)
-    , get
+    , getDump
     ) where
 
 data Dump = Dump FilePath
