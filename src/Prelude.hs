@@ -3,13 +3,14 @@ module Prelude
     , module Json
     , module Conduit
     , readJSONFile
+    , writeJSONFile
     ) where
 
 import Relude
 import Conduit
 import Data.Conduit.Attoparsec
 
-import Data.Aeson as Json (FromJSON (parseJSON), ToJSON (toJSON), json, Result(Error, Success), fromJSON)
+import Data.Aeson as Json (FromJSON (parseJSON), ToJSON (toJSON), json, Result(Error, Success), fromJSON, fromEncoding, toEncoding)
 import System.IO.Error
 
 
@@ -23,3 +24,9 @@ sinkFromJSON = do
 
 readJSONFile :: (MonadIO m, FromJSON a) => FilePath -> m a
 readJSONFile fp = liftIO $ runConduitRes $ sourceFile fp .| sinkFromJSON
+
+
+writeJSONFile :: (MonadIO m, ToJSON a) => a -> FilePath -> m ()
+writeJSONFile x fp = liftIO $ runConduitRes $ yield (fromEncoding $ toEncoding x)
+                             .| builderToByteString
+                             .| sinkFileBS fp

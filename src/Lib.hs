@@ -5,7 +5,6 @@ module Lib
     ) where
 
 import System.FilePath
-import Control.Concurrent (threadDelay)
 import Control.Concurrent.MVar (withMVar, modifyMVar_)
 import qualified Data.HashMap.Strict as HashMap
 import System.FSNotify
@@ -15,6 +14,10 @@ import Lib.Config (Config (..), loadConfig)
 
 import Lib.Doneshooting
 
+import qualified Lib.Server.Server as Server
+
+import Graphics.UI.Threepenny (newEvent, Handler)
+
 
 mkEnv :: Config -> IO Env
 mkEnv _ = do
@@ -23,14 +26,16 @@ mkEnv _ = do
 
 
 runServer :: Env -> IO ()
-runServer env@Env{..} =
+runServer env@Env{..} = do
+    (eDoneshooting, hDoneshooting) <- newEvent
+
     withManager $ \mgr -> do
         watchers <- newMVar mempty
 
-        pathDoneshooting mgr watchers env
+        pathDoneshooting mgr watchers env hDoneshooting
         configDoneshooting mgr watchers env
 
-        forever $ threadDelay 1000000
+        Server.run env eDoneshooting hDoneshooting
 
 
 configDoneshooting :: WatchManager -> MVar (HashMap String (IO ())) -> Env -> IO ()
@@ -44,19 +49,19 @@ configDoneshooting mgr watchers Env{..} =
         return ()
 
 
-pathDoneshooting :: WatchManager -> MVar (HashMap String (IO ())) -> Env -> IO ()
-pathDoneshooting mgr watchers env@Env{..} =
+pathDoneshooting :: WatchManager -> MVar (HashMap String (IO ())) -> Env -> Handler String -> IO ()
+pathDoneshooting mgr watchers env@Env{..} handler =
     withMVar files $ \ Files{..} -> do
         (Doneshooting path) <- getDoneshooting doneshooting
         stop <- watchDir
             mgr
             path
             (const True)
-            print
+            (\e -> print e >> handler (show e))
 
         modifyMVar_ watchers $ return
                              . HashMap.insert "doneshooting"
-                             (stop >> pathDoneshooting mgr watchers env)
+                             (stop >> pathDoneshooting mgr watchers env handler)
 
 
 main :: IO ()

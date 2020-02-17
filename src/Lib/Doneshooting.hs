@@ -3,6 +3,7 @@
 module Lib.Doneshooting
     ( Doneshooting(..)
     , getDoneshooting
+    , writeDoneshooting
     ) where
 
 data Doneshooting = Doneshooting FilePath
@@ -13,3 +14,7 @@ data Doneshooting = Doneshooting FilePath
 
 getDoneshooting :: (MonadIO m, MonadThrow m) => FilePath -> m Doneshooting
 getDoneshooting = readJSONFile
+
+
+writeDoneshooting :: (MonadIO m) => Doneshooting -> FilePath -> m ()
+writeDoneshooting = writeJSONFile
