@@ -19,13 +19,19 @@ run Env{..} eAccept _ = do
 
         myButton <- UI.button # set text "Click me!"
 
---        value <- UI.text # set text liftIO $ do
- --           withMVar files $ \ Files{..} -> do
+        --kig crud cuz this wont work
+        val <- liftIO $ withMVar files $ \ Files{..} -> do
+            (Doneshooting path) <- getDoneshooting doneshooting
+            newIORef path
+
+        nick <- liftIO $ readIORef val
+        names <- string nick
+
 
         UI.on UI.click myButton $ \_ -> liftIO $
             withMVar files $ \ Files{..} -> do
                 (Doneshooting path) <- getDoneshooting doneshooting
                 writeFile (path </> "foo.txt") "gg"
 
-        _ <- UI.getBody win #+ [element entree, element myButton]
+        _ <- UI.getBody win #+ [element entree, element myButton, element names]
         return ()
