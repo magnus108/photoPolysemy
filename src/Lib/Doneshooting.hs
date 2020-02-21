@@ -16,5 +16,5 @@ getDoneshooting :: (MonadIO m, MonadThrow m) => FilePath -> m Doneshooting
 getDoneshooting = readJSONFile
 
 
-writeDoneshooting :: (MonadIO m) => Doneshooting -> FilePath -> m ()
+writeDoneshooting :: (MonadIO m) => FilePath -> Doneshooting -> m ()
 writeDoneshooting = writeJSONFile

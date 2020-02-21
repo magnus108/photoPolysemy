@@ -4,4 +4,6 @@
 , "shooting":"/home/magnus/Documents/projects/photoPolysemy/config/shooting.json"
 , "session":"/home/magnus/Documents/projects/photoPolysemy/config/session.json"
 , "photographer":"/home/magnus/Documents/projects/photoPolysemy/config/photographer.json"
-, "camera":"/home/magnus/Documents/projects/photoPolysemy/config/camera.json"}
+, "camera":"/home/magnus/Documents/projects/photoPolysemy/config/camera.json"
+, "tabsFile":"/home/magnus/Documents/projects/photoPolysemy/config/tabs.json"
+}

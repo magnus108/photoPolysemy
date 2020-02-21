@@ -7,12 +7,13 @@ module Lib.App.Env
 
 data Files = Files
     { dump :: !FilePath
-    , doneshooting :: !FilePath
+    , doneshootingFile :: !FilePath
     , dagsdato :: !FilePath
     , shooting :: !FilePath
     , session :: !FilePath
     , photographer :: !FilePath
     , camera :: !FilePath
+    , tabsFile :: !FilePath
     } deriving (Generic)
       deriving (FromJSON, ToJSON)
       deriving (Show)

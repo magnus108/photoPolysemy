@@ -26,7 +26,7 @@ readJSONFile :: (MonadIO m, FromJSON a) => FilePath -> m a
 readJSONFile fp = liftIO $ runConduitRes $ sourceFile fp .| sinkFromJSON
 
 
-writeJSONFile :: (MonadIO m, ToJSON a) => a -> FilePath -> m ()
-writeJSONFile x fp = liftIO $ runConduitRes $ yield (fromEncoding $ toEncoding x)
+writeJSONFile :: (MonadIO m, ToJSON a) => FilePath -> a -> m ()
+writeJSONFile fp x = liftIO $ runConduitRes $ yield (fromEncoding $ toEncoding x)
                              .| builderToByteString
                              .| sinkFileBS fp
