@@ -21,10 +21,9 @@ control :: (ListZipper a -> Bool, String,String) -> ListZipper a -> (ListZipper 
 control (position, idd, name) items action
     | position items = return Nothing
     | otherwise = do
-        (forwardButton, forwardView) <- mkButton idd name
-        UI.on UI.click forwardButton $ \_ -> action items
-        return (Just (forwardButton, forwardView))
-
+        (button, view) <- mkButton idd name
+        UI.on UI.click button $ \_ -> action items
+        return (Just (button, view))
 
 
 

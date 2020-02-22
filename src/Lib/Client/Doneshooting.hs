@@ -16,29 +16,20 @@ import Lib.App (Env(..))
 
 
 
-
-
---TODO move me
-items :: WriteAttr Element (UI Element)
-items = mkWriteAttr $ \item container -> void $
-    element container # set children [] #+ [item]
-
-
-
 doneshootingView :: Env -> Doneshooting -> UI Element
 doneshootingView _ (Doneshooting doneshooting) = do
     title' <- UI.string "Dump mappe"
     content <- UI.string doneshooting
-    (_, pickerView) <- mkFolderPicker "dumpPicker" "Vælg config folder" $ \folder -> 
-        when (folder /= "") $ do
-            liftIO $ putStrLn "lol"
+    --(_, pickerView) <- mkFolderPicker "dumpPicker" "Vælg config folder" $ \folder -> 
+     --   when (folder /= "") $ do
+      --      return ()
 
-    UI.div #+ fmap element [pickerView, title', content]
+    UI.div #+ fmap element [ title', content]
 
 
 
-doneshootingSection :: Env -> Behavior Doneshooting -> Tabs -> UI Element
-doneshootingSection env@Env{..} bDoneshooting tabs = do
+doneshootingSection :: Env -> Doneshooting -> Tabs -> UI Element
+doneshootingSection env@Env{..} doneshooting tabs = do
 
     --(_, pickerView) <- mkFolderPicker "dumpPicker" "Vælg config folder" $ \folder -> 
      --   when (folder /= "") $ do
@@ -65,7 +56,7 @@ doneshootingSection env@Env{..} bDoneshooting tabs = do
                       ])
    -}
 
-    content <- UI.div # sink items (fmap (doneshootingView env) bDoneshooting)
+    content <- UI.div #+ [doneshootingView env doneshooting]
 
     tabs' <- mkTabs env tabs
     next' <- next env tabs
