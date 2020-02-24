@@ -3,6 +3,7 @@ module Lib.Client.Tab
     , mkTab
     , next
     , prev
+    , mkNavigation
     ) where
 
 import Graphics.UI.Threepenny.Core
@@ -21,7 +22,7 @@ import Lib.App (Env(..), Files(..))
 mkTabs :: Env -> Tabs -> UI Element
 mkTabs env (Tabs tabs) = do
     tabs' <- mapM (mkTab env) elems
-    UI.div #+ fmap element (ListZipper.toList (fmap fst tabs'))
+    UI.div #. "buttons has-addons" #+ fmap element (ListZipper.toList tabs')
         where 
             --TODO Lav en indexedmap for zippers
             currentTab = focus tabs
@@ -32,30 +33,37 @@ mkTabs env (Tabs tabs) = do
                     (thisTab, thisTab == currentTab, Tabs tabs'')
 
 
-mkTab :: Env -> (Tab, Bool, Tabs) -> UI (Element, Element)
+mkTab :: Env -> (Tab, Bool, Tabs) -> UI Element
 mkTab Env{..} (tab, isCenter, tabs)
     | isCenter = do
-        bu <- UI.string (show tab)
-        vi <- UI.strong #+ [element bu]
-        return (bu, vi)
+        let name = show tab
+        mkButton "idd" name #. "button is-selected" # set (attr "disabled") "true"
     | otherwise = do
         let name = show tab
-        (forwardButton, forwardView) <- mkButton "idd" name
-        UI.on UI.click forwardButton $ \_ -> 
+        forwardButton <- mkButton "idd" name
+        UI.on UI.click forwardButton $ \_ ->
             liftIO $ withMVar files $ \ Files{..} ->
                 writeTabs tabsFile tabs
-        return (forwardButton, forwardView)
+        return forwardButton
 
 
-prev :: Env -> Tabs -> UI (Maybe (Element, Element))
+prev :: Env -> Tabs -> UI (Maybe Element)
 prev Env{..} tabs =
     control (ListZipper.isLeft, "prev","prev") (unTabs tabs) $ \ _ ->
         liftIO $ withMVar files $ \ Files{..} ->
             writeTabs tabsFile (Tabs (backward (unTabs tabs)))
 
 
-next :: Env -> Tabs -> UI (Maybe (Element, Element))
+next :: Env -> Tabs -> UI (Maybe Element)
 next Env{..} tabs =
     control (ListZipper.isRight,"next","next") (unTabs tabs) $ \ _ ->
         liftIO $ withMVar files $ \ Files{..} ->
             writeTabs tabsFile (Tabs (forward (unTabs tabs)))
+
+
+mkNavigation :: Env -> Tabs -> UI Element
+mkNavigation env tabs = do
+    next' <- next env tabs
+    prev' <- prev env tabs
+    UI.div #. "buttons has-addons"
+        #+ fmap element (maybeToList prev' ++ maybeToList next')

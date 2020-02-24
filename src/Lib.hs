@@ -19,7 +19,6 @@ import qualified Lib.Server.Server as Server
 
 import Graphics.UI.Threepenny (newEvent, Handler)
 
-import Control.Concurrent (threadDelay,forkIO)
 
 mkEnv :: Config -> IO Env
 mkEnv _ = do
@@ -27,24 +26,24 @@ mkEnv _ = do
     pure Env{..}
 
 
-runServer :: Env -> IO ()
-runServer env@Env{..} = do
+runServer :: Int -> Env -> IO ()
+runServer port env@Env{..} = do
     (_, hDirDoneshooting) <- newEvent
     (eConfigDoneshooting, hConfigDoneshooting) <- newEvent
     (eTab, hTab) <- newEvent
 
     watchers <- newMVar mempty
     withManager $ \mgr -> do
-        withMVar files $ \ files -> do
+        withMVar files $ \ files' -> do
             --Tabs
-            stopConfigTab <- configTab mgr files watchers hTab
+            stopConfigTab <- configTab mgr files' watchers hTab
 
             --Doneshooting
-            stopConfigDoneshooting <- configDoneshooting mgr files watchers hConfigDoneshooting hDirDoneshooting
-            stopDirDoneshooting <- dirDoneshooting mgr files watchers hDirDoneshooting
+            stopConfigDoneshooting <- configDoneshooting mgr files' watchers hConfigDoneshooting hDirDoneshooting
+            stopDirDoneshooting <- dirDoneshooting mgr files' watchers hDirDoneshooting
 
             --TODO setter
-            modifyMVar_ watchers $ \x -> do
+            modifyMVar_ watchers $ \_ -> do
                 return $ HashMap.fromList
                     [("configTab", stopConfigTab )
                     ,("stopConfigDoneshooting", stopConfigDoneshooting)
@@ -52,14 +51,14 @@ runServer env@Env{..} = do
                     ]
 
         --VERY important this is here
-        Server.run env eConfigDoneshooting eTab
+        Server.run port env eConfigDoneshooting eTab
 
 
 type WatchMap = MVar (HashMap String StopListening)
 
 
 configTab :: WatchManager -> Files -> WatchMap -> Handler Tabs -> IO StopListening
-configTab mgr files@Files{..} watchMap handler = watchDir
+configTab mgr Files{..} _ handler = watchDir
         mgr
         (dropFileName tabsFile)
         (\e -> eventPath e == tabsFile)
@@ -85,7 +84,7 @@ configDoneshooting mgr files@Files{..} watchMap handler handleDonshootingDir = w
 
 
 dirDoneshooting :: WatchManager -> Files -> WatchMap -> Handler () -> IO StopListening
-dirDoneshooting mgr files@Files{..} watchers handler = do
+dirDoneshooting mgr Files{..} _ handler = do
     (Doneshooting path) <- getDoneshooting doneshootingFile
     watchDir
         mgr
@@ -95,5 +94,5 @@ dirDoneshooting mgr files@Files{..} watchers handler = do
 
 
 
-main :: IO ()
-main = loadConfig >>= mkEnv >>= runServer
+main :: Int -> IO ()
+main port = loadConfig >>= mkEnv >>= (runServer port)

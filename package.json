@@ -1,0 +1,12 @@
+{
+  "name": "Example",
+  "main": "electron.js",
+  "devDependencies": {
+    "electron": "^6.0.12",
+    "electron-packager": "^14.0.6"
+  },
+  "dependencies": {
+    "freeport": "^1.0.5",
+    "wait-on": "^3.3.0"
+  }
+}

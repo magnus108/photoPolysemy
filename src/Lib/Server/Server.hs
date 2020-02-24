@@ -35,8 +35,8 @@ tabsView env doneshooting tabs =
 
 
 
-run :: Env -> UI.Event Doneshooting -> UI.Event Tabs -> IO ()
-run env@Env{..} eDoneshooting eTabs = do
+run :: Int -> Env -> UI.Event Doneshooting -> UI.Event Tabs -> IO ()
+run port env@Env{..} eDoneshooting eTabs = do
     tabs <- withMVar files $ \ Files{..} -> getTabs tabsFile
     doneshooting <- withMVar files $ \ Files{..} -> getDoneshooting doneshootingFile
 
@@ -44,6 +44,7 @@ run env@Env{..} eDoneshooting eTabs = do
         { jsWindowReloadOnDisconnect = False
         , jsStatic = Just "static"
         , jsCustomHTML = Just "index.html"
+        , jsPort = Just port
         } $ \win -> do
         -- behaviors
         bTabs <- stepper tabs eTabs

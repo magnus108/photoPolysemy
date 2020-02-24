@@ -17,41 +17,36 @@ import Utils.ListZipper (ListZipper)
 -- settings
 -- action
 -- tabs/zipper
-control :: (ListZipper a -> Bool, String,String) -> ListZipper a -> (ListZipper a -> UI ()) -> UI (Maybe (Element, Element))
+control :: (ListZipper a -> Bool, String,String) -> ListZipper a -> (ListZipper a -> UI ()) -> UI (Maybe Element)
 control (position, idd, name) items action
     | position items = return Nothing
     | otherwise = do
-        (button, view) <- mkButton idd name
+        button <- mkButton idd name
         UI.on UI.click button $ \_ -> action items
-        return (Just (button, view))
+        return (Just button)
 
 
 
 
 
+mkButton :: String -> String -> UI Element
+mkButton id' x = UI.button # set (attr "id") id' #. "button" #+ [string x]
 
 
-mkButton :: String -> String -> UI (Element, Element)
-mkButton id' x = do
-    button <- UI.button # set (attr "id") id' #. "button" #+ [string x]
-    view <- UI.div #. "control" #+ [element button]
-    return (button, view)
-
-
-mkFolderPicker :: String -> String -> (FilePath -> IO ()) -> UI (Element, Element)
+mkFolderPicker :: String -> String -> (FilePath -> IO ()) -> UI Element
 mkFolderPicker = mkShowOpenDialog ["openDirectory"]
 
 
-mkFilePicker :: String -> String -> (FilePath -> IO ()) -> UI (Element, Element)
+mkFilePicker :: String -> String -> (FilePath -> IO ()) -> UI Element
 mkFilePicker = mkShowOpenDialog ["openFile"]
 
 
-mkShowOpenDialog :: [String] -> String -> String -> (FilePath -> IO ()) -> UI (Element, Element) 
+mkShowOpenDialog :: [String] -> String -> String -> (FilePath -> IO ()) -> UI Element
 mkShowOpenDialog options id' title' fx = do
-    (button, view) <- mkButton id' title'
+    button <- mkButton id' title'
 
     UI.on UI.click button $ \_ -> do
-        cb <- ffiExport fx
-        runFunction $ ffi "require('electron').remote.dialog.showOpenDialog({properties: %2}, %1)" cb options
+        callback <- ffiExport fx
+        runFunction $ ffi "require('electron').remote.dialog.showOpenDialog({properties: %2}, %1)" callback options
 
-    return (button, view)
+    return button

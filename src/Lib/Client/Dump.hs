@@ -19,7 +19,7 @@ dumpSection :: Env -> Tabs -> UI Element
 dumpSection env@Env{..} tabs = do
     
 
-    (_, pickerView) <- mkFolderPicker "dumpPicker" "Vælg config folder" $ \folder -> 
+    pickerView <- mkFolderPicker "dumpPicker" "Vælg config folder" $ \folder -> 
         when (folder /= "") $ do
             liftIO $ putStrLn "lol"
 
@@ -45,14 +45,12 @@ dumpSection env@Env{..} tabs = do
 -}
 
     tabs' <- mkTabs env tabs
-    next' <- next env tabs
-    prev' <- prev env tabs
+    navigation <- mkNavigation env tabs
 
     UI.div #+ fmap element (
         [ pickerView
         , tabs'
-        ] 
-        ++ maybeToList (fmap snd next')
-        ++ maybeToList (fmap snd prev')
+        , navigation
+        ]
         )
 
