@@ -19,6 +19,7 @@ import qualified Lib.Server.Server as Server
 
 import Graphics.UI.Threepenny (newEvent, Handler)
 
+import Control.Concurrent (threadDelay,forkIO)
 
 mkEnv :: Config -> IO Env
 mkEnv _ = do
@@ -28,82 +29,74 @@ mkEnv _ = do
 
 runServer :: Env -> IO ()
 runServer env@Env{..} = do
-    (_, hDoneshooting) <- newEvent
+    (_, hDirDoneshooting) <- newEvent
     (eConfigDoneshooting, hConfigDoneshooting) <- newEvent
     (eTab, hTab) <- newEvent
 
+    watchers <- newMVar mempty
     withManager $ \mgr -> do
-        watchers <- newMVar mempty
+        withMVar files $ \ files -> do
+            --Tabs
+            stopConfigTab <- configTab mgr files watchers hTab
 
-        --Tabs
-        configTab mgr watchers env hTab
+            --Doneshooting
+            stopConfigDoneshooting <- configDoneshooting mgr files watchers hConfigDoneshooting hDirDoneshooting
+            stopDirDoneshooting <- dirDoneshooting mgr files watchers hDirDoneshooting
 
-        --Doneshooting
-        pathDoneshooting mgr watchers env hDoneshooting
-        configDoneshooting mgr watchers env hConfigDoneshooting
+            --TODO setter
+            modifyMVar_ watchers $ \x -> do
+                return $ HashMap.fromList
+                    [("configTab", stopConfigTab )
+                    ,("stopConfigDoneshooting", stopConfigDoneshooting)
+                    ,("stopDirDoneshooting", stopDirDoneshooting)
+                    ]
 
+        --VERY important this is here
         Server.run env eConfigDoneshooting eTab
 
 
-type WatchMap = MVar (HashMap String (IO ()))
-
-configTab :: WatchManager -> WatchMap -> Env -> Handler Tabs -> IO ()
-configTab mgr watchers env@Env{..} handler = do
-    withMVar files $ \ Files{..} -> do
-        _ <- watchDir
-            mgr
-            (dropFileName tabsFile)
-            (\e -> eventPath e == tabsFile)
-            (\_ -> updateTab watchers env handler)
-        return ()
-
-updateTab :: WatchMap -> Env -> Handler Tabs -> IO ()
-updateTab watchers Env{..} handler =
-    --TODO should be transactional
-    withMVar files $ \ Files{..} ->
-        handler =<< getTabs tabsFile
+type WatchMap = MVar (HashMap String StopListening)
 
 
-updateConfigDoneShooting :: WatchMap -> Env -> Handler Doneshooting -> IO ()
-updateConfigDoneShooting watchers Env{..} handler = do
-    --TODO should be transactional
-    withMVar files $ \ Files{..} -> do
-        handler =<< getDoneshooting doneshootingFile
-        --TODO is this dangerous
-        actions <- readMVar watchers
-        traceShowM "was here8"
-        actions HashMap.! "pathDoneshooting"
-        traceShowM "was here9"
+configTab :: WatchManager -> Files -> WatchMap -> Handler Tabs -> IO StopListening
+configTab mgr files@Files{..} watchMap handler = watchDir
+        mgr
+        (dropFileName tabsFile)
+        (\e -> eventPath e == tabsFile)
+        (\e -> print e >> (handler =<< getTabs tabsFile))
 
 
-configDoneshooting :: WatchManager -> WatchMap -> Env -> Handler Doneshooting -> IO ()
-configDoneshooting mgr watchers env@Env{..} handler =
-    withMVar files $ \ Files{..} -> do
-        _ <- watchDir
-            mgr
-            (dropFileName doneshootingFile)
-            (\e -> eventPath e == doneshootingFile)
-            (\e -> print e >> updateConfigDoneShooting watchers env handler
-            )
-        return ()
 
 
-pathDoneshooting :: WatchManager -> WatchMap -> Env -> Handler () -> IO ()
-pathDoneshooting mgr watchers env@Env{..} handler = do
-    traceShowM "was here15"
-    withMVar files $ \ Files{..} -> do
-        (Doneshooting path) <- getDoneshooting doneshootingFile
-        stop <- watchDir
-            mgr
-            path
-            (const True)
-            (\e -> print e >> handler ())
 
-        traceShowM "was here11"
-        modifyMVar_ watchers $ return
-                . HashMap.insert "pathDoneshooting"
-                ( stop >> pathDoneshooting mgr watchers env handler)
-        traceShowM "was here10"
+configDoneshooting :: WatchManager -> Files -> WatchMap -> Handler Doneshooting -> Handler () -> IO StopListening
+configDoneshooting mgr files@Files{..} watchMap handler handleDonshootingDir = watchDir
+        mgr
+        (dropFileName doneshootingFile)
+        (\e -> eventPath e == doneshootingFile)
+        (\e -> do
+            print e
+            handler =<< getDoneshooting doneshootingFile
+
+            -- TODO these two are related
+            modifyMVar_ watchMap $ \ h -> do
+                h HashMap.! "stopDirDoneshooting"
+                stopDirDoneshooting <- dirDoneshooting mgr files watchMap handleDonshootingDir
+                return $ HashMap.insert "stopDirDoneshooting" stopDirDoneshooting  h
+        )
+
+
+
+dirDoneshooting :: WatchManager -> Files -> WatchMap -> Handler () -> IO StopListening
+dirDoneshooting mgr files@Files{..} watchers handler = do
+    (Doneshooting path) <- getDoneshooting doneshootingFile
+    watchDir
+        mgr
+        path
+        (const True)
+        (\e -> print e >> handler ())
+
+
 
 main :: IO ()
 main = loadConfig >>= mkEnv >>= runServer
