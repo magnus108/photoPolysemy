@@ -42,6 +42,8 @@ run env@Env{..} eDoneshooting eTabs = do
 
     startGUI defaultConfig
         { jsWindowReloadOnDisconnect = False
+        , jsStatic = Just "static"
+        , jsCustomHTML = Just "index.html"
         } $ \win -> do
         -- behaviors
         bTabs <- stepper tabs eTabs

@@ -66,9 +66,6 @@ configTab mgr files@Files{..} watchMap handler = watchDir
         (\e -> print e >> (handler =<< getTabs tabsFile))
 
 
-
-
-
 configDoneshooting :: WatchManager -> Files -> WatchMap -> Handler Doneshooting -> Handler () -> IO StopListening
 configDoneshooting mgr files@Files{..} watchMap handler handleDonshootingDir = watchDir
         mgr
