@@ -147,4 +147,4 @@ dirDump mgr Files{..} _ handler = do
 
 
 main :: Int -> IO ()
-main port = loadConfig >>= mkEnv >>= (runServer port)
+main port = loadConfig >>= mkEnv >>= runServer port
