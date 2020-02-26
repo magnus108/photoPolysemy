@@ -46,7 +46,9 @@ mkPhotographers env (Photographers photographers) = do
                 let
                     thisPhotographer = focus photographers''
                 in
-                    (thisPhotographer, thisPhotographer == currentPhotographer, Photographers photographers'')
+                    (thisPhotographer
+                    , thisPhotographer == currentPhotographer
+                    , Photographers photographers'')
 
 
 mkPhotographer :: Env -> (Photographer, Bool, Photographers) -> UI Element

@@ -2,55 +2,43 @@ module Lib.Client.Dump
     ( dumpSection
     ) where
 
-
 import Graphics.UI.Threepenny.Core
 import qualified Graphics.UI.Threepenny as UI
 
 import Lib.Tab
+import Lib.Dump
 import Lib.Client.Tab
-
-import Lib.App (Env(..))
-
-
 import Lib.Client.Element
 
-
-dumpSection :: Env -> Tabs -> UI Element
-dumpSection env@Env{..} tabs = do
-    
-
-    pickerView <- mkFolderPicker "dumpPicker" "Vælg config folder" $ \folder -> 
-        when (folder /= "") $ do
-            liftIO $ putStrLn "lol"
-
-    --with <- mkSection [ mkColumns ["is-multiline"]
-     --                       [ mkColumn ["is-12"] [ mkLabel "Dump mappe ikke valgt" # set (attr "id") "dumpMissing" ]
-      --                      , mkColumn ["is-12"] [ element picker ]
-       --                     ]
-        --              ] 
-    {-
+import Lib.App (Env(..), Files(..))
+import Control.Concurrent.MVar (withMVar)
 
 
-    {-
-    let without = (\z -> mkSection [ mkColumns ["is-multiline"]
-                            [ mkColumn ["is-12"] [ mkLabel "Dump mappe" # set (attr "id") "dumpOK" ]
-                            , mkColumn ["is-12"] [ element picker ]
-                            , mkColumn ["is-12"] [ UI.p # set UI.text z # set (attr "id") "dumpPath" ]
-                            --, mkColumn ["is-12"] [ element forwardView ]
-                            ]
-                      ])
-                      -}
-    --view <- Dump.dump (element with) without dump
+dumpView :: Env -> Dump -> UI Element
+dumpView Env{..} (Dump dump) = do
+    title_ <- UI.div #+ [UI.string "Dump mappe"]
+    content <- UI.div #+ [UI.string dump]
 
--}
+    picker <- UI.div #+
+        [ mkFolderPicker "dumpPicker" "Vælg config folder" $ \folder ->
+            when (folder /= "") $
+                withMVar files $ \ Files{..} ->
+                    writeFile dumpFile (show folder)
+        ]
+
+    UI.div #+ fmap element [ title_, content, picker]
+
+
+dumpSection :: Env -> Dump -> Tabs -> UI Element
+dumpSection env@Env{..} dump tabs = do
+
+    content <- dumpView env dump
 
     tabs' <- mkTabs env tabs
     navigation <- mkNavigation env tabs
 
-    UI.div #+ fmap element (
-        [ pickerView
-        , tabs'
+    UI.div #+ fmap element
+        [ tabs'
+        , content
         , navigation
         ]
-        )
-

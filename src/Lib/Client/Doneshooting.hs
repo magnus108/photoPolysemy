@@ -17,13 +17,15 @@ import Control.Concurrent.MVar (withMVar)
 
 doneshootingView :: Env -> Doneshooting -> UI Element
 doneshootingView Env{..} (Doneshooting doneshooting) = do
-    title_ <- UI.string "Dump mappe"
-    content <- UI.string doneshooting
+    title_ <- UI.div #+ [UI.string "Doneshooting mappe"]
+    content <- UI.div #+ [UI.string doneshooting]
 
-    picker <- mkFolderPicker "doneshootingPicker" "Vælg config folder" $ \folder -> do
-        when (folder /= "") $
-            withMVar files $ \ Files{..} ->
-                writeFile doneshootingFile (show folder)
+    picker <- UI.div #+
+        [ mkFolderPicker "doneshootingPicker" "Vælg config folder" $ \folder ->
+            when (folder /= "") $
+                withMVar files $ \ Files{..} ->
+                    writeFile doneshootingFile (show folder)
+        ]
 
     UI.div #+ fmap element [ title_, content, picker]
 

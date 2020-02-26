@@ -11,6 +11,7 @@ import Lib.App (Env(..), Files(..))
 import Lib.Tab
 import Lib.Photographer
 import Lib.Doneshooting
+import Lib.Dump
 import Lib.Client.Dump
 import Lib.Client.Doneshooting
 import Lib.Client.Photographer
@@ -24,25 +25,26 @@ items = mkWriteAttr $ \item container -> void $
     element container # set children [] #+ [item]
 
 
-tabsView :: Env -> Doneshooting -> Photographers -> Tabs -> UI Element
-tabsView env doneshooting photographers tabs =
+tabsView :: Env -> Dump -> Doneshooting -> Photographers -> Tabs -> UI Element
+tabsView env dump doneshooting photographers tabs =
     let
         --TODO this is silly
         currentTab = focus (unTabs tabs)
     in
         case currentTab of
-            DumpTab -> dumpSection env tabs
+            DumpTab -> dumpSection env dump tabs
             DoneshootingTab -> doneshootingSection env doneshooting tabs
             PhotographersTab -> photographersSection env photographers tabs
-            _ -> UI.div #+ [dumpSection env tabs] -- menus currentTab tabs
+            _ -> UI.div #+ [] -- menus currentTab tabs
 
 
 
-run :: Int -> Env -> UI.Event Doneshooting -> UI.Event Tabs -> UI.Event Photographers -> IO ()
-run port env@Env{..} eDoneshooting eTabs ePhotographers = do
+run :: Int -> Env -> UI.Event Dump -> UI.Event Doneshooting -> UI.Event Tabs -> UI.Event Photographers -> IO ()
+run port env@Env{..} eDump eDoneshooting eTabs ePhotographers = do
     tabs <- withMVar files $ \ Files{..} -> getTabs tabsFile
     photographers <- withMVar files $ \ Files{..} -> getPhotographers photographersFile
     doneshooting <- withMVar files $ \ Files{..} -> getDoneshooting doneshootingFile
+    dump <- withMVar files $ \ Files{..} -> getDump dumpFile
 
     startGUI defaultConfig
         { jsWindowReloadOnDisconnect = False
@@ -50,12 +52,18 @@ run port env@Env{..} eDoneshooting eTabs ePhotographers = do
         , jsCustomHTML = Just "index.html"
         , jsPort = Just port
         } $ \win -> do
+
         -- behaviors
         bTabs <- stepper tabs eTabs
         bPhotographers <- stepper photographers ePhotographers
         bDoneshooting <- stepper doneshooting eDoneshooting
+        bDump <- stepper dump eDump
 
-        list <- UI.div # sink items (liftA3 (tabsView env) bDoneshooting bPhotographers bTabs)
+        list <- UI.div # sink items (fmap (tabsView env)
+                                            bDump
+                                            <*> bDoneshooting
+                                            <*> bPhotographers
+                                            <*> bTabs)
 
         void $ UI.getBody win #+
             fmap element [list]

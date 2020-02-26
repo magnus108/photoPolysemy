@@ -6,7 +6,7 @@ module Lib.App.Env
        ) where
 
 data Files = Files
-    { dump :: !FilePath
+    { dumpFile :: !FilePath
     , doneshootingFile :: !FilePath
     , dagsdato :: !FilePath
     , shooting :: !FilePath

@@ -15,6 +15,7 @@ import Lib.Tab (Tabs, getTabs)
 import Lib.Photographer (Photographers, getPhotographers)
 
 import Lib.Doneshooting
+import Lib.Dump
 
 import qualified Lib.Server.Server as Server
 
@@ -32,6 +33,9 @@ runServer port env@Env{..} = do
     (_, hDirDoneshooting) <- newEvent
     (eConfigDoneshooting, hConfigDoneshooting) <- newEvent
 
+    (_, hDirDump) <- newEvent
+    (eConfigDump, hConfigDump) <- newEvent
+
     (eTabs, hTab) <- newEvent
     (ePhotographers, hPhotographer) <- newEvent
 
@@ -48,6 +52,10 @@ runServer port env@Env{..} = do
             stopConfigDoneshooting <- configDoneshooting mgr files' watchers hConfigDoneshooting hDirDoneshooting
             stopDirDoneshooting <- dirDoneshooting mgr files' watchers hDirDoneshooting
 
+            --Dump
+            stopConfigDump <- configDump mgr files' watchers hConfigDump hDirDump
+            stopDirDump <- dirDump mgr files' watchers hDirDump
+
             --TODO setter
             modifyMVar_ watchers $ \_ -> do
                 return $ HashMap.fromList
@@ -55,10 +63,12 @@ runServer port env@Env{..} = do
                     ,("configPhotographer", stopConfigPhotographer)
                     ,("stopConfigDoneshooting", stopConfigDoneshooting)
                     ,("stopDirDoneshooting", stopDirDoneshooting)
+                    ,("stopConfigDump", stopConfigDump)
+                    ,("stopDirDump", stopDirDump)
                     ]
 
         --VERY important this is here
-        Server.run port env eConfigDoneshooting eTabs ePhotographers
+        Server.run port env eConfigDump eConfigDoneshooting eTabs ePhotographers
 
 
 type WatchMap = MVar (HashMap String StopListening)
@@ -107,6 +117,33 @@ dirDoneshooting mgr Files{..} _ handler = do
         (const True)
         (\e -> print e >> handler ())
 
+
+configDump :: WatchManager -> Files -> WatchMap -> Handler Dump -> Handler () -> IO StopListening
+configDump mgr files@Files{..} watchMap handler handleDumpDir = watchDir
+        mgr
+        (dropFileName dumpFile)
+        (\e -> eventPath e == dumpFile)
+        (\e -> do
+            print e
+            handler =<< getDump dumpFile
+
+            -- TODO these two are related
+            modifyMVar_ watchMap $ \ h -> do
+                h HashMap.! "stopDirDump"
+                stopDirDump <- dirDump mgr files watchMap handleDumpDir
+                return $ HashMap.insert "stopDirDump" stopDirDump h
+        )
+
+
+
+dirDump :: WatchManager -> Files -> WatchMap -> Handler () -> IO StopListening
+dirDump mgr Files{..} _ handler = do
+    (Dump path) <- getDump dumpFile
+    watchDir
+        mgr
+        path
+        (const True)
+        (\e -> print e >> handler ())
 
 
 main :: Int -> IO ()
