@@ -12,7 +12,10 @@ import Lib.Tab
 import Lib.Photographer
 import Lib.Doneshooting
 import Lib.Dump
+import Lib.Dagsdato
+
 import Lib.Client.Dump
+import Lib.Client.Dagsdato
 import Lib.Client.Doneshooting
 import Lib.Client.Photographer
 
@@ -25,8 +28,8 @@ items = mkWriteAttr $ \item container -> void $
     element container # set children [] #+ [item]
 
 
-tabsView :: Env -> Dump -> Doneshooting -> Photographers -> Tabs -> UI Element
-tabsView env dump doneshooting photographers tabs =
+tabsView :: Env -> Dump -> Doneshooting -> Dagsdato -> Photographers -> Tabs -> UI Element
+tabsView env dump doneshooting dagsdato photographers tabs =
     let
         --TODO this is silly
         currentTab = focus (unTabs tabs)
@@ -35,15 +38,17 @@ tabsView env dump doneshooting photographers tabs =
             DumpTab -> dumpSection env dump tabs
             DoneshootingTab -> doneshootingSection env doneshooting tabs
             PhotographersTab -> photographersSection env photographers tabs
-            _ -> UI.div #+ [] -- menus currentTab tabs
+            DagsdatoTab -> dagsdatoSection env dagsdato tabs
+            _ -> UI.div #+ [dagsdatoSection env dagsdato tabs] -- menus currentTab tabs
 
 
 
-run :: Int -> Env -> UI.Event Dump -> UI.Event Doneshooting -> UI.Event Tabs -> UI.Event Photographers -> IO ()
-run port env@Env{..} eDump eDoneshooting eTabs ePhotographers = do
+run :: Int -> Env -> UI.Event Dump -> UI.Event Doneshooting -> UI.Event Dagsdato -> UI.Event Tabs -> UI.Event Photographers -> IO ()
+run port env@Env{..} eDump eDoneshooting eDagsdato eTabs ePhotographers = do
     tabs <- withMVar files $ \ Files{..} -> getTabs tabsFile
     photographers <- withMVar files $ \ Files{..} -> getPhotographers photographersFile
     doneshooting <- withMVar files $ \ Files{..} -> getDoneshooting doneshootingFile
+    dagsdato <- withMVar files $ \ Files{..} -> getDagsdato dagsdatoFile
     dump <- withMVar files $ \ Files{..} -> getDump dumpFile
 
     startGUI defaultConfig
@@ -57,11 +62,13 @@ run port env@Env{..} eDump eDoneshooting eTabs ePhotographers = do
         bTabs <- stepper tabs eTabs
         bPhotographers <- stepper photographers ePhotographers
         bDoneshooting <- stepper doneshooting eDoneshooting
+        bDagsdato <- stepper dagsdato eDagsdato
         bDump <- stepper dump eDump
 
         list <- UI.div # sink items (fmap (tabsView env)
                                             bDump
                                             <*> bDoneshooting
+                                            <*> bDagsdato
                                             <*> bPhotographers
                                             <*> bTabs)
 

@@ -1,14 +1,20 @@
+{-# LANGUAGE DeriveAnyClass #-}
+
 module Lib.Dagsdato
-    ( State
-    , state
+    ( Dagsdato(..)
+    , getDagsdato
+    , writeDagsdato
     ) where
-import Prelude hiding (State, state)
+
+data Dagsdato = Dagsdato FilePath
+    deriving (Eq, Ord, Show)
+    deriving (Generic)
+    deriving (FromJSON, ToJSON)
 
 
-data State = State
-    { _path :: FilePath
-    , _backup :: FilePath
-    }
+getDagsdato :: (MonadIO m, MonadThrow m) => FilePath -> m Dagsdato
+getDagsdato = readJSONFile
 
-state :: FilePath -> FilePath -> State
-state = State
+
+writeDagsdato :: (MonadIO m) => FilePath -> Dagsdato -> m ()
+writeDagsdato = writeJSONFile

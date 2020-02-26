@@ -8,7 +8,7 @@ module Lib.App.Env
 data Files = Files
     { dumpFile :: !FilePath
     , doneshootingFile :: !FilePath
-    , dagsdato :: !FilePath
+    , dagsdatoFile :: !FilePath
     , shooting :: !FilePath
     , session :: !FilePath
     , photographersFile :: !FilePath
