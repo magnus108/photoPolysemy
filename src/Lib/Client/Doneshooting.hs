@@ -23,7 +23,7 @@ doneshootingView Env{..} (Doneshooting doneshooting) = do
     picker <- mkFolderPicker "doneshootingPicker" "Vælg config folder" $ \folder -> do
         when (folder /= "") $
             withMVar files $ \ Files{..} ->
-                writeFile doneshootingFile folder
+                writeFile doneshootingFile (show folder)
 
     UI.div #+ fmap element [ title_, content, picker]
 
