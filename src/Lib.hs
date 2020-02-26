@@ -12,6 +12,7 @@ import System.FSNotify
 import Lib.App (Files(..),loadFiles, Env(..))
 import Lib.Config (Config (..), loadConfig)
 import Lib.Tab (Tabs, getTabs)
+import Lib.Photographer (Photographers, getPhotographers)
 
 import Lib.Doneshooting
 
@@ -30,13 +31,18 @@ runServer :: Int -> Env -> IO ()
 runServer port env@Env{..} = do
     (_, hDirDoneshooting) <- newEvent
     (eConfigDoneshooting, hConfigDoneshooting) <- newEvent
-    (eTab, hTab) <- newEvent
+
+    (eTabs, hTab) <- newEvent
+    (ePhotographers, hPhotographer) <- newEvent
 
     watchers <- newMVar mempty
     withManager $ \mgr -> do
         withMVar files $ \ files' -> do
             --Tabs
             stopConfigTab <- configTab mgr files' watchers hTab
+            --
+            --Photographers
+            stopConfigPhotographer <- configPhotographer mgr files' watchers hPhotographer
 
             --Doneshooting
             stopConfigDoneshooting <- configDoneshooting mgr files' watchers hConfigDoneshooting hDirDoneshooting
@@ -46,12 +52,13 @@ runServer port env@Env{..} = do
             modifyMVar_ watchers $ \_ -> do
                 return $ HashMap.fromList
                     [("configTab", stopConfigTab )
+                    ,("configPhotographer", stopConfigPhotographer)
                     ,("stopConfigDoneshooting", stopConfigDoneshooting)
                     ,("stopDirDoneshooting", stopDirDoneshooting)
                     ]
 
         --VERY important this is here
-        Server.run port env eConfigDoneshooting eTab
+        Server.run port env eConfigDoneshooting eTabs ePhotographers
 
 
 type WatchMap = MVar (HashMap String StopListening)
@@ -63,6 +70,14 @@ configTab mgr Files{..} _ handler = watchDir
         (dropFileName tabsFile)
         (\e -> eventPath e == tabsFile)
         (\e -> print e >> (handler =<< getTabs tabsFile))
+
+
+configPhotographer :: WatchManager -> Files -> WatchMap -> Handler Photographers -> IO StopListening
+configPhotographer mgr Files{..} _ handler = watchDir
+        mgr
+        (dropFileName photographersFile)
+        (\e -> eventPath e == photographersFile)
+        (\e -> print e >> (handler =<< getPhotographers photographersFile))
 
 
 configDoneshooting :: WatchManager -> Files -> WatchMap -> Handler Doneshooting -> Handler () -> IO StopListening

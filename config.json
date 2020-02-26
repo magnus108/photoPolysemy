@@ -3,7 +3,7 @@
 , "dagsdato":"/home/magnus/Documents/projects/photoPolysemy/config/dagsdato.json"
 , "shooting":"/home/magnus/Documents/projects/photoPolysemy/config/shooting.json"
 , "session":"/home/magnus/Documents/projects/photoPolysemy/config/session.json"
-, "photographer":"/home/magnus/Documents/projects/photoPolysemy/config/photographer.json"
+, "photographersFile":"/home/magnus/Documents/projects/photoPolysemy/config/photographers.json"
 , "camera":"/home/magnus/Documents/projects/photoPolysemy/config/camera.json"
 , "tabsFile":"/home/magnus/Documents/projects/photoPolysemy/config/tabs.json"
 }

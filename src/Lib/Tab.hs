@@ -1,8 +1,6 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE NoGeneralizedNewtypeDeriving #-}
 
-
-
 module Lib.Tab
     ( Tabs(..)
     , Tab(..)
@@ -18,7 +16,7 @@ data Tab
     | DagsdatoBackupTab
     | DoneshootingTab
     | DoneshootingBackupTab
-    | PhotographerTab
+    | PhotographersTab
     | CameraTab
     | ShootingTab
     | SessionTab

@@ -11,7 +11,7 @@ data Files = Files
     , dagsdato :: !FilePath
     , shooting :: !FilePath
     , session :: !FilePath
-    , photographer :: !FilePath
+    , photographersFile :: !FilePath
     , camera :: !FilePath
     , tabsFile :: !FilePath
     } deriving (Generic)
