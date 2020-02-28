@@ -14,6 +14,7 @@ import Lib.Config (Config (..), loadConfig)
 import Lib.Tab (Tabs, getTabs)
 import Lib.Photographer (Photographers, getPhotographers)
 
+import Lib.Session
 import Lib.Shooting
 import Lib.Camera
 import Lib.Dagsdato
@@ -53,6 +54,8 @@ runServer port env@Env{..} = do
 
     (eShootings, hShootings) <- newEvent
 
+    (eSessions, hSessions) <- newEvent
+
     watchers <- newMVar mempty
     withManager $ \mgr -> do
         withMVar files $ \ files' -> do
@@ -61,6 +64,9 @@ runServer port env@Env{..} = do
 
             --Photographers
             stopConfigPhotographers <- configPhotographers mgr files' watchers hPhotographers
+
+            --Photographers
+            stopConfigSessions <- configSessions mgr files' watchers hSessions
 
             --Cameras
             stopConfigCameras <- configCameras mgr files' watchers hCameras
@@ -93,6 +99,8 @@ runServer port env@Env{..} = do
                     ,("configCameras", stopConfigCameras)
 
                     ,("configShootings", stopConfigShootings)
+
+                    ,("configSessions", stopConfigSessions)
                     
                     ,("stopConfigDoneshooting", stopConfigDoneshooting)
                     ,("stopDirDoneshooting", stopDirDoneshooting)
@@ -108,7 +116,7 @@ runServer port env@Env{..} = do
                     ]
 
         --VERY important this is here
-        Server.run port env eShootings eCameras eConfigDump eConfigDoneshooting eConfigDagsdato eConfigDagsdatoBackup eTabs ePhotographers
+        Server.run port env eSessions eShootings eCameras eConfigDump eConfigDoneshooting eConfigDagsdato eConfigDagsdatoBackup eTabs ePhotographers
 
 
 type WatchMap = MVar (HashMap String StopListening)
@@ -128,6 +136,14 @@ configPhotographers mgr Files{..} _ handler = watchDir
         (dropFileName photographersFile)
         (\e -> eventPath e == photographersFile)
         (\e -> print e >> (handler =<< getPhotographers photographersFile))
+
+
+configSessions :: WatchManager -> Files -> WatchMap -> Handler Sessions -> IO StopListening
+configSessions mgr Files{..} _ handler = watchDir
+        mgr
+        (dropFileName sessionsFile)
+        (\e -> eventPath e == sessionsFile)
+        (\e -> print e >> (handler =<< getSessions sessionsFile))
 
 
 configCameras :: WatchManager -> Files -> WatchMap -> Handler Cameras -> IO StopListening

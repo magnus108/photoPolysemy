@@ -1,13 +1,42 @@
+{-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE NoGeneralizedNewtypeDeriving #-}
+
 module Lib.Session
-    ( State
-    , state
+    ( Sessions(..)
+    , Session(..)
+    , Decisions(..)
+    , getSessions
+    , writeSessions
     ) where
-import Prelude hiding (State, state)
+
+import Utils.TreeZipper
+
+data Session
+    = KindergartenGroup
+    | KindergartenSingle
+    | School
+    deriving (Eq, Ord, Show)
+    deriving (Generic)
+    deriving (FromJSON, ToJSON)
 
 
-newtype State = State
-    { _path :: FilePath
-    }
+data Decisions
+    = SchoolOrKindergarten
+    | GroupOrSingleForKindergarten
+    deriving (Eq, Ord, Show)
+    deriving (Generic)
+    deriving (FromJSON, ToJSON)
 
-state :: FilePath -> State
-state = State
+
+newtype Sessions = Sessions { unSessions:: TreeZipper Decisions Session }
+    deriving (Eq, Ord, Show)
+    deriving (Generic)
+    deriving (FromJSON, ToJSON)
+
+
+getSessions :: (MonadIO m, MonadThrow m) => FilePath -> m Sessions
+getSessions = readJSONFile
+
+
+writeSessions :: (MonadIO m) => FilePath -> Sessions -> m ()
+writeSessions = writeJSONFile

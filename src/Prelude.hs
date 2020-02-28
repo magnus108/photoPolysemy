@@ -4,6 +4,7 @@ module Prelude
     , module Conduit
     , readJSONFile
     , writeJSONFile
+    , fromEither
     ) where
 
 import Relude
@@ -30,3 +31,7 @@ writeJSONFile :: (MonadIO m, ToJSON a) => FilePath -> a -> m ()
 writeJSONFile fp x = liftIO $ runConduitRes $ yield (fromEncoding $ toEncoding x)
                              .| builderToByteString
                              .| sinkFileBS fp
+
+
+fromEither :: Either a a -> a
+fromEither = either id id

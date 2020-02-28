@@ -16,7 +16,9 @@ import Lib.Doneshooting
 import Lib.Dump
 import Lib.Dagsdato
 import Lib.DagsdatoBackup
+import Lib.Session
 
+import Lib.Client.Session
 import Lib.Client.Shooting
 import Lib.Client.Camera
 import Lib.Client.Dump
@@ -34,8 +36,8 @@ items = mkWriteAttr $ \item container -> void $
     element container # set children [] #+ [item]
 
 
-tabsView :: Env -> Shootings -> Cameras -> Dump -> Doneshooting -> Dagsdato -> DagsdatoBackup -> Photographers -> Tabs -> UI Element
-tabsView env shootings cameras dump doneshooting dagsdato dagsdatoBackup photographers tabs =
+tabsView :: Env -> Sessions -> Shootings -> Cameras -> Dump -> Doneshooting -> Dagsdato -> DagsdatoBackup -> Photographers -> Tabs -> UI Element
+tabsView env sessions shootings cameras dump doneshooting dagsdato dagsdatoBackup photographers tabs =
     let
         --TODO this is silly
         currentTab = focus (unTabs tabs)
@@ -45,6 +47,7 @@ tabsView env shootings cameras dump doneshooting dagsdato dagsdatoBackup photogr
             DoneshootingTab -> doneshootingSection env doneshooting tabs
             PhotographersTab -> photographersSection env photographers tabs
             ShootingsTab -> shootingsSection env shootings tabs
+            SessionsTab -> sessionsSection env sessions tabs
             CamerasTab -> camerasSection env cameras tabs
             DagsdatoTab -> dagsdatoSection env dagsdato tabs
             DagsdatoBackupTab -> dagsdatoBackupSection env dagsdatoBackup tabs
@@ -52,11 +55,12 @@ tabsView env shootings cameras dump doneshooting dagsdato dagsdatoBackup photogr
 
 
 
-run :: Int -> Env -> UI.Event Shootings -> UI.Event Cameras -> UI.Event Dump -> UI.Event Doneshooting -> UI.Event Dagsdato -> UI.Event DagsdatoBackup -> UI.Event Tabs -> UI.Event Photographers -> IO ()
-run port env@Env{..} eShootings eCameras eDump eDoneshooting eDagsdato eDagsdatoBackup eTabs ePhotographers = do
+run :: Int -> Env -> UI.Event Sessions -> UI.Event Shootings -> UI.Event Cameras -> UI.Event Dump -> UI.Event Doneshooting -> UI.Event Dagsdato -> UI.Event DagsdatoBackup -> UI.Event Tabs -> UI.Event Photographers -> IO ()
+run port env@Env{..} eSessions eShootings eCameras eDump eDoneshooting eDagsdato eDagsdatoBackup eTabs ePhotographers = do
     tabs <- withMVar files $ \ Files{..} -> getTabs tabsFile
     photographers <- withMVar files $ \ Files{..} -> getPhotographers photographersFile
     cameras <- withMVar files $ \ Files{..} -> getCameras camerasFile
+    sessions <- withMVar files $ \ Files{..} -> getSessions sessionsFile
     shootings <- withMVar files $ \ Files{..} -> getShootings shootingsFile
     doneshooting <- withMVar files $ \ Files{..} -> getDoneshooting doneshootingFile
     dagsdato <- withMVar files $ \ Files{..} -> getDagsdato dagsdatoFile
@@ -76,12 +80,14 @@ run port env@Env{..} eShootings eCameras eDump eDoneshooting eDagsdato eDagsdato
         bCameras <- stepper cameras eCameras
         bShootings <- stepper shootings eShootings
         bDoneshooting <- stepper doneshooting eDoneshooting
+        bSessions <- stepper sessions eSessions
         bDagsdato <- stepper dagsdato eDagsdato
         bDagsdatoBackup <- stepper dagsdatoBackup eDagsdatoBackup
         bDump <- stepper dump eDump
 
         list <- UI.div # sink items (fmap (tabsView env)
-                                            bShootings
+                                            bSessions
+                                            <*> bShootings
                                             <*> bCameras
                                             <*> bDump
                                             <*> bDoneshooting

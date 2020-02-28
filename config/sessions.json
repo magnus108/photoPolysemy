@@ -1,0 +1,5 @@
+{"unSessions":[{"tag":"Branch",
+    "contents":["SchoolOrKindergarten",
+        [{"tag":"Leaf","contents":"School"}, {"tag":"Branch","contents":["GroupOrSingleForKindergarten",
+            [{"tag":"Leaf", "contents":"KindergartenGroup"},{"tag":"Leaf", "contents":"KindergartenSingle"}]
+        ]}]]},[]]}
