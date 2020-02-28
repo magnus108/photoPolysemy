@@ -61,5 +61,5 @@ mkShooting Env{..} (shooting, isCenter, shootings)
         forwardButton <- mkButton "idd" name
         UI.on UI.click forwardButton $ \_ ->
             liftIO $ withMVar files $ \ Files{..} ->
-                writeShootings camerasFile shootings
+                writeShootings shootingsFile shootings
         return forwardButton
