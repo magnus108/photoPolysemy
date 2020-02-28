@@ -1,13 +1,32 @@
+{-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE NoGeneralizedNewtypeDeriving #-}
+
 module Lib.Shooting
-    ( State
-    , state
+    ( Shootings(..)
+    , Shooting(..)
+    , getShootings
+    , writeShootings
     ) where
 
+import Utils.ListZipper
 
-import Prelude hiding (State, state)
-newtype State = State
-    { _path :: FilePath
-    }
+data Shooting
+    = ReShoot
+    | Normal
+    deriving (Eq, Ord, Show)
+    deriving (Generic)
+    deriving (FromJSON, ToJSON)
 
-state :: FilePath -> State
-state = State
+
+newtype Shootings = Shootings { unShootings :: ListZipper Shooting }
+    deriving (Eq, Ord, Show)
+    deriving (Generic)
+    deriving (FromJSON, ToJSON)
+
+
+getShootings :: (MonadIO m, MonadThrow m) => FilePath -> m Shootings
+getShootings = readJSONFile
+
+
+writeShootings :: (MonadIO m) => FilePath -> Shootings -> m ()
+writeShootings = writeJSONFile

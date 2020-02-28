@@ -17,9 +17,9 @@ data Tab
     | DoneshootingTab
     | DoneshootingBackupTab
     | PhotographersTab
-    | CameraTab
-    | ShootingTab
-    | SessionTab
+    | CamerasTab
+    | ShootingsTab
+    | SessionsTab
     | LocationTab
     | MainTab
     | ControlTab

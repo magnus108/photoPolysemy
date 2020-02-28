@@ -1,14 +1,32 @@
+{-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE NoGeneralizedNewtypeDeriving #-}
+
 module Lib.Camera
-    ( state
-    , State
+    ( Cameras(..)
+    , Camera(..)
+    , getCameras
+    , writeCameras
     ) where
 
-import Prelude hiding (State, state)
+import Utils.ListZipper
+
+data Camera
+    = CR2
+    | CR3
+    deriving (Eq, Ord, Show)
+    deriving (Generic)
+    deriving (FromJSON, ToJSON)
 
 
-newtype State = State
-    { _path :: FilePath
-    }
+newtype Cameras = Cameras { unCameras :: ListZipper Camera }
+    deriving (Eq, Ord, Show)
+    deriving (Generic)
+    deriving (FromJSON, ToJSON)
 
-state :: FilePath -> State
-state = State
+
+getCameras :: (MonadIO m, MonadThrow m) => FilePath -> m Cameras
+getCameras = readJSONFile
+
+
+writeCameras :: (MonadIO m) => FilePath -> Cameras -> m ()
+writeCameras = writeJSONFile

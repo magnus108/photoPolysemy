@@ -9,10 +9,11 @@ data Files = Files
     { dumpFile :: !FilePath
     , doneshootingFile :: !FilePath
     , dagsdatoFile :: !FilePath
-    , shooting :: !FilePath
-    , session :: !FilePath
+    , dagsdatoBackupFile :: !FilePath
+    , shootingsFile :: !FilePath
+    , sessionsFile :: !FilePath
     , photographersFile :: !FilePath
-    , camera :: !FilePath
+    , camerasFile :: !FilePath
     , tabsFile :: !FilePath
     } deriving (Generic)
       deriving (FromJSON, ToJSON)
