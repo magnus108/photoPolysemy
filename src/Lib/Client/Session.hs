@@ -37,14 +37,22 @@ sessionsSection env@Env{..} sessions tabs = do
 
 mkSessions :: Env -> Sessions -> UI Element
 mkSessions env (Sessions sessions) = do
-    sessions' <- mapM (bimapM (mkDecision env) (mkSession env (Sessions sessions))) elems
+    sessions' <- mapM (bimapM (mkDecision env (Sessions sessions)) (mkSession env (Sessions sessions))) elems
     UI.div #. "buttons has-addons" #+ fmap (element . fromEither . datum ) sessions'
         where
             tree = toRoseTree sessions --TODO dont call toRoseTree
             elems = RT.children tree
 
-mkDecision :: Env -> Decisions -> UI Element
-mkDecision _ decision = string (show decision)
+
+mkDecision :: Env -> Sessions -> Decisions -> UI Element
+mkDecision Env{..} (Sessions sessions) decision = do
+    let name = show decision
+    chooseButton <- mkButton "idd" name
+    UI.on UI.click chooseButton $ \_ ->
+        liftIO $ withMVar files $ \ Files{..} ->
+            --TODO get rid of either
+            mapM_ (writeSessions sessionsFile) (fmap Sessions (down (Left decision) sessions))
+    return chooseButton
 
 
 mkSession :: Env -> Sessions -> Session -> UI Element
