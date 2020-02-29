@@ -46,7 +46,7 @@ mkPhotographers env (Photographers photographers) = do
                 let
                     thisPhotographer = focus photographers''
                 in
-                    (thisPhotographer
+                    ( thisPhotographer
                     , thisPhotographer == currentPhotographer
                     , Photographers photographers'')
 

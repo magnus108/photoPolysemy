@@ -41,7 +41,7 @@ mkSessions env (Sessions sessions) = do
     UI.div #. "buttons has-addons" #+ fmap (element . fromEither . datum ) sessions'
         where
             tree = toRoseTree sessions --TODO dont call toRoseTree
-            elems = RT.children tree
+            elems = RT.children tree --BØR KUNNNE EXTENDED så det virkerligsom med zippers men fuck.
 
 
 mkDecision :: Env -> Sessions -> Decisions -> UI Element
