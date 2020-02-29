@@ -2,8 +2,10 @@
 
 module Utils.TreeZipper
     ( TreeZipper(..)
+    , Context(..)
     , mkTreeZipper
     , toRoseTree
+    , toContext
     , up
     , down
     ) where
@@ -25,6 +27,8 @@ data TreeZipper b l = TreeZipper (RoseTree b l) [Context b l]
 toRoseTree :: TreeZipper b l -> RoseTree b l
 toRoseTree (TreeZipper item _) = item
 
+toContext :: TreeZipper b l -> [Context b l]
+toContext (TreeZipper _ item) = item
 
 mkTreeZipper :: RoseTree b l -> TreeZipper b l
 mkTreeZipper x = TreeZipper x []

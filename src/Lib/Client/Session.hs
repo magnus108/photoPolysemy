@@ -36,12 +36,25 @@ sessionsSection env@Env{..} sessions tabs = do
 
 
 mkSessions :: Env -> Sessions -> UI Element
-mkSessions env (Sessions sessions) = do
-    sessions' <- mapM (bimapM (mkDecision env (Sessions sessions)) (mkSession env (Sessions sessions))) elems
-    UI.div #. "buttons has-addons" #+ fmap (element . fromEither . datum ) sessions'
-        where
-            tree = toRoseTree sessions --TODO dont call toRoseTree
-            elems = RT.children tree --BØR KUNNNE EXTENDED så det virkerligsom med zippers men fuck.
+mkSessions env (Sessions sessions) = case sessions of
+    (TreeZipper _ []) -> mkSessions' env (Sessions sessions)
+    (TreeZipper _ (Context _ f _:_)) -> do
+        children' <- mkSessions' env (Sessions sessions)
+        parent <- mkParent env (Sessions sessions) f
+        UI.div #+ fmap element [parent, children']
+
+mkSessions' :: Env -> Sessions -> UI Element
+mkSessions' env (Sessions sessions) = do
+        sessions' <- mapM (bimapM (mkDecision env (Sessions sessions)) (mkSession env (Sessions sessions))) elems
+        UI.div #. "buttons has-addons" #+ fmap (element . fromEither . datum ) sessions'
+            where
+                tree = toRoseTree sessions --TODO dont call toRoseTree
+                elems = RT.children tree --BØR KUNNNE EXTENDED så det virkerligsom med zippers men fuck.
+
+
+mkParent :: Env -> Sessions -> Either Decisions Session -> UI Element
+mkParent env sessions parent = 
+    fromEither <$> bimapM (mkDecision env sessions) (mkSession env sessions) parent
 
 
 mkDecision :: Env -> Sessions -> Decisions -> UI Element
