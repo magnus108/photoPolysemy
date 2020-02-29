@@ -12,7 +12,9 @@ import Lib.Tab
 import Lib.Session
 import Lib.Client.Tab
 
-import Lib.App (Env(..))
+import Lib.App (Env(..),Files(..))
+import Lib.Client.Element
+import Control.Concurrent.MVar
 
 import Utils.RoseTree as RT
 import Utils.TreeZipper
@@ -35,7 +37,7 @@ sessionsSection env@Env{..} sessions tabs = do
 
 mkSessions :: Env -> Sessions -> UI Element
 mkSessions env (Sessions sessions) = do
-    sessions' <- mapM (bimapM (mkDecision env) (mkSession env)) elems
+    sessions' <- mapM (bimapM (mkDecision env) (mkSession env (Sessions sessions))) elems
     UI.div #. "buttons has-addons" #+ fmap (element . fromEither . datum ) sessions'
         where
             tree = toRoseTree sessions --TODO dont call toRoseTree
@@ -45,5 +47,12 @@ mkDecision :: Env -> Decisions -> UI Element
 mkDecision _ decision = string (show decision)
 
 
-mkSession :: Env -> Session -> UI Element
-mkSession _ session = UI.strong #+ [string (show session)]
+mkSession :: Env -> Sessions -> Session -> UI Element
+mkSession Env{..} (Sessions sessions) session = do
+    let name = show session
+    chooseButton <- mkButton "idd" name
+    UI.on UI.click chooseButton $ \_ ->
+        liftIO $ withMVar files $ \ Files{..} ->
+            --TODO get rid of either
+            mapM_ (writeSessions sessionsFile) (fmap Sessions (down (Right session) sessions))
+    return chooseButton
