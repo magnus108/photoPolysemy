@@ -53,9 +53,32 @@ mkSessions' env (Sessions sessions) = do
 
 
 mkParent :: Env -> Sessions -> Either Decisions Session -> UI Element
-mkParent env sessions parent = 
-    fromEither <$> bimapM (mkDecision env sessions) (mkSession env sessions) parent
+mkParent env sessions parent = do
+    --TODO get rid of these extras by using extend
+    elems <- fromEither <$> bimapM (mkDecision' env sessions) (mkSession' env sessions) parent
+    UI.div #. "buttons has-addons" #+ [element elems]
 
+
+mkDecision' :: Env -> Sessions -> Decisions -> UI Element
+mkDecision' Env{..} (Sessions sessions) decision = do
+    let name = show decision
+    chooseButton <- mkButton "idd" name
+    UI.on UI.click chooseButton $ \_ ->
+        liftIO $ withMVar files $ \ Files{..} ->
+            --TODO get rid of either by using extend
+            mapM_ (writeSessions sessionsFile) (fmap Sessions (up sessions))
+    return chooseButton
+
+
+mkSession' :: Env -> Sessions -> Session -> UI Element
+mkSession' Env{..} (Sessions sessions) session = do
+    let name = show session
+    chooseButton <- mkButton "idd" name
+    UI.on UI.click chooseButton $ \_ ->
+        liftIO $ withMVar files $ \ Files{..} ->
+            --TODO get rid of either by using extend
+            mapM_ (writeSessions sessionsFile) (fmap Sessions (up sessions))
+    return chooseButton
 
 mkDecision :: Env -> Sessions -> Decisions -> UI Element
 mkDecision Env{..} (Sessions sessions) decision = do
@@ -63,7 +86,7 @@ mkDecision Env{..} (Sessions sessions) decision = do
     chooseButton <- mkButton "idd" name
     UI.on UI.click chooseButton $ \_ ->
         liftIO $ withMVar files $ \ Files{..} ->
-            --TODO get rid of either
+            --TODO get rid of either by using extend
             mapM_ (writeSessions sessionsFile) (fmap Sessions (down (Left decision) sessions))
     return chooseButton
 
@@ -74,6 +97,6 @@ mkSession Env{..} (Sessions sessions) session = do
     chooseButton <- mkButton "idd" name
     UI.on UI.click chooseButton $ \_ ->
         liftIO $ withMVar files $ \ Files{..} ->
-            --TODO get rid of either
+            --TODO get rid of either by using extend
             mapM_ (writeSessions sessionsFile) (fmap Sessions (down (Right session) sessions))
     return chooseButton
