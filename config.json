@@ -7,4 +7,5 @@
 , "photographersFile":"/home/magnus/Documents/projects/photoPolysemy/config/photographers.json"
 , "camerasFile":"/home/magnus/Documents/projects/photoPolysemy/config/cameras.json"
 , "tabsFile":"/home/magnus/Documents/projects/photoPolysemy/config/tabs.json"
+, "locationConfigFile":"/home/magnus/Documents/projects/photoPolysemy/config/locationConfig.json"
 }

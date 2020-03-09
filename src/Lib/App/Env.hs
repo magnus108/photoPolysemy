@@ -15,6 +15,7 @@ data Files = Files
     , photographersFile :: !FilePath
     , camerasFile :: !FilePath
     , tabsFile :: !FilePath
+    , locationConfigFile :: !FilePath
     } deriving (Generic)
       deriving (FromJSON, ToJSON)
       deriving (Show)
