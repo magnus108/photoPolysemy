@@ -13,6 +13,7 @@ data Files = Files
     , shootingsFile :: !FilePath
     , sessionsFile :: !FilePath
     , photographersFile :: !FilePath
+    , gradesFile :: !FilePath
     , camerasFile :: !FilePath
     , tabsFile :: !FilePath
     , locationConfigFile :: !FilePath

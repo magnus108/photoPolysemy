@@ -5,6 +5,8 @@ module Lib.Server.Server
 import Graphics.UI.Threepenny.Core 
 import qualified Graphics.UI.Threepenny as UI
 
+import Utils.ListZipper
+
 import Control.Concurrent.MVar (withMVar)
 import Lib.App (Env(..), Files(..))
 
@@ -17,7 +19,10 @@ import Lib.Dump
 import Lib.Dagsdato
 import Lib.DagsdatoBackup
 import Lib.Session
+import Lib.Location
+import Lib.Grade
 
+import Lib.Client.Location
 import Lib.Client.Session
 import Lib.Client.Shooting
 import Lib.Client.Camera
@@ -36,8 +41,8 @@ items = mkWriteAttr $ \item container -> void $
     element container # set children [] #+ [item]
 
 
-tabsView :: Env -> Sessions -> Shootings -> Cameras -> Dump -> Doneshooting -> Dagsdato -> DagsdatoBackup -> Photographers -> Tabs -> UI Element
-tabsView env sessions shootings cameras dump doneshooting dagsdato dagsdatoBackup photographers tabs =
+tabsView :: Env -> Grades -> LocationFile -> Sessions -> Shootings -> Cameras -> Dump -> Doneshooting -> Dagsdato -> DagsdatoBackup -> Photographers -> Tabs -> UI Element
+tabsView env grades locationFile sessions shootings cameras dump doneshooting dagsdato dagsdatoBackup photographers tabs =
     let
         --TODO this is silly
         currentTab = focus (unTabs tabs)
@@ -51,12 +56,13 @@ tabsView env sessions shootings cameras dump doneshooting dagsdato dagsdatoBacku
             CamerasTab -> camerasSection env cameras tabs
             DagsdatoTab -> dagsdatoSection env dagsdato tabs
             DagsdatoBackupTab -> dagsdatoBackupSection env dagsdatoBackup tabs
+            LocationTab -> locationSection env locationFile grades tabs
             _ -> UI.div #+ [dagsdatoSection env dagsdato tabs] -- menus currentTab tabs
 
 
 
-run :: Int -> Env -> UI.Event Sessions -> UI.Event Shootings -> UI.Event Cameras -> UI.Event Dump -> UI.Event Doneshooting -> UI.Event Dagsdato -> UI.Event DagsdatoBackup -> UI.Event Tabs -> UI.Event Photographers -> IO ()
-run port env@Env{..} eSessions eShootings eCameras eDump eDoneshooting eDagsdato eDagsdatoBackup eTabs ePhotographers = do
+run :: Int -> Env -> UI.Event Grades ->  UI.Event LocationFile -> UI.Event Sessions -> UI.Event Shootings -> UI.Event Cameras -> UI.Event Dump -> UI.Event Doneshooting -> UI.Event Dagsdato -> UI.Event DagsdatoBackup -> UI.Event Tabs -> UI.Event Photographers -> IO ()
+run port env@Env{..} eGrades eLocationConfigFile eSessions eShootings eCameras eDump eDoneshooting eDagsdato eDagsdatoBackup eTabs ePhotographers = do
     tabs <- withMVar files $ \ Files{..} -> getTabs tabsFile
     photographers <- withMVar files $ \ Files{..} -> getPhotographers photographersFile
     cameras <- withMVar files $ \ Files{..} -> getCameras camerasFile
@@ -66,6 +72,9 @@ run port env@Env{..} eSessions eShootings eCameras eDump eDoneshooting eDagsdato
     dagsdato <- withMVar files $ \ Files{..} -> getDagsdato dagsdatoFile
     dagsdatoBackup <- withMVar files $ \ Files{..} -> getDagsdatoBackup dagsdatoBackupFile
     dump <- withMVar files $ \ Files{..} -> getDump dumpFile
+    locationFile <- withMVar files $ \ Files{..} -> getLocationFile locationConfigFile
+    --TODO danger
+    grades <- parseGrades locationFile
 
     startGUI defaultConfig
         { jsWindowReloadOnDisconnect = False
@@ -84,9 +93,15 @@ run port env@Env{..} eSessions eShootings eCameras eDump eDoneshooting eDagsdato
         bDagsdato <- stepper dagsdato eDagsdato
         bDagsdatoBackup <- stepper dagsdatoBackup eDagsdatoBackup
         bDump <- stepper dump eDump
+        bLocationFile <- stepper locationFile eLocationConfigFile
+
+        --TODO fromJust
+        bGrades <- stepper (fromMaybe (Grades (ListZipper [] (Grade "") [])) grades) eGrades
 
         list <- UI.div # sink items (fmap (tabsView env)
-                                            bSessions
+                                            bGrades
+                                            <*> bLocationFile
+                                            <*> bSessions
                                             <*> bShootings
                                             <*> bCameras
                                             <*> bDump

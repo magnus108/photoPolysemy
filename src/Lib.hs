@@ -4,6 +4,7 @@ module Lib
     , main
     ) where
 
+import Relude.Unsafe (fromJust)
 import System.FilePath
 import Control.Concurrent.MVar (withMVar, modifyMVar_)
 import qualified Data.HashMap.Strict as HashMap
@@ -14,6 +15,8 @@ import Lib.Config (Config (..), loadConfig)
 import Lib.Tab (Tabs, getTabs)
 import Lib.Photographer (Photographers, getPhotographers)
 
+import Lib.Grade
+import Lib.Location
 import Lib.Session
 import Lib.Shooting
 import Lib.Camera
@@ -37,7 +40,7 @@ runServer :: Int -> Env -> IO ()
 runServer port env@Env{..} = do
     (_, hDirDoneshooting) <- newEvent
     (eConfigDoneshooting, hConfigDoneshooting) <- newEvent
-    
+
     (_, hDirDagsdato) <- newEvent
     (eConfigDagsdato, hConfigDagsdato) <- newEvent
 
@@ -56,16 +59,24 @@ runServer port env@Env{..} = do
 
     (eSessions, hSessions) <- newEvent
 
+    (eGrades, hGrades) <- newEvent
+    (eLocationConfigFile, hLocationConfigFile) <- newEvent
+
     watchers <- newMVar mempty
     withManager $ \mgr -> do
         withMVar files $ \ files' -> do
             --Tabs
             stopConfigTab <- configTab mgr files' watchers hTab
 
+            --Location
+            stopConfigLocationFile <- configLocationFile mgr files' watchers hLocationConfigFile hGrades
+            --Grades
+            stopGrades <- grades mgr files' watchers hGrades
+
             --Photographers
             stopConfigPhotographers <- configPhotographers mgr files' watchers hPhotographers
 
-            --Photographers
+            --Sessions
             stopConfigSessions <- configSessions mgr files' watchers hSessions
 
             --Cameras
@@ -93,14 +104,18 @@ runServer port env@Env{..} = do
             --TODO setter
             modifyMVar_ watchers $ \_ -> do
                 return $ HashMap.fromList
-                    [("configTab", stopConfigTab )
-                    ,("configPhotographers", stopConfigPhotographers)
+                    [("stopConfigTab", stopConfigTab )
 
-                    ,("configCameras", stopConfigCameras)
+                    ,("stopConfigLocationFile", stopConfigLocationFile)
+                    ,("stopGrades", stopGrades)
 
-                    ,("configShootings", stopConfigShootings)
+                    ,("stopConfigPhotographers", stopConfigPhotographers)
 
-                    ,("configSessions", stopConfigSessions)
+                    ,("stopConfigCameras", stopConfigCameras)
+
+                    ,("stopConfigShootings", stopConfigShootings)
+
+                    ,("stopConfigSessions", stopConfigSessions)
                     
                     ,("stopConfigDoneshooting", stopConfigDoneshooting)
                     ,("stopDirDoneshooting", stopDirDoneshooting)
@@ -116,7 +131,7 @@ runServer port env@Env{..} = do
                     ]
 
         --VERY important this is here
-        Server.run port env eSessions eShootings eCameras eConfigDump eConfigDoneshooting eConfigDagsdato eConfigDagsdatoBackup eTabs ePhotographers
+        Server.run port env eGrades eLocationConfigFile eSessions eShootings eCameras eConfigDump eConfigDoneshooting eConfigDagsdato eConfigDagsdatoBackup eTabs ePhotographers
 
 
 type WatchMap = MVar (HashMap String StopListening)
@@ -128,6 +143,37 @@ configTab mgr Files{..} _ handler = watchDir
         (dropFileName tabsFile)
         (\e -> eventPath e == tabsFile)
         (\e -> print e >> (handler =<< getTabs tabsFile))
+
+
+configLocationFile :: WatchManager -> Files -> WatchMap -> Handler LocationFile -> Handler Grades -> IO StopListening
+configLocationFile mgr files@Files{..} watchMap handler handleGrades = watchDir
+        mgr
+        (dropFileName locationConfigFile)
+        (\e -> eventPath e == locationConfigFile)
+        (\e -> do
+            print e
+            handler =<< getLocationFile locationConfigFile
+
+            -- TODO these two are related
+            modifyMVar_ watchMap $ \ h -> do
+                h HashMap.! "stopGrades"
+                stopGrades <- grades mgr files watchMap handleGrades
+                return $ HashMap.insert "stopGrades" stopGrades h
+        )
+
+
+grades :: WatchManager -> Files -> WatchMap -> Handler Grades -> IO StopListening
+grades mgr Files{..} _ handler = do
+    location <- getLocationFile locationConfigFile
+    watchDir
+        mgr
+        (dropFileName (unLocationFile location))
+        (\e -> eventPath e == unLocationFile location)
+        (\e -> do
+            print e
+            grades' <- parseGrades location
+            handler $ fromJust grades'
+        )
 
 
 configPhotographers :: WatchManager -> Files -> WatchMap -> Handler Photographers -> IO StopListening
