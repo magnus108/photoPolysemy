@@ -4,7 +4,6 @@ module Lib
     , main
     ) where
 
-import Relude.Unsafe (fromJust)
 import System.FilePath
 import Control.Concurrent.MVar (withMVar, modifyMVar_)
 import qualified Data.HashMap.Strict as HashMap
@@ -14,6 +13,8 @@ import Lib.App (Files(..),loadFiles, Env(..))
 import Lib.Config (Config (..), loadConfig)
 import Lib.Tab (Tabs, getTabs)
 import Lib.Photographer (Photographers, getPhotographers)
+
+import Utils.ListZipper
 
 import Lib.Grade
 import Lib.Location
@@ -152,9 +153,9 @@ configLocationFile mgr files@Files{..} watchMap handler handleGrades = watchDir
         (\e -> eventPath e == locationConfigFile)
         (\e -> do
             print e
-            handler =<< getLocationFile locationConfigFile
-            handleGrades =<< getGrades gradesFile
-            handleGrade =<< parseGrades locationFile
+            locationFile <- getLocationFile locationConfigFile
+            handler locationFile
+            handleGrades =<< fromMaybe (Grades (ListZipper [] (Grade "") [])) <$> parseGrades locationFile
             -- TODO these two are related
             modifyMVar_ watchMap $ \ h -> do
                 h HashMap.! "stopGrades"
