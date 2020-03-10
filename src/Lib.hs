@@ -153,7 +153,8 @@ configLocationFile mgr files@Files{..} watchMap handler handleGrades = watchDir
         (\e -> do
             print e
             handler =<< getLocationFile locationConfigFile
-
+            handleGrades =<< getGrades gradesFile
+            handleGrade =<< parseGrades locationFile
             -- TODO these two are related
             modifyMVar_ watchMap $ \ h -> do
                 h HashMap.! "stopGrades"
@@ -161,19 +162,15 @@ configLocationFile mgr files@Files{..} watchMap handler handleGrades = watchDir
                 return $ HashMap.insert "stopGrades" stopGrades h
         )
 
+-- der skal skydes et lag in herimellem der kan lytte på locationen
 
 grades :: WatchManager -> Files -> WatchMap -> Handler Grades -> IO StopListening
-grades mgr Files{..} _ handler = do
-    location <- getLocationFile locationConfigFile
+grades mgr Files{..} _ handler =
     watchDir
         mgr
-        (dropFileName (unLocationFile location))
-        (\e -> eventPath e == unLocationFile location)
-        (\e -> do
-            print e
-            grades' <- parseGrades location
-            handler $ fromJust grades'
-        )
+        (dropFileName gradesFile)
+        (\e -> eventPath e == gradesFile)
+        (\e -> print e >> (handler =<< getGrades gradesFile))
 
 
 configPhotographers :: WatchManager -> Files -> WatchMap -> Handler Photographers -> IO StopListening

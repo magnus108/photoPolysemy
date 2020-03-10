@@ -73,6 +73,7 @@ run port env@Env{..} eGrades eLocationConfigFile eSessions eShootings eCameras e
     dagsdatoBackup <- withMVar files $ \ Files{..} -> getDagsdatoBackup dagsdatoBackupFile
     dump <- withMVar files $ \ Files{..} -> getDump dumpFile
     locationFile <- withMVar files $ \ Files{..} -> getLocationFile locationConfigFile
+
     --TODO danger
     grades <- parseGrades locationFile
 

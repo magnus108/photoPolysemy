@@ -47,12 +47,9 @@ myOptionsDecode = defaultDecodeOptions { decDelimiter = fromIntegral (ord ';') }
 --TODO move me
 parseGrades :: LocationFile -> IO (Maybe Grades)
 parseGrades locationFile = do
-    traceShowM locationFile
     data' <-  BL.readFile (unLocationFile locationFile)
 
     let locationData = decodeWith myOptionsDecode NoHeader $ data' :: Either String (Vector.Vector Photographee)
-    traceShowM "bib"
-    traceShowM locationData
 
     case locationData of
             Left _ -> return Nothing
