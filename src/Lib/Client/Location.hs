@@ -74,6 +74,10 @@ gradesView env@Env{..} locationFile grades = do
     _ <- mkButton "insert" "Slet"
 
 
+    input <- UI.select
+    let e = filterJust $ UI.selectionChange input
+
+
     gradeViews <- mkGrades env locationFile grades
         {-ListZipper.iextend (gradeView env)(\ i z -> do
                         opt <- UI.option # set (attr "value") (extract z) # set (attr "id") (extract z) # set text (extract z)

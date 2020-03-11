@@ -40,11 +40,11 @@ mkTab Env{..} (tab, isCenter, tabs)
         mkButton "idd" name #. "button is-selected" # set (attr "disabled") "true"
     | otherwise = do
         let name = show tab
-        forwardButton <- mkButton "idd" name
-        UI.on UI.click forwardButton $ \_ ->
+        button <- mkButton "idd" name
+        UI.on UI.click button $ \_ ->
             liftIO $ withMVar files $ \ Files{..} ->
                 writeTabs tabsFile tabs
-        return forwardButton
+        return button
 
 
 prev :: Env -> Tabs -> UI (Maybe Element)

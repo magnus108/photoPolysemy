@@ -42,22 +42,19 @@ items = mkWriteAttr $ \item container -> void $
 
 
 tabsView :: Env -> Grades -> LocationFile -> Sessions -> Shootings -> Cameras -> Dump -> Doneshooting -> Dagsdato -> DagsdatoBackup -> Photographers -> Tabs -> UI Element
-tabsView env grades locationFile sessions shootings cameras dump doneshooting dagsdato dagsdatoBackup photographers tabs =
-    let
-        --TODO this is silly
-        currentTab = focus (unTabs tabs)
-    in
-        case currentTab of
-            DumpTab -> dumpSection env dump tabs
-            DoneshootingTab -> doneshootingSection env doneshooting tabs
-            PhotographersTab -> photographersSection env photographers tabs
-            ShootingsTab -> shootingsSection env shootings tabs
-            SessionsTab -> sessionsSection env sessions tabs
-            CamerasTab -> camerasSection env cameras tabs
-            DagsdatoTab -> dagsdatoSection env dagsdato tabs
-            DagsdatoBackupTab -> dagsdatoBackupSection env dagsdatoBackup tabs
-            LocationTab -> locationSection env locationFile grades tabs
-            _ -> UI.div #+ [dagsdatoSection env dagsdato tabs] -- menus currentTab tabs
+tabsView env grades locationFile sessions shootings cameras dump doneshooting dagsdato dagsdatoBackup photographers tabs = do
+    let currentTab = focus (unTabs tabs)
+    case currentTab of
+        DumpTab -> dumpSection env dump tabs
+        DoneshootingTab -> doneshootingSection env doneshooting tabs
+        PhotographersTab -> photographersSection env photographers tabs
+        ShootingsTab -> shootingsSection env shootings tabs
+        SessionsTab -> sessionsSection env sessions tabs
+        CamerasTab -> camerasSection env cameras tabs
+        DagsdatoTab -> dagsdatoSection env dagsdato tabs
+        DagsdatoBackupTab -> dagsdatoBackupSection env dagsdatoBackup tabs
+        LocationTab -> locationSection env locationFile grades tabs
+        _ -> UI.div #+ [dagsdatoSection env dagsdato tabs] -- menus currentTab tabs
 
 
 
