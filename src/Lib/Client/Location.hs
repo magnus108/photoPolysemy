@@ -42,17 +42,27 @@ locationFileView Env{..} locationFile = do
     UI.div #+ fmap element [ title_, content, pickers, open ]
 
 
-mkGrades :: Env -> LocationFile -> Grades -> UI Element
-mkGrades env locationFile grades = do
-    grades' <- mapM (mkGrade env locationFile) elems
-    UI.select #+ fmap element (ListZipper.toList grades')
-        where
-            elems = unGrades grades =>> \grades'' ->
-                    (extract grades'', Grades grades'')
+mkGrades :: Env -> Grades -> UI Element
+mkGrades env grades = do
+    selector <- UI.select
+
+    let elems = ListZipper.iextend (\index grades'' ->
+            ( index, selector, extract grades'', Grades grades'' )
+            ) (unGrades grades)
+
+    grades' <- mapM (mkGrade env) elems
+
+    return selector #+ fmap element (ListZipper.toList grades')
 
 
-mkGrade :: Env -> LocationFile -> (Grade, Grades) -> UI Element
-mkGrade _ _ (grade, grades) = do
+mkGrade :: Env -> (Int, Element, Grade, Grades) -> UI Element
+mkGrade Env{..} (thisIndex, selector, grade, grades) = do
+    UI.on UI.selectionChange selector $ \pickedIndex ->
+        when (fromMaybe (-1) pickedIndex == thisIndex) $
+            liftIO $ withMVar files $ \ Files{..} -> do
+                putStrLn $ show grades
+                writeGrades gradesFile grades
+
     let name = show grade
     UI.option # set (attr "value") name  # set text name
 
@@ -69,13 +79,9 @@ gradesView env@Env{..} locationFile grades = do
 
     _ <- mkButton "delete" "Slet"
 
-    gradesView <- mkGrades env locationFile grades
+    gradesView <- mkGrades env grades
 
-    UI.on UI.selectionChange gradesView$ \i -> do
-        liftIO $ putStrLn (show i)
-
-
-    UI.div #+ fmap element [ gradeInsert, gradesView]
+    UI.div #+ fmap element [gradeInsert, gradesView]
 
 
 
