@@ -5,8 +5,6 @@ module Lib.Server.Server
 import Graphics.UI.Threepenny.Core 
 import qualified Graphics.UI.Threepenny as UI
 
-import Utils.ListZipper
-
 import Control.Concurrent.MVar (withMVar)
 import Lib.App (Env(..), Files(..))
 
@@ -70,9 +68,7 @@ run port env@Env{..} eGrades eLocationConfigFile eSessions eShootings eCameras e
     dagsdatoBackup <- withMVar files $ \ Files{..} -> getDagsdatoBackup dagsdatoBackupFile
     dump <- withMVar files $ \ Files{..} -> getDump dumpFile
     locationFile <- withMVar files $ \ Files{..} -> getLocationFile locationConfigFile
-
-    --TODO danger
-    grades <- parseGrades locationFile
+    grades <- withMVar files $ \ Files{..} -> getGrades gradesFile
 
     startGUI defaultConfig
         { jsWindowReloadOnDisconnect = False
@@ -93,8 +89,7 @@ run port env@Env{..} eGrades eLocationConfigFile eSessions eShootings eCameras e
         bDump <- stepper dump eDump
         bLocationFile <- stepper locationFile eLocationConfigFile
 
-        --TODO fromJust
-        bGrades <- stepper (fromMaybe (Grades (ListZipper [] (Grade "") [])) grades) eGrades
+        bGrades <- stepper grades eGrades
 
         list <- UI.div # sink items (fmap (tabsView env)
                                             bGrades

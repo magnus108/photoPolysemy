@@ -72,7 +72,7 @@ runServer port env@Env{..} = do
             --Grades
             stopGrades <- grades mgr files' watchers hGrades
             --Location
-            stopConfigLocationFile <- configLocationFile mgr files' watchers hLocationConfigFile hGrades
+            stopConfigLocationFile <- configLocationFile mgr files' watchers hLocationConfigFile
 
             --Photographers
             stopConfigPhotographers <- configPhotographers mgr files' watchers hPhotographers
@@ -142,12 +142,12 @@ configTab :: WatchManager -> Files -> WatchMap -> Handler Tabs -> IO StopListeni
 configTab mgr Files{..} _ handler = watchDir
         mgr
         (dropFileName tabsFile)
-        (\e -> eventPath (traceShow "gg" e) == tabsFile)
+        (\e -> eventPath e == tabsFile)
         (\e -> print e >> (handler =<< getTabs tabsFile))
 
 
-configLocationFile :: WatchManager -> Files -> WatchMap -> Handler LocationFile -> Handler Grades -> IO StopListening
-configLocationFile mgr files@Files{..} watchMap handler handleGrades = watchDir
+configLocationFile :: WatchManager -> Files -> WatchMap -> Handler LocationFile -> IO StopListening
+configLocationFile mgr Files{..} _ handler = watchDir
         mgr
         (dropFileName locationConfigFile)
         (\e -> eventPath e == locationConfigFile)
@@ -155,30 +155,18 @@ configLocationFile mgr files@Files{..} watchMap handler handleGrades = watchDir
             print e
             locationFile <- getLocationFile locationConfigFile
             handler locationFile
-            grades <- fromMaybe (Grades (ListZipper [] (Grade "") [])) <$> parseGrades locationFile
-            writeGrades gradesFile grades
-            -- TODO these two are related
-                {-
-            modifyMVar_ watchMap $ \ h -> do
-                traceShowM (HashMap.keys h)
-                gg <- h HashMap.! "stopGrades"
-                traceShowM (HashMap.keys h)
-                stopGrades <- grades mgr files watchMap handleGrades
-                let map2 = HashMap.insert "stopGrades" stopGrades h
-                traceShowM (HashMap.keys map2)
-                return map2
-                -}
+            grades' <- fromMaybe (Grades (ListZipper [] (Grade "") [])) <$> parseGrades locationFile
+            writeGrades gradesFile grades'
         )
 
 -- der skal skydes et lag in herimellem der kan lytte på locationen
 
 grades :: WatchManager -> Files -> WatchMap -> Handler Grades -> IO StopListening
-grades mgr Files{..} _ handler = do
-    traceShowM "whas here"
+grades mgr Files{..} _ handler =
     watchDir
         mgr
-        (traceShow (dropFileName gradesFile) (dropFileName gradesFile))
-        (\e -> eventPath (traceShow e e) == (traceShow gradesFile gradesFile))
+        (dropFileName gradesFile)
+        (\e -> eventPath e == gradesFile)
         (\e -> print e >> (handler =<< getGrades gradesFile))
 
 

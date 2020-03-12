@@ -2,9 +2,12 @@ module Lib.Client.Location
     ( locationSection
     ) where
 
+import qualified Data.Aeson                  as JSON
+
 import Graphics.UI.Threepenny.Core
 import qualified Graphics.UI.Threepenny as UI
 
+import Utils.Comonad
 import qualified Utils.ListZipper as ListZipper
 
 import Lib.Grade
@@ -42,63 +45,50 @@ locationFileView Env{..} locationFile = do
 mkGrades :: Env -> LocationFile -> Grades -> UI Element
 mkGrades env locationFile grades = do
     grades' <- mapM (mkGrade env locationFile) elems
-    UI.div #. "buttons has-addons" #+ fmap element (ListZipper.toList grades')
+    UI.select #+ fmap element (ListZipper.toList grades')
         where
-            currentGrade = ListZipper.focus (unGrades grades)
-            elems = ListZipper.iextend (\index grades'' ->
-                let
-                    thisGrade = ListZipper.focus grades''
-                in
-                    (index, thisGrade, thisGrade == currentGrade, Grades grades'')
-                ) (unGrades grades)
+            elems = unGrades grades =>> \grades'' ->
+                    (extract grades'', Grades grades'')
 
 
-mkGrade :: Env -> LocationFile -> (Int, Grade, Bool, Grades) -> UI Element
-mkGrade _ _ (_, grade, isCenter, _)
-    | isCenter = do
-        let name = show grade
-        mkButton "idd" name #. "button is-selected" # set (attr "disabled") "true"
-    | otherwise = do
-        let name = show grade
-        mkButton "idd" name
+mkGrade :: Env -> LocationFile -> (Grade, Grades) -> UI Element
+mkGrade _ _ (grade, grades) = do
+    let name = show grade
+    UI.option # set (attr "value") name  # set text name
+
 
 
 gradesView :: Env -> LocationFile -> Grades -> UI Element
 gradesView env@Env{..} locationFile grades = do
     gradeInsert <- mkButton "insert" "Tilføj ny"
-    UI.on UI.click gradeInsert $ \_ -> do
+
+    UI.on UI.click gradeInsert $ \_ ->
         liftIO $ withMVar files $ \ Files{..} ->
             --TODO fix this up
             writeGrades gradesFile $ Grades $ ListZipper.insert (unGrades grades) (Grade "")
 
-    _ <- mkButton "insert" "Slet"
+    _ <- mkButton "delete" "Slet"
+
+    gradesView <- mkGrades env locationFile grades
+
+    UI.on UI.selectionChange gradesView$ \i -> do
+        liftIO $ putStrLn (show i)
 
 
-    input <- UI.select
-    let e = filterJust $ UI.selectionChange input
+    UI.div #+ fmap element [ gradeInsert, gradesView]
 
 
-    gradeViews <- mkGrades env locationFile grades
-        {-ListZipper.iextend (gradeView env)(\ i z -> do
-                        opt <- UI.option # set (attr "value") (extract z) # set (attr "id") (extract z) # set text (extract z)
-                        opt' <- if (z == zipper) then
-                                element opt # set (UI.attr "selected") "" # set (UI.attr "id") "selected"
-                            else
-                                return opt
-
-                        let name = ("t" ++ (show i))
-                        runFunction $ ffi "new CustomEvent(%1,{})" name
-                        onEvent (domEvent name input) $ \x -> do
-                                liftIO $ Chan.writeChan msgs $ Msg.setGrades $ Grade.yesGrades z 
-
-                        return opt
-                    ) zipper
 
 
-    _ <- element input # set children (ListZipper.toList gradeViews)
 
--}
-    UI.div #+ fmap element [ gradeInsert, gradeViews ]
+
+
+
+
+
+
+
+
 
     {-
             gradesView <- Grade.grades (UI.div #+ [UI.div #. "field" #+

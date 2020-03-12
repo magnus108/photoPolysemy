@@ -58,8 +58,8 @@ mkCamera Env{..} (camera, isCenter, cameras)
         mkButton "idd" name #. "button is-selected" # set (attr "disabled") "true"
     | otherwise = do
         let name = show camera
-        forwardButton <- mkButton "idd" name
-        UI.on UI.click forwardButton $ \_ ->
+        button <- mkButton "idd" name
+        UI.on UI.click button $ \_ ->
             liftIO $ withMVar files $ \ Files{..} ->
                 writeCameras camerasFile cameras
-        return forwardButton
+        return button
