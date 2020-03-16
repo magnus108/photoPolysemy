@@ -9,15 +9,19 @@ import Lib.Tab
 import Lib.Dump
 import Lib.Client.Tab
 import Lib.Client.Element
+import Lib.Client.Utils
 
 import Lib.App (Env(..), Files(..))
 import Control.Concurrent.MVar (withMVar)
 
 
-dumpView :: Env -> Dump -> UI Element
-dumpView Env{..} (Dump dump) = do
+dumpView :: Env -> Behavior Dump -> UI Element
+dumpView Env{..} bDump = do
+
     title_ <- UI.div #+ [UI.string "Dump mappe"]
-    content <- UI.div #+ [UI.string dump]
+
+    let content' = bDump <&> \(Dump dump) -> UI.string (show dump)
+    content <- UI.div # sink items (sequenceA [content'])
 
     picker <- UI.div #+
         [ mkFolderPicker "dumpPicker" "Vælg config folder" $ \folder ->
@@ -29,16 +33,18 @@ dumpView Env{..} (Dump dump) = do
     UI.div #+ fmap element [ title_, content, picker]
 
 
-dumpSection :: Env -> Dump -> Tabs -> UI Element
-dumpSection env@Env{..} dump tabs = do
+dumpSection :: Env -> Window -> Behavior Dump -> Tabs -> UI ()
+dumpSection env@Env{..} win bDump tabs = do
 
-    content <- dumpView env dump
+    content <- dumpView env bDump
 
     tabs' <- mkTabs env tabs
     navigation <- mkNavigation env tabs
 
-    UI.div #+ fmap element
+    view <- UI.div #+ fmap element
         [ tabs'
         , content
         , navigation
         ]
+
+    void $ UI.getBody win #+ fmap element [view]

@@ -2,8 +2,7 @@ module Lib.Client.Location
     ( locationSection
     ) where
 
-import qualified Data.Aeson                  as JSON
-
+import Lib.Client.Utils
 import Graphics.UI.Threepenny.Core
 import qualified Graphics.UI.Threepenny as UI
 
@@ -20,10 +19,10 @@ import Lib.App (Env(..), Files(..))
 import Control.Concurrent.MVar (withMVar)
 
 
-locationFileView :: Env -> LocationFile -> UI Element
-locationFileView Env{..} locationFile = do
-    title_ <- UI.div #+ [UI.string "Lokation"]
-    content <- UI.div #+ [UI.string (unLocationFile locationFile)]
+locationFileView :: Env -> Behavior LocationFile -> UI Element
+locationFileView Env{..} bLocationFile = do
+    let title_ = UI.div #+ [UI.string "Lokation"]
+    let content = bLocationFile <&> \locationFile -> UI.div #+ [UI.string (unLocationFile locationFile)]
 
     pick <- mkFilePicker "locationFilePicker" "Vælg lokations" $ \file ->
             when (file /= "") $
@@ -35,181 +34,94 @@ locationFileView Env{..} locationFile = do
                 withMVar files $ \ Files{..} ->
                     writeLocationFile locationConfigFile (LocationFile file)
 
-    pickers <- UI.div #. "buttons has-addons" #+ [element pick, element make]
+    let pickers = UI.div #. "buttons has-addons" #+ [element pick, element make]
 
-    open <- mkOpenFile "open" "Åben csv" (unLocationFile locationFile)
+    let open = bLocationFile <&> mkOpenFile "open" "Åben csv" . unLocationFile
 
-    UI.div #+ fmap element [ title_, content, pickers, open ]
+    UI.div # sink items (sequenceA [pure title_, content, pure pickers, open])
 
 
-mkGrades :: Env -> Grades -> UI Element
-mkGrades env grades = do
+mkGrades :: Env -> Behavior Grades -> UI Element
+mkGrades env bGrades = do
     selector <- UI.select
 
-    let currentGrade = extract (unGrades grades)
-    let elems = ListZipper.iextend (\index grades'' ->
-            let
-                thisGrade = extract grades''
-            in
-                ( index, thisGrade == currentGrade, selector, extract grades'', Grades grades'' )
-                ) (unGrades grades)
+    let elements' = bGrades <&> (\grades -> do
+            let currentGrade = extract (unGrades grades)
+            let elems = ListZipper.iextend (\index grades'' ->
+                    let
+                        thisGrade = extract grades''
+                    in
+                        ( index, thisGrade == currentGrade
+                        , selector
+                        , extract grades''
+                        , Grades grades''
+                        )
+                    ) (unGrades grades)
 
-    grades' <- mapM (mkGrade env) elems
+            let grades' = fmap (mkGrade env) elems
+            ListZipper.toList grades'
+            )
 
-    return selector #+ fmap element (ListZipper.toList grades')
+    element selector # sink items elements'
 
 
 mkGrade :: Env -> (Int, Bool, Element, Grade, Grades) -> UI Element
 mkGrade Env{..} (thisIndex, isCenter, selector, grade, grades) = do
     UI.on UI.selectionChange selector $ \pickedIndex ->
         when (fromMaybe (-1) pickedIndex == thisIndex) $
-            liftIO $ withMVar files $ \ Files{..} -> do
+            liftIO $ withMVar files $ \ Files{..} ->
                 writeGrades gradesFile grades
 
     let name = show grade
+
+    let option = UI.option # set (attr "value") name  # set text name
+
     if isCenter then
-        UI.option # set (attr "value") name  # set text name # set (UI.attr "selected") ""
+        option # set (UI.attr "selected") ""
     else
-        UI.option # set (attr "value") name  # set text name
+        option
 
 
-
-gradesView :: Env -> LocationFile -> Grades -> UI Element
-gradesView env@Env{..} locationFile grades = do
+gradesView :: Env -> Element -> Behavior LocationFile -> Behavior Grades -> UI Element
+gradesView env@Env{..} input _ bGrades = do
     gradeInsert <- mkButton "insert" "Tilføj ny"
-
-    UI.on UI.click gradeInsert $ \_ ->
-        liftIO $ withMVar files $ \ Files{..} ->
-            --TODO fix this up
-            writeGrades gradesFile $ Grades $ ListZipper.insert (unGrades grades) (Grade "")
-
-    _ <- mkButton "delete" "Slet"
-
-    gradesView <- mkGrades env grades
-
-    UI.div #+ fmap element [gradeInsert, gradesView]
+    UI.on UI.click gradeInsert $ \_ -> do
+            liftIO $ withMVar files $ \ Files{..} -> do
+                --TODO fix this up
+                grades <- currentValue bGrades
+                writeGrades gradesFile $ Grades $ ListZipper.insert (unGrades grades) (Grade "")
+            _ <- element input # set value ""
+            UI.setFocus input
 
 
+    view <- mkGrades env bGrades
+
+    UI.on UI.keyup input $ const $ do
+            val <- UI.get value input
+            liftIO $ withMVar files $ \ Files{..} -> do
+                    grades <- currentValue bGrades
+                    writeGrades gradesFile $
+                        Grades $ ListZipper.mapFocus (\_ -> Grade val) (unGrades grades)
 
 
+    UI.div #+ fmap element [gradeInsert, view, input]
 
-
-
-
-
-
-
-
-
-
-    {-
-            gradesView <- Grade.grades (UI.div #+ [UI.div #. "field" #+
-                                [ UI.label #. "label has-text-dark" # set UI.text "Ingen stuer/klasser"
-                                , UI.div # set (attr "style") "width:100%" #. "select" #+ 
-                                        [ UI.select # set (attr "disabled") "true" # set (attr "style") "width:100%" #+ []
-                                        ]
-                                ]
-                                , UI.div #. "control" #+ [element gradeInsertView']
-                                ])
-
-                        (\(ListZipper.ListZipper ls y rs) -> do
-                                    -- i dont need this if i just make sure the
-                                    -- list is sorted on the type level
-                                    --let zipper = Zipper.ListZipper (reverse (sort ls)) y (sort rs)
-
-                                    let zipper = ListZipper.sorted (ls ++ rs) (ListZipper.ListZipper [] y [])
-
-                                    input <- UI.select # set (attr "style") "width:100%" # set (attr "id") "inputter"
-                                    
-                                    --hack create extendI
-                                    gradeViews <- sequence $ ListZipper.iextend (\ i z -> do
-                                                        opt <- UI.option # set (attr "value") (extract z) # set (attr "id") (extract z) # set text (extract z)
-                                                        opt' <- if (z == zipper) then
-                                                                element opt # set (UI.attr "selected") "" # set (UI.attr "id") "selected"
-                                                            else
-                                                                return opt
- 
-                                                        let name = ("t" ++ (show i))
-                                                        runFunction $ ffi "new CustomEvent(%1,{})" name
-                                                        onEvent (domEvent name input) $ \x -> do
-                                                                liftIO $ Chan.writeChan msgs $ Msg.setGrades $ Grade.yesGrades z 
-
-                                                        return opt
-                                                    ) zipper
-
-                                    _ <- element input # set children (ListZipper.toList gradeViews)
-
-                                    on UI.selectionChange input $ \ i -> do
-                                        case i of
-                                            Nothing -> return ()
-                                            Just n -> when (length ls /= n) $ do
-                                                runFunction $ ffi "$('#inputter').trigger(%1)" ("t"++(show n))
-
-                                    (gradeInsert, gradeInsertView) <- mkButton "insert" "Tilføj ny klasse"
-
-                                    on UI.click gradeInsert $ \_ -> do 
-                                            liftIO $ Chan.writeChan msgs $ Msg.setGrades $ Grade.yesGrades $ ListZipper.insert zipper mempty 
-
-                                    (gradeDelete, gradeDeletetView) <- mkButton "delete" "Slet alle klasser"
-
-                                    on UI.click gradeDelete $ \_ -> do 
-                                            liftIO $ Chan.writeChan msgs $ Msg.setGrades $ Grade.noGrades 
-                                    
-
-                                    inputView <- UI.div #. "field" #+
-                                        [ UI.div # set (attr "style") "width:100%" #. "select" #+ [ element input ] 
-                                        ]
-
-
-                                    input2 <- UI.input #. "input" # set (attr "id") "focusGrade" #  set UI.type_ "text" # set (attr "value") (extract zipper)
-
-                                    inputView2 <- UI.div #. "field" #+
-                                        [ UI.label #. "label has-text-dark" # set UI.text "Ændre valgte"
-                                        , UI.div #. "control" #+ [ element input2 ] 
-                                        ]
-
-                                    (gradeChange, gradeChangeView) <- mkButton "save" "Gem"
-
-                                    (gradeDeleteSingle, gradeDeleteSingleView) <- mkButton "delete" "Delete"
-
-                                    on UI.click gradeDeleteSingle $ \_ -> do 
-                                            liftIO $ Chan.writeChan msgs $ Msg.setGrades $ Grade.delete (Grade.yesGrades zipper)
-
-                                    on UI.keydown inputView2 $ \keycode -> when (keycode == 13) $ do
-                                        UI.setFocus gradeChange
-                                        runFunction $ ffi "$('#save').trigger('click')"
-                                        return ()
-
-                                    on UI.click gradeChange $ \_ -> do
-                                        val <- get value input2
-                                        -- simpel sortering vil ikke virke her
-                                        liftIO $ Chan.writeChan msgs $ Msg.setGrades $ Grade.yesGrades $ ListZipper.mapFocus (\focus -> val) zipper
-
-
-                                    UI.div #. "field" #+
-                                        [ UI.label #. "label has-text-dark" # set UI.text "Klasse/stue"
-                                        , UI.div #. "control" #+ [ UI.div #. "buttons has-addons" #+ [element gradeInsert, element gradeDelete] , element inputView]
-                                        , UI.br --bads
-                                        , UI.div #. "control" #+ [ element inputView2, UI.div #. "buttons has-addons" #+ [element gradeChange, element gradeDeleteSingle]]
-                                        ]
-
-
-
-                            ) grades
-                            -}
-
-
-locationSection :: Env -> LocationFile -> Grades -> Tabs -> UI Element
-locationSection env@Env{..} locationFile grades tabs = do
-    content <- locationFileView env locationFile
-    gradesContent <- gradesView env locationFile grades
+locationSection :: Env -> Window -> Behavior LocationFile -> Behavior Grades -> Tabs -> UI ()
+locationSection env@Env{..} win bLocationFile bGrades tabs = do
+    content <- locationFileView env bLocationFile
 
     tabs' <- mkTabs env tabs
     navigation <- mkNavigation env tabs
 
-    UI.div #+ fmap element
-        [ tabs'
-        , content
-        , gradesContent
-        , navigation
-        ]
+    gradeName <- UI.input #. "input" # set (attr "id") "focusGrade" # set UI.type_ "text"
+    gradesContent <- gradesView env gradeName bLocationFile bGrades
+
+
+    view <- UI.div #+ fmap element
+        [tabs', content, gradesContent, navigation]
+
+    void $ UI.getBody win #+ fmap element [view]
+
+    grades <- currentValue bGrades
+    _ <- element gradeName # set value (unGrade (extract (unGrades grades)))
+    UI.setFocus gradeName

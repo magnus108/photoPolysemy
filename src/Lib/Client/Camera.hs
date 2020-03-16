@@ -12,6 +12,7 @@ import Lib.Client.Tab
 
 import Lib.App (Env(..), Files(..))
 
+import Lib.Client.Utils
 import Lib.Client.Element
 import Utils.Comonad
 import Utils.ListZipper (focus)
@@ -20,35 +21,39 @@ import qualified Utils.ListZipper as ListZipper
 import Control.Concurrent.MVar
 
 
-camerasSection :: Env -> Cameras -> Tabs -> UI Element
-camerasSection env@Env{..} cameras tabs = do
+camerasSection :: Env -> Window -> Behavior Cameras -> Tabs -> UI ()
+camerasSection env@Env{..} win bCameras tabs = do
 
-    content <- mkCameras env cameras
+    content <- mkCameras env bCameras
 
     tabs' <- mkTabs env tabs
     navigation <- mkNavigation env tabs
 
-    UI.div #+ fmap element
+    view <- UI.div #+ fmap element
         [ tabs'
         , content
         , navigation
         ]
 
+    void $ UI.getBody win #+ fmap element [view]
 
-mkCameras :: Env -> Cameras -> UI Element
-mkCameras env (Cameras cameras) = do
-    cameras' <- mapM (mkCamera env) elems
-    UI.div #. "buttons has-addons" #+ fmap element (ListZipper.toList cameras')
-        where 
-            --TODO Lav en indexedmap for zippers
-            currentCamera = focus cameras
-            elems = cameras =>> \cameras'' ->
-                let
-                    thisCamera = focus cameras''
-                in
-                    ( thisCamera
-                    , thisCamera == currentCamera
-                    , Cameras cameras'')
+
+mkCameras :: Env -> Behavior Cameras -> UI Element
+mkCameras env bCameras = do
+    let bCameras' = bCameras <&> \(Cameras cameras) -> do
+            let currentCamera = focus cameras
+            let elems = cameras =>> \cameras'' -> let
+                        thisCamera = focus cameras''
+                    in
+                        ( thisCamera
+                        , thisCamera == currentCamera
+                        , Cameras cameras''
+                        )
+            x <- mapM (mkCamera env) elems
+            UI.div #. "buttons has-addons" #+ fmap element (ListZipper.toList x)
+
+    UI.div # sink items (fmap return bCameras')
+
 
 
 mkCamera :: Env -> (Camera, Bool, Cameras) -> UI Element

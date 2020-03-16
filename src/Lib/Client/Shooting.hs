@@ -12,6 +12,7 @@ import Lib.Client.Tab
 
 import Lib.App (Env(..), Files(..))
 
+import Lib.Client.Utils
 import Lib.Client.Element
 import Utils.Comonad
 import Utils.ListZipper (focus)
@@ -20,35 +21,38 @@ import qualified Utils.ListZipper as ListZipper
 import Control.Concurrent.MVar
 
 
-shootingsSection :: Env -> Shootings -> Tabs -> UI Element
-shootingsSection env@Env{..} shootings tabs = do
+shootingsSection :: Env -> Window -> Behavior Shootings -> Tabs -> UI ()
+shootingsSection env@Env{..} win bShootings tabs = do
 
-    content <- mkShootings env shootings
+    content <- mkShootings env bShootings
 
     tabs' <- mkTabs env tabs
     navigation <- mkNavigation env tabs
 
-    UI.div #+ fmap element
+    view <- UI.div #+ fmap element
         [ tabs'
         , content
         , navigation
         ]
 
+    void $ UI.getBody win #+ fmap element [view]
 
-mkShootings :: Env -> Shootings -> UI Element
-mkShootings env (Shootings shootings) = do
-    shootings' <- mapM (mkShooting env) elems
-    UI.div #. "buttons has-addons" #+ fmap element (ListZipper.toList shootings')
-        where 
-            --TODO Lav en indexedmap for zippers
-            currentShooting = focus shootings
-            elems = shootings =>> \shootings'' ->
-                let
-                    thisShooting = focus shootings''
-                in
-                    ( thisShooting
-                    , thisShooting == currentShooting
-                    , Shootings shootings'')
+
+mkShootings :: Env -> Behavior Shootings -> UI Element
+mkShootings env bShootings = do
+    let bShootings' = bShootings <&> \(Shootings shootings) -> do
+            let currentShooting = focus shootings
+            let elems = shootings =>> \shootings'' -> let
+                        thisShooting = focus shootings''
+                    in
+                        ( thisShooting
+                        , thisShooting == currentShooting
+                        , Shootings shootings''
+                        )
+            x <- mapM (mkShooting env) elems
+            UI.div #. "buttons has-addons" #+ fmap element (ListZipper.toList x)
+
+    UI.div # sink items (fmap return bShootings')
 
 
 mkShooting :: Env -> (Shooting, Bool, Shootings) -> UI Element

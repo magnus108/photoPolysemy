@@ -34,25 +34,21 @@ import Lib.Client.Photographer
 import Utils.ListZipper (focus)
 
 
-items :: WriteAttr Element (UI Element)
-items = mkWriteAttr $ \item container -> void $
-    element container # set children [] #+ [item]
-
-
-tabsView :: Env -> Grades -> LocationFile -> Sessions -> Shootings -> Cameras -> Dump -> Doneshooting -> Dagsdato -> DagsdatoBackup -> Photographers -> Tabs -> UI Element
-tabsView env grades locationFile sessions shootings cameras dump doneshooting dagsdato dagsdatoBackup photographers tabs = do
+view :: Env -> Window -> Behavior Grades -> Behavior LocationFile -> Behavior Sessions -> Behavior Shootings -> Behavior Cameras -> Behavior Dump -> Behavior Doneshooting -> Behavior Dagsdato -> Behavior DagsdatoBackup -> Behavior Photographers -> Behavior Tabs -> UI ()
+view env win bGrades bLocationFile bSessions bShootings bCameras bDump bDoneshooting bDagsdato bDagsdatoBackup bPhotographers bTabs = do
+    tabs <- currentValue bTabs
     let currentTab = focus (unTabs tabs)
     case currentTab of
-        DumpTab -> dumpSection env dump tabs
-        DoneshootingTab -> doneshootingSection env doneshooting tabs
-        PhotographersTab -> photographersSection env photographers tabs
-        ShootingsTab -> shootingsSection env shootings tabs
-        SessionsTab -> sessionsSection env sessions tabs
-        CamerasTab -> camerasSection env cameras tabs
-        DagsdatoTab -> dagsdatoSection env dagsdato tabs
-        DagsdatoBackupTab -> dagsdatoBackupSection env dagsdatoBackup tabs
-        LocationTab -> locationSection env locationFile grades tabs
-        _ -> UI.div #+ [dagsdatoSection env dagsdato tabs] -- menus currentTab tabs
+        DumpTab -> dumpSection env win bDump tabs
+        DoneshootingTab -> doneshootingSection env win bDoneshooting tabs
+        PhotographersTab -> photographersSection env win bPhotographers tabs
+        ShootingsTab -> shootingsSection env win bShootings tabs
+        SessionsTab -> sessionsSection env win bSessions tabs
+        CamerasTab -> camerasSection env win bCameras tabs
+        DagsdatoTab -> dagsdatoSection env win bDagsdato tabs
+        DagsdatoBackupTab -> dagsdatoBackupSection env win bDagsdatoBackup tabs
+        LocationTab -> locationSection env win bLocationFile bGrades tabs
+        _ -> return ()
 
 
 
@@ -91,41 +87,14 @@ run port env@Env{..} eGrades eLocationConfigFile eSessions eShootings eCameras e
 
         bGrades <- stepper grades eGrades
 
-        list <- UI.div # sink items (fmap (tabsView env)
-                                            bGrades
-                                            <*> bLocationFile
-                                            <*> bSessions
-                                            <*> bShootings
-                                            <*> bCameras
-                                            <*> bDump
-                                            <*> bDoneshooting
-                                            <*> bDagsdato
-                                            <*> bDagsdatoBackup
-                                            <*> bPhotographers
-                                            <*> bTabs)
 
-        void $ UI.getBody win #+
-            fmap element [list]
-
-        --bAccept <- stepper "" eAccept
-        --entree <- UI.entry $ (\x -> x) <$> bAccept
-        --_ <- element entree # set (attr "size") "10" # set style [("width","200px")]
-
-        --myButton <- UI.button # set text "Click me!"
-
-        --kig crud cuz this wont work
-        --val <- liftIO $ withMVar files $ \ Files{..} -> do
-        --   (Doneshooting path) <- getDoneshooting doneshooting
-        ---newIORef path
-
-        {--
-        nick <- liftIO $ readIORef val
-        names <- string nick
-
-        UI.on UI.click myButton $ \_ -> liftIO $
-            withMVar files $ \ Files{..} -> do
-                (Doneshooting path) <- getDoneshooting doneshooting
-                writeFile (path </> "foo.txt") "gg"
-
-        --}
+        view env win bGrades bLocationFile bSessions
+                                            bShootings
+                                            bCameras
+                                            bDump
+                                            bDoneshooting
+                                            bDagsdato
+                                            bDagsdatoBackup
+                                            bPhotographers
+                                            bTabs
 

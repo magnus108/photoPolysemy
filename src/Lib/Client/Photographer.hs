@@ -12,6 +12,7 @@ import Lib.Client.Tab
 
 import Lib.App (Env(..), Files(..))
 
+import Lib.Client.Utils
 import Lib.Client.Element
 import Utils.Comonad
 import Utils.ListZipper (focus)
@@ -20,35 +21,38 @@ import qualified Utils.ListZipper as ListZipper
 import Control.Concurrent.MVar
 
 
-photographersSection :: Env -> Photographers -> Tabs -> UI Element
-photographersSection env@Env{..} photographers tabs = do
+photographersSection :: Env -> Window -> Behavior Photographers -> Tabs -> UI ()
+photographersSection env@Env{..} win bPhotographers tabs = do
 
-    content <- mkPhotographers env photographers
+    content <- mkPhotographers env bPhotographers
 
     tabs' <- mkTabs env tabs
     navigation <- mkNavigation env tabs
 
-    UI.div #+ fmap element
+    view <- UI.div #+ fmap element
         [ tabs'
         , content
         , navigation
         ]
 
+    void $ UI.getBody win #+ fmap element [view]
 
-mkPhotographers :: Env -> Photographers -> UI Element
-mkPhotographers env (Photographers photographers) = do
-    photographers' <- mapM (mkPhotographer env) elems
-    UI.div #. "buttons has-addons" #+ fmap element (ListZipper.toList photographers')
-        where 
-            --TODO Lav en indexedmap for zippers
-            currentPhotographer = focus photographers
-            elems = photographers =>> \photographers'' ->
-                let
-                    thisPhotographer = focus photographers''
-                in
-                    ( thisPhotographer
-                    , thisPhotographer == currentPhotographer
-                    , Photographers photographers'')
+
+mkPhotographers :: Env -> Behavior Photographers -> UI Element
+mkPhotographers env bPhotographers = do
+    let bPhotographers' = bPhotographers <&> \(Photographers photographers) -> do
+            let currentPhotographer = focus photographers
+            let elems = photographers =>> \photographers''-> let
+                        thisPhotographer = focus photographers''
+                    in
+                        ( thisPhotographer
+                        , thisPhotographer == currentPhotographer
+                        , Photographers photographers''
+                        )
+            x <- mapM (mkPhotographer env) elems
+            UI.div #. "buttons has-addons" #+ fmap element (ListZipper.toList x)
+
+    UI.div # sink items (fmap return bPhotographers')
 
 
 mkPhotographer :: Env -> (Photographer, Bool, Photographers) -> UI Element

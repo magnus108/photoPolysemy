@@ -12,6 +12,7 @@ import Lib.Tab
 import Lib.Session
 import Lib.Client.Tab
 
+import Lib.Client.Utils
 import Lib.App (Env(..),Files(..))
 import Lib.Client.Element
 import Control.Concurrent.MVar
@@ -20,28 +21,32 @@ import Utils.RoseTree as RT
 import Utils.TreeZipper
 
 
-sessionsSection :: Env -> Sessions -> Tabs -> UI Element
-sessionsSection env@Env{..} sessions tabs = do
+sessionsSection :: Env -> Window -> Behavior Sessions -> Tabs -> UI ()
+sessionsSection env@Env{..} win bSessions tabs = do
 
-    content <- mkSessions env sessions
+    let content = mkSessions env bSessions
 
-    tabs' <- mkTabs env tabs
-    navigation <- mkNavigation env tabs
+    let tabs' = mkTabs env tabs
+    let navigation = mkNavigation env tabs
 
-    UI.div #+ fmap element
-        [ tabs'
-        , content
-        , navigation
-        ]
+    view <- UI.div # sink items
+        (sequenceA
+            [ pure tabs'
+            , content
+            , pure navigation
+            ])
+
+    void $ UI.getBody win #+ fmap element [view]
 
 
-mkSessions :: Env -> Sessions -> UI Element
-mkSessions env (Sessions sessions) = case sessions of
-    (TreeZipper _ []) -> mkSessions' env (Sessions sessions)
-    (TreeZipper _ (Context _ f _:_)) -> do
-        children' <- mkSessions' env (Sessions sessions)
-        parent <- mkParent env (Sessions sessions) f
-        UI.div #+ fmap element [parent, children']
+mkSessions :: Env -> Behavior Sessions -> Behavior (UI Element)
+mkSessions env bSessions = bSessions <&> \(Sessions sessions) -> case sessions of
+        (TreeZipper _ []) -> mkSessions' env (Sessions sessions)
+        (TreeZipper _ (Context _ f _:_)) -> do
+            children' <- mkSessions' env (Sessions sessions)
+            parent <- mkParent env (Sessions sessions) f
+            UI.div #+ fmap element [parent, children']
+
 
 mkSessions' :: Env -> Sessions -> UI Element
 mkSessions' env (Sessions sessions) = do
