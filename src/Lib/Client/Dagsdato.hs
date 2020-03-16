@@ -18,17 +18,17 @@ import Control.Concurrent.MVar (withMVar)
 
 dagsdatoView :: Env -> Behavior Dagsdato -> UI Element
 dagsdatoView Env{..} bDagsdato = do
-    let title_ = UI.div #+ [UI.string "Dagsdato mappe"]
-    let content = bDagsdato <&> \(Dagsdato dagsdato) -> UI.div #+ [UI.string dagsdato]
+    title_ <- UI.div #+ [UI.string "Dagsdato mappe"]
+    content <- UI.div # sink items (bDagsdato <&> \(Dagsdato dagsdato) -> [UI.string dagsdato])
 
-    let picker = UI.div #+
+    picker <- UI.div #+
             [ mkFolderPicker "dagsdatoPicker" "Vælg config folder" $ \folder ->
                 when (folder /= "") $
                     withMVar files $ \ Files{..} ->
                         writeFile dagsdatoFile (show folder)
             ]
 
-    UI.div # sink items (sequenceA [ pure title_, content, pure picker])
+    UI.div #+ fmap element [title_, content, picker]
 
 
 dagsdatoSection :: Env -> Window -> Behavior Dagsdato -> Tabs -> UI ()

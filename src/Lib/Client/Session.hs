@@ -24,29 +24,33 @@ import Utils.TreeZipper
 sessionsSection :: Env -> Window -> Behavior Sessions -> Tabs -> UI ()
 sessionsSection env@Env{..} win bSessions tabs = do
 
-    let content = mkSessions env bSessions
+    content <- mkSessions env bSessions
 
-    let tabs' = mkTabs env tabs
-    let navigation = mkNavigation env tabs
+    tabs' <- mkTabs env tabs
+    navigation <- mkNavigation env tabs
 
-    view <- UI.div # sink items
-        (sequenceA
-            [ pure tabs'
+    view <- UI.div #+ fmap element
+            [ tabs'
             , content
-            , pure navigation
-            ])
+            , navigation
+            ]
 
     void $ UI.getBody win #+ fmap element [view]
 
 
-mkSessions :: Env -> Behavior Sessions -> Behavior (UI Element)
-mkSessions env bSessions = bSessions <&> \(Sessions sessions) -> case sessions of
-        (TreeZipper _ []) -> mkSessions' env (Sessions sessions)
-        (TreeZipper _ (Context _ f _:_)) -> do
-            children' <- mkSessions' env (Sessions sessions)
-            parent <- mkParent env (Sessions sessions) f
-            UI.div #+ fmap element [parent, children']
+-- TODO this is no good
+mkSessions :: Env -> Behavior Sessions -> UI Element
+mkSessions env bSessions = do
+    let bSessions' = bSessions <&> \(Sessions sessions) -> case sessions of
+            (TreeZipper _ []) -> do
+                let children' = mkSessions' env (Sessions sessions)
+                [children']
+            (TreeZipper _ (Context _ f _:_)) -> do
+                let parent = mkParent env (Sessions sessions) f
+                let children' =mkSessions' env (Sessions sessions)
+                [parent, children']
 
+    UI.div # sink items bSessions'
 
 mkSessions' :: Env -> Sessions -> UI Element
 mkSessions' env (Sessions sessions) = do
@@ -84,6 +88,7 @@ mkSession' Env{..} (Sessions sessions) session = do
             --TODO get rid of either by using extend
             mapM_ (writeSessions sessionsFile) (fmap Sessions (up sessions))
     return chooseButton
+
 
 mkDecision :: Env -> Sessions -> Decisions -> UI Element
 mkDecision Env{..} (Sessions sessions) decision = do

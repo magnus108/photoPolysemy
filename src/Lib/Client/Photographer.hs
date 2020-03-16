@@ -49,10 +49,11 @@ mkPhotographers env bPhotographers = do
                         , thisPhotographer == currentPhotographer
                         , Photographers photographers''
                         )
-            x <- mapM (mkPhotographer env) elems
-            UI.div #. "buttons has-addons" #+ fmap element (ListZipper.toList x)
+            let photographers' = fmap (mkPhotographer env) elems
 
-    UI.div # sink items (fmap return bPhotographers')
+            ListZipper.toList photographers'
+
+    UI.div #. "buttons has-addons" # sink items bPhotographers'
 
 
 mkPhotographer :: Env -> (Photographer, Bool, Photographers) -> UI Element

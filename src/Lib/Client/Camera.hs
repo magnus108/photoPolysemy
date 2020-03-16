@@ -49,10 +49,10 @@ mkCameras env bCameras = do
                         , thisCamera == currentCamera
                         , Cameras cameras''
                         )
-            x <- mapM (mkCamera env) elems
-            UI.div #. "buttons has-addons" #+ fmap element (ListZipper.toList x)
+            let cameras' = fmap (mkCamera env) elems
+            ListZipper.toList cameras'
 
-    UI.div # sink items (fmap return bCameras')
+    UI.div #. "buttons has-addons" # sink items bCameras'
 
 
 

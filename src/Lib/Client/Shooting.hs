@@ -49,10 +49,10 @@ mkShootings env bShootings = do
                         , thisShooting == currentShooting
                         , Shootings shootings''
                         )
-            x <- mapM (mkShooting env) elems
-            UI.div #. "buttons has-addons" #+ fmap element (ListZipper.toList x)
+            let shootings' = fmap (mkShooting env) elems
+            ListZipper.toList shootings'
 
-    UI.div # sink items (fmap return bShootings')
+    UI.div #. "buttons has-addons" # sink items bShootings'
 
 
 mkShooting :: Env -> (Shooting, Bool, Shootings) -> UI Element

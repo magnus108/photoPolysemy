@@ -20,8 +20,9 @@ dumpView Env{..} bDump = do
 
     title_ <- UI.div #+ [UI.string "Dump mappe"]
 
-    let content' = bDump <&> \(Dump dump) -> UI.string (show dump)
-    content <- UI.div # sink items (sequenceA [content'])
+    let content' = bDump <&> \(Dump dump) -> [UI.string (show dump)]
+
+    content <- UI.div # sink items content'
 
     picker <- UI.div #+
         [ mkFolderPicker "dumpPicker" "Vælg config folder" $ \folder ->

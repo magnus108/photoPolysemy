@@ -18,18 +18,18 @@ import Control.Concurrent.MVar (withMVar)
 
 doneshootingView :: Env -> Behavior Doneshooting -> UI Element
 doneshootingView Env{..} bDoneshooting = do
-    let title_ = UI.div #+ [UI.string "Doneshooting mappe"]
+    title_ <- UI.div #+ [UI.string "Doneshooting mappe"]
 
-    let content = bDoneshooting <&> \(Doneshooting doneshooting) -> UI.div #+ [UI.string doneshooting]
+    content <- UI.div # sink items (bDoneshooting <&> \(Doneshooting doneshooting) -> [UI.string doneshooting])
 
-    let picker = UI.div #+
+    picker <- UI.div #+
             [ mkFolderPicker "doneshootingPicker" "Vælg config folder" $ \folder ->
                 when (folder /= "") $
                     withMVar files $ \ Files{..} ->
                         writeFile doneshootingFile (show folder)
             ]
 
-    UI.div # sink items (sequenceA [pure title_, content, pure picker])
+    UI.div #+ fmap element [title_, content, picker]
 
 
 doneshootingSection :: Env -> Window -> Behavior Doneshooting -> Tabs -> UI ()
