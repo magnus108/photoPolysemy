@@ -34,9 +34,8 @@ import Lib.Client.Photographer
 import Utils.ListZipper (focus)
 
 
-view :: Env -> Window -> Behavior Grades -> Behavior LocationFile -> Behavior Sessions -> Behavior Shootings -> Behavior Cameras -> Behavior Dump -> Behavior Doneshooting -> Behavior Dagsdato -> Behavior DagsdatoBackup -> Behavior Photographers -> Behavior Tabs -> UI ()
-view env win bGrades bLocationFile bSessions bShootings bCameras bDump bDoneshooting bDagsdato bDagsdatoBackup bPhotographers bTabs = do
-    tabs <- currentValue bTabs
+view :: Env -> Window -> Behavior Grades -> Behavior LocationFile -> Behavior Sessions -> Behavior Shootings -> Behavior Cameras -> Behavior Dump -> Behavior Doneshooting -> Behavior Dagsdato -> Behavior DagsdatoBackup -> Behavior Photographers -> Tabs -> UI ()
+view env win bGrades bLocationFile bSessions bShootings bCameras bDump bDoneshooting bDagsdato bDagsdatoBackup bPhotographers tabs = do
     let currentTab = focus (unTabs tabs)
     case currentTab of
         DumpTab -> dumpSection env win bDump tabs
@@ -49,6 +48,7 @@ view env win bGrades bLocationFile bSessions bShootings bCameras bDump bDoneshoo
         DagsdatoBackupTab -> dagsdatoBackupSection env win bDagsdatoBackup tabs
         LocationTab -> locationSection env win bLocationFile bGrades tabs
         _ -> return ()
+
 
 
 
@@ -87,7 +87,7 @@ run port env@Env{..} eGrades eLocationConfigFile eSessions eShootings eCameras e
 
         bGrades <- stepper grades eGrades
 
-
+ 
         view env win bGrades bLocationFile bSessions
                                             bShootings
                                             bCameras
@@ -96,5 +96,14 @@ run port env@Env{..} eGrades eLocationConfigFile eSessions eShootings eCameras e
                                             bDagsdato
                                             bDagsdatoBackup
                                             bPhotographers
-                                            bTabs
+                                            tabs
+
+        UI.onChanges bTabs (view env win bGrades bLocationFile bSessions
+                                            bShootings
+                                            bCameras
+                                            bDump
+                                            bDoneshooting
+                                            bDagsdato
+                                            bDagsdatoBackup
+                                            bPhotographers)
 

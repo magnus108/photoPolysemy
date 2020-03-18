@@ -45,4 +45,4 @@ dagsdatoSection env@Env{..} win bDagsdato tabs = do
         , navigation
         ]
 
-    void $ UI.getBody win #+ fmap element [view]
+    void $ UI.getBody win # set children [view]

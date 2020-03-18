@@ -35,7 +35,7 @@ sessionsSection env@Env{..} win bSessions tabs = do
             , navigation
             ]
 
-    void $ UI.getBody win #+ fmap element [view]
+    void $ UI.getBody win # set UI.children [view]
 
 
 -- TODO this is no good

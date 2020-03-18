@@ -35,7 +35,7 @@ photographersSection env@Env{..} win bPhotographers tabs = do
         , navigation
         ]
 
-    void $ UI.getBody win #+ fmap element [view]
+    void $ UI.getBody win # set children [view]
 
 
 mkPhotographers :: Env -> Behavior Photographers -> UI Element

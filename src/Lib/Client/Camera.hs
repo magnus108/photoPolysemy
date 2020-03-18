@@ -35,7 +35,7 @@ camerasSection env@Env{..} win bCameras tabs = do
         , navigation
         ]
 
-    void $ UI.getBody win #+ fmap element [view]
+    void $ UI.getBody win # set children [view]
 
 
 mkCameras :: Env -> Behavior Cameras -> UI Element

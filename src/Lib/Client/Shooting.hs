@@ -35,7 +35,7 @@ shootingsSection env@Env{..} win bShootings tabs = do
         , navigation
         ]
 
-    void $ UI.getBody win #+ fmap element [view]
+    void $ UI.getBody win # set children [view]
 
 
 mkShootings :: Env -> Behavior Shootings -> UI Element

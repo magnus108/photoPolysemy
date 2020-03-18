@@ -3,6 +3,8 @@ module Lib.Client.Location
     ) where
 
 import Lib.Client.Utils
+
+import Reactive.Threepenny
 import Graphics.UI.Threepenny.Core
 import qualified Graphics.UI.Threepenny as UI
 
@@ -18,6 +20,8 @@ import Lib.Client.Element
 import Lib.App (Env(..), Files(..))
 import Control.Concurrent.MVar (withMVar)
 
+
+import Lib.Client.Widgets.Entry
 
 locationFileView :: Env -> Behavior LocationFile -> UI Element
 locationFileView Env{..} bLocationFile = do
@@ -69,7 +73,8 @@ mkGrade :: Env -> (Int, Bool, Element, Grade, Grades) -> UI Element
 mkGrade Env{..} (thisIndex, isCenter, selector, grade, grades) = do
     UI.on UI.selectionChange selector $ \pickedIndex ->
         when (fromMaybe (-1) pickedIndex == thisIndex) $
-            liftIO $ withMVar files $ \ Files{..} ->
+            liftIO $ withMVar files $ \ Files{..} -> do
+                putStrLn (show (extract (unGrades grades)))
                 writeGrades gradesFile grades
 
     let name = show grade
@@ -80,29 +85,32 @@ mkGrade Env{..} (thisIndex, isCenter, selector, grade, grades) = do
         option # set (UI.attr "selected") ""
     else
         option
+        
 
 
 gradesView :: Env -> Element -> Behavior LocationFile -> Behavior Grades -> UI Element
 gradesView env@Env{..} input _ bGrades = do
     gradeInsert <- mkButton "insert" "Tilføj ny"
     UI.on UI.click gradeInsert $ \_ -> do
-            liftIO $ withMVar files $ \ Files{..} -> do
-                --TODO fix this up
-                grades <- currentValue bGrades
-                writeGrades gradesFile $ Grades $ ListZipper.insert (unGrades grades) (Grade "")
-            _ <- element input # set value ""
-            UI.setFocus input
+        liftIO $ withMVar files $ \ Files{..} -> do
+            --TODO fix this up
+            grades <- currentValue bGrades
+            writeGrades gradesFile $ Grades $ ListZipper.insert (unGrades grades) (Grade "")
+        UI.setFocus input
 
 
     view <- mkGrades env bGrades
 
+    {-
     UI.on UI.keyup input $ const $ do
-            val <- UI.get value input
-            liftIO $ withMVar files $ \ Files{..} -> do
-                    grades <- currentValue bGrades
-                    writeGrades gradesFile $
-                        Grades $ ListZipper.mapFocus (\_ -> Grade val) (unGrades grades)
-
+        val <- UI.get value input
+        liftIOLater $ withMVar files $ \ Files{..} -> do
+            grades <- currentValue bGrades
+            putStrLn (show (extract (unGrades grades)))
+            putStrLn (show (val))
+            writeGrades gradesFile $
+                Grades $ ListZipper.mapFocus (\_ -> Grade val) (unGrades grades)
+                -}
 
     UI.div #+ fmap element [gradeInsert, view, input]
 
@@ -113,15 +121,24 @@ locationSection env@Env{..} win bLocationFile bGrades tabs = do
     tabs' <- mkTabs env tabs
     navigation <- mkNavigation env tabs
 
-    gradeName <- UI.input #. "input" # set (attr "id") "focusGrade" # set UI.type_ "text"
-    gradesContent <- gradesView env gradeName bLocationFile bGrades
+------------------------------------------------------------------------------
+    inputEntry <- entry win bGrades
+    let tText = userText inputEntry
+    let bGrade = facts tText
+    let eGrade = rumors tText
+    let input = getElement inputEntry
 
+    test <- UI.p # sink text (bGrades <&> show)
 
-    view <- UI.div #+ fmap element
-        [tabs', content, gradesContent, navigation]
+    onEvent eGrade $ \e ->
+        liftIO $ withMVar files $ \ Files{..} -> writeGrades gradesFile e
 
-    void $ UI.getBody win #+ fmap element [view]
+------------------------------------------------------------------------------
 
-    grades <- currentValue bGrades
-    _ <- element gradeName # set value (unGrade (extract (unGrades grades)))
-    UI.setFocus gradeName
+    --gradesContent <- gradesView env input bLocationFile bGrades
+
+    view <- UI.div #+ fmap element [tabs', input, test, content, {-gradesContent, -} navigation]
+
+    void $ UI.getBody win # set children [view]
+
+    UI.setFocus input

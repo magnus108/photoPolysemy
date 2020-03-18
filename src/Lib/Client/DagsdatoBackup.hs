@@ -46,4 +46,4 @@ dagsdatoBackupSection env@Env{..} win bDagsdatoBackup tabs = do
         , navigation
         ]
 
-    void $ UI.getBody win #+ fmap element [view]
+    void $ UI.getBody win # set children [view]
