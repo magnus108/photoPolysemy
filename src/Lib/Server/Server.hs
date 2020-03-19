@@ -34,8 +34,8 @@ import Lib.Client.Photographer
 import Utils.ListZipper (focus)
 
 
-view :: Env -> Window -> Grades -> Event Grades -> Behavior LocationFile -> Behavior Sessions -> Behavior Shootings -> Behavior Cameras -> Behavior Dump -> Behavior Doneshooting -> Behavior Dagsdato -> Behavior DagsdatoBackup -> Behavior Photographers -> Tabs -> UI ()
-view env win grades eGrades bLocationFile bSessions bShootings bCameras bDump bDoneshooting bDagsdato bDagsdatoBackup bPhotographers tabs = do
+view :: Env -> Window -> Event Grades -> Behavior LocationFile -> Behavior Sessions -> Behavior Shootings -> Behavior Cameras -> Behavior Dump -> Behavior Doneshooting -> Behavior Dagsdato -> Behavior DagsdatoBackup -> Behavior Photographers -> Tabs -> UI ()
+view env win eGrades bLocationFile bSessions bShootings bCameras bDump bDoneshooting bDagsdato bDagsdatoBackup bPhotographers tabs = do
     let currentTab = focus (unTabs tabs)
     case currentTab of
         DumpTab -> dumpSection env win bDump tabs
@@ -46,7 +46,7 @@ view env win grades eGrades bLocationFile bSessions bShootings bCameras bDump bD
         CamerasTab -> camerasSection env win bCameras tabs
         DagsdatoTab -> dagsdatoSection env win bDagsdato tabs
         DagsdatoBackupTab -> dagsdatoBackupSection env win bDagsdatoBackup tabs
-        LocationTab -> locationSection env win bLocationFile grades eGrades tabs
+        LocationTab -> locationSection env win bLocationFile eGrades tabs
         _ -> return ()
 
 
@@ -64,7 +64,6 @@ run port env@Env{..} eGrades eLocationConfigFile eSessions eShootings eCameras e
     dagsdatoBackup <- withMVar files $ \ Files{..} -> getDagsdatoBackup dagsdatoBackupFile
     dump <- withMVar files $ \ Files{..} -> getDump dumpFile
     locationFile <- withMVar files $ \ Files{..} -> getLocationFile locationConfigFile
-    grades <- withMVar files $ \ Files{..} -> getGrades gradesFile
 
     startGUI defaultConfig
         { jsWindowReloadOnDisconnect = False
@@ -87,7 +86,7 @@ run port env@Env{..} eGrades eLocationConfigFile eSessions eShootings eCameras e
 
 
  
-        view env win grades eGrades bLocationFile bSessions
+        view env win eGrades bLocationFile bSessions
                                             bShootings
                                             bCameras
                                             bDump
@@ -97,7 +96,7 @@ run port env@Env{..} eGrades eLocationConfigFile eSessions eShootings eCameras e
                                             bPhotographers
                                             tabs
 
-        UI.onChanges bTabs (view env win grades eGrades bLocationFile bSessions
+        UI.onChanges bTabs (view env win eGrades bLocationFile bSessions
                                             bShootings
                                             bCameras
                                             bDump
