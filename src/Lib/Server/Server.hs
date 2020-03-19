@@ -34,8 +34,8 @@ import Lib.Client.Photographer
 import Utils.ListZipper (focus)
 
 
-view :: Env -> Window -> Behavior Grades -> Behavior LocationFile -> Behavior Sessions -> Behavior Shootings -> Behavior Cameras -> Behavior Dump -> Behavior Doneshooting -> Behavior Dagsdato -> Behavior DagsdatoBackup -> Behavior Photographers -> Tabs -> UI ()
-view env win bGrades bLocationFile bSessions bShootings bCameras bDump bDoneshooting bDagsdato bDagsdatoBackup bPhotographers tabs = do
+view :: Env -> Window -> Grades -> Event Grades -> Behavior LocationFile -> Behavior Sessions -> Behavior Shootings -> Behavior Cameras -> Behavior Dump -> Behavior Doneshooting -> Behavior Dagsdato -> Behavior DagsdatoBackup -> Behavior Photographers -> Tabs -> UI ()
+view env win grades eGrades bLocationFile bSessions bShootings bCameras bDump bDoneshooting bDagsdato bDagsdatoBackup bPhotographers tabs = do
     let currentTab = focus (unTabs tabs)
     case currentTab of
         DumpTab -> dumpSection env win bDump tabs
@@ -46,7 +46,7 @@ view env win bGrades bLocationFile bSessions bShootings bCameras bDump bDoneshoo
         CamerasTab -> camerasSection env win bCameras tabs
         DagsdatoTab -> dagsdatoSection env win bDagsdato tabs
         DagsdatoBackupTab -> dagsdatoBackupSection env win bDagsdatoBackup tabs
-        LocationTab -> locationSection env win bLocationFile bGrades tabs
+        LocationTab -> locationSection env win bLocationFile grades eGrades tabs
         _ -> return ()
 
 
@@ -85,10 +85,9 @@ run port env@Env{..} eGrades eLocationConfigFile eSessions eShootings eCameras e
         bDump <- stepper dump eDump
         bLocationFile <- stepper locationFile eLocationConfigFile
 
-        bGrades <- stepper grades eGrades
 
  
-        view env win bGrades bLocationFile bSessions
+        view env win grades eGrades bLocationFile bSessions
                                             bShootings
                                             bCameras
                                             bDump
@@ -98,7 +97,7 @@ run port env@Env{..} eGrades eLocationConfigFile eSessions eShootings eCameras e
                                             bPhotographers
                                             tabs
 
-        UI.onChanges bTabs (view env win bGrades bLocationFile bSessions
+        UI.onChanges bTabs (view env win grades eGrades bLocationFile bSessions
                                             bShootings
                                             bCameras
                                             bDump

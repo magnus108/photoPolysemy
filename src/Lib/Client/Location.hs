@@ -1,6 +1,9 @@
+{-# LANGUAGE RecursiveDo #-}
 module Lib.Client.Location
     ( locationSection
     ) where
+
+import qualified Relude.Unsafe as Unsafe (head)
 
 import Lib.Client.Utils
 
@@ -46,9 +49,14 @@ locationFileView Env{..} bLocationFile = do
 
 
 mkGrades :: Env -> Behavior Grades -> UI Element
-mkGrades env bGrades = do
-    selector <- UI.select
+mkGrades env bGrades = mdo
+    let bb = bGrades <&> unGrades <&> ListZipper.toList <&> (\xs -> fmap (\x -> UI.option # set text (unGrade x) # set value (unGrade x)) xs)
+    selector <- UI.select # sink items bb
+    let e1 = UI.selectionChange selector
+    
+    return selector
 
+    {-
     let elements' = bGrades <&> (\grades -> do
             let currentGrade = extract (unGrades grades)
             let elems = ListZipper.iextend (\index grades'' ->
@@ -67,6 +75,7 @@ mkGrades env bGrades = do
             )
 
     element selector # sink items elements'
+    -}
 
 
 mkGrade :: Env -> (Int, Bool, Element, Grade, Grades) -> UI Element
@@ -74,7 +83,6 @@ mkGrade Env{..} (thisIndex, isCenter, selector, grade, grades) = do
     UI.on UI.selectionChange selector $ \pickedIndex ->
         when (fromMaybe (-1) pickedIndex == thisIndex) $
             liftIO $ withMVar files $ \ Files{..} -> do
-                putStrLn (show (extract (unGrades grades)))
                 writeGrades gradesFile grades
 
     let name = show grade
@@ -101,44 +109,39 @@ gradesView env@Env{..} input _ bGrades = do
 
     view <- mkGrades env bGrades
 
-    {-
-    UI.on UI.keyup input $ const $ do
-        val <- UI.get value input
-        liftIOLater $ withMVar files $ \ Files{..} -> do
-            grades <- currentValue bGrades
-            putStrLn (show (extract (unGrades grades)))
-            putStrLn (show (val))
-            writeGrades gradesFile $
-                Grades $ ListZipper.mapFocus (\_ -> Grade val) (unGrades grades)
-                -}
+    select <- UI.div #+ fmap element [view, input]
+    UI.div #+ fmap element [gradeInsert, select]
 
-    UI.div #+ fmap element [gradeInsert, view, input]
-
-locationSection :: Env -> Window -> Behavior LocationFile -> Behavior Grades -> Tabs -> UI ()
-locationSection env@Env{..} win bLocationFile bGrades tabs = do
+locationSection :: Env -> Window -> Behavior LocationFile -> Grades -> Event Grades -> Tabs -> UI ()
+locationSection env@Env{..} win bLocationFile grades eGrades tabs = mdo
     content <- locationFileView env bLocationFile
+
+------------------------------------------------------------------------------
+    eentry <- UI.input # set value (unGrade (extract (unGrades grades)))
+                    # set (attr "id") "focusGrade"
+                    # set UI.type_ "text"
+
+    let e1 = UI.valueChange eentry
+    be <- stepper grades eGrades
+    let ebeh = fmap (\b i -> Grades (ListZipper.mapFocus (\y -> Grade i) (unGrades b))) be <@> e1
+
+    bEditing <- stepper False $ and <$>
+        unions [True <$ UI.focus eentry, False <$ UI.blur eentry]
+
+    liftIO $ onChange be $ \s -> runUI win $ do
+        editing <- liftIO $ currentValue bEditing
+        unless editing $ void $ element eentry # set value (unGrade (extract (unGrades s)))
+
+    onEvent ebeh $ \e ->
+        liftIO $ withMVar files $ \ Files{..} -> writeGrades gradesFile e
+------------------------------------------------------------------------------
+    gradesContent <- gradesView env eentry bLocationFile be
 
     tabs' <- mkTabs env tabs
     navigation <- mkNavigation env tabs
 
-------------------------------------------------------------------------------
-    inputEntry <- entry win bGrades
-    let tText = userText inputEntry
-    let bGrade = facts tText
-    let eGrade = rumors tText
-    let input = getElement inputEntry
-
-    test <- UI.p # sink text (bGrades <&> show)
-
-    onEvent eGrade $ \e ->
-        liftIO $ withMVar files $ \ Files{..} -> writeGrades gradesFile e
-
-------------------------------------------------------------------------------
-
-    --gradesContent <- gradesView env input bLocationFile bGrades
-
-    view <- UI.div #+ fmap element [tabs', input, test, content, {-gradesContent, -} navigation]
+    view <- UI.div #+ fmap element [tabs', content, gradesContent, navigation]
 
     void $ UI.getBody win # set children [view]
 
-    UI.setFocus input
+    UI.setFocus eentry
