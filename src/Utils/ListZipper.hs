@@ -3,6 +3,7 @@
 
 module Utils.ListZipper
     ( ListZipper(..)
+    , toN
     , focus
     , isRight
     , isLeft
@@ -17,6 +18,7 @@ module Utils.ListZipper
     , insert
     ) where
 
+import Prelude ((-))
 import Data.Semigroup
 import Data.Function ((.), ($))
 import Data.List (reverse, (++), length)
@@ -41,6 +43,19 @@ data ListZipper a = ListZipper [a] a [a]
     deriving (Generic)
     deriving (FromJSON, ToJSON)
 
+
+first :: ListZipper a -> ListZipper a
+first (ListZipper [] a rs) = ListZipper [] a rs
+first (ListZipper ls a rs) = ListZipper [] y (ys ++ (a : rs))
+    where
+        y:ys = reverse ls
+
+toN :: ListZipper a -> Int -> ListZipper a
+toN xs n = toN' zipper n
+    where
+        zipper =  first xs
+        toN' xs' 0 = xs'
+        toN' xs' n' = toN' (forward xs') (n'-1)
 
 isRight :: ListZipper a -> Bool
 isRight (ListZipper _ _ []) = True

@@ -3,7 +3,6 @@ module Lib.Client.Location
     ( locationSection
     ) where
 
-import qualified Relude.Unsafe as Unsafe (head)
 
 import Lib.Client.Utils
 
@@ -48,12 +47,22 @@ locationFileView Env{..} bLocationFile = do
     UI.div # sink items (sequenceA [pure title_, content, pure pickers, open])
 
 
-mkGrades :: Env -> Behavior Grades -> UI Element
-mkGrades env bGrades = mdo
+mkGrades :: Env -> Element -> Behavior Grades -> UI Element
+mkGrades Env{..} input bGrades = mdo
     let bb = bGrades <&> unGrades <&> ListZipper.toList <&> (\xs -> fmap (\x -> UI.option # set text (unGrade x) # set value (unGrade x)) xs)
-    selector <- UI.select # sink items bb
+    let len = bGrades <&> unGrades <&> ListZipper.lefts <&> length <&> Just
+    selector <- UI.select 
+                    # sink items bb
+                    # sink UI.selection len
+
     let e1 = UI.selectionChange selector
-    
+
+    let ebeh = fmap (\b n -> Grades (ListZipper.toN (unGrades b) n)) bGrades <@> filterJust e1
+
+    onEvent ebeh $ \e -> do
+        liftIO $ withMVar files $ \ Files{..} -> writeGrades gradesFile e
+        UI.setFocus input
+
     return selector
 
     {-
@@ -107,7 +116,7 @@ gradesView env@Env{..} input _ bGrades = do
         UI.setFocus input
 
 
-    view <- mkGrades env bGrades
+    view <- mkGrades env input bGrades
 
     select <- UI.div #+ fmap element [view, input]
     UI.div #+ fmap element [gradeInsert, select]
