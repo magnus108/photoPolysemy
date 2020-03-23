@@ -21,10 +21,15 @@ import qualified Utils.ListZipper as ListZipper
 import Control.Concurrent.MVar
 
 
-photographersSection :: Env -> Window -> Behavior Photographers -> Tabs -> UI ()
-photographersSection env@Env{..} win bPhotographers tabs = do
+photographersSection :: Env -> Window -> Event Photographers -> Tabs -> UI ()
+photographersSection env@Env{..} win ePhotographers tabs = do
+    photographers <- liftIO $ withMVar files $ \ Files{..} -> getPhotographers photographersFile
 
-    content <- mkPhotographers env bPhotographers
+    bPhotographers <- mkPhotographers env <<$>> stepper photographers ePhotographers
+
+    content <- UI.div
+            #. "buttons has-addons"
+            # sink items bPhotographers
 
     tabs' <- mkTabs env tabs
     navigation <- mkNavigation env tabs
@@ -38,22 +43,20 @@ photographersSection env@Env{..} win bPhotographers tabs = do
     void $ UI.getBody win # set children [view]
 
 
-mkPhotographers :: Env -> Behavior Photographers -> UI Element
-mkPhotographers env bPhotographers = do
-    let bPhotographers' = bPhotographers <&> \(Photographers photographers) -> do
-            let currentPhotographer = focus photographers
-            let elems = photographers =>> \photographers''-> let
-                        thisPhotographer = focus photographers''
-                    in
-                        ( thisPhotographer
-                        , thisPhotographer == currentPhotographer
-                        , Photographers photographers''
-                        )
-            let photographers' = fmap (mkPhotographer env) elems
+mkPhotographers :: Env -> Photographers -> [UI Element]
+mkPhotographers env (Photographers photographers) = ListZipper.toList photographers'
+    where
+        currentPhotographer = focus photographers
+        elems = photographers =>> \photographers''-> let
+                    thisPhotographer = focus photographers''
+                in
+                    ( thisPhotographer
+                    , thisPhotographer == currentPhotographer
+                    , Photographers photographers''
+                    )
+        photographers' = mkPhotographer env <$> elems
 
-            ListZipper.toList photographers'
 
-    UI.div #. "buttons has-addons" # sink items bPhotographers'
 
 
 mkPhotographer :: Env -> (Photographer, Bool, Photographers) -> UI Element

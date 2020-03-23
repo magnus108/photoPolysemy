@@ -4,11 +4,14 @@
 module Lib.Grade
     ( Grades(..)
     , Grade(..)
+    , extractGrade
     , getGrades
+    , showGrade
     , writeGrades
     , parseGrades
     ) where
 
+import Utils.Comonad
 import Utils.ListZipper
 import Lib.Location
 
@@ -40,6 +43,14 @@ data Photographee = Photographee
 
 instance FromRecord Photographee
 instance ToRecord Photographee
+
+extractGrade :: Grades -> Grade
+extractGrade = extract . unGrades
+
+showGrade :: Grades -> String
+showGrade = unGrade . extract . unGrades
+
+
 --TODO move me
 myOptionsDecode :: DecodeOptions
 myOptionsDecode = defaultDecodeOptions { decDelimiter = fromIntegral (ord ';') }

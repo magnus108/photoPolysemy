@@ -34,13 +34,13 @@ import Lib.Client.Photographer
 import Utils.ListZipper (focus)
 
 
-view :: Env -> Window -> Event Grades -> Behavior LocationFile -> Behavior Sessions -> Behavior Shootings -> Behavior Cameras -> Behavior Dump -> Behavior Doneshooting -> Behavior Dagsdato -> Behavior DagsdatoBackup -> Behavior Photographers -> Tabs -> UI ()
-view env win eGrades bLocationFile bSessions bShootings bCameras bDump bDoneshooting bDagsdato bDagsdatoBackup bPhotographers tabs = do
+view :: Env -> Window -> Event Grades -> Behavior LocationFile -> Behavior Sessions -> Behavior Shootings -> Behavior Cameras -> Behavior Dump -> Behavior Doneshooting -> Behavior Dagsdato -> Behavior DagsdatoBackup -> Event Photographers -> Tabs -> UI ()
+view env win eGrades bLocationFile bSessions bShootings bCameras bDump bDoneshooting bDagsdato bDagsdatoBackup ePhotographers tabs = do
     let currentTab = focus (unTabs tabs)
     case currentTab of
         DumpTab -> dumpSection env win bDump tabs
         DoneshootingTab -> doneshootingSection env win bDoneshooting tabs
-        PhotographersTab -> photographersSection env win bPhotographers tabs
+        PhotographersTab -> photographersSection env win ePhotographers tabs
         ShootingsTab -> shootingsSection env win bShootings tabs
         SessionsTab -> sessionsSection env win bSessions tabs
         CamerasTab -> camerasSection env win bCameras tabs
@@ -55,7 +55,6 @@ view env win eGrades bLocationFile bSessions bShootings bCameras bDump bDoneshoo
 run :: Int -> Env -> UI.Event Grades ->  UI.Event LocationFile -> UI.Event Sessions -> UI.Event Shootings -> UI.Event Cameras -> UI.Event Dump -> UI.Event Doneshooting -> UI.Event Dagsdato -> UI.Event DagsdatoBackup -> UI.Event Tabs -> UI.Event Photographers -> IO ()
 run port env@Env{..} eGrades eLocationConfigFile eSessions eShootings eCameras eDump eDoneshooting eDagsdato eDagsdatoBackup eTabs ePhotographers = do
     tabs <- withMVar files $ \ Files{..} -> getTabs tabsFile
-    photographers <- withMVar files $ \ Files{..} -> getPhotographers photographersFile
     cameras <- withMVar files $ \ Files{..} -> getCameras camerasFile
     sessions <- withMVar files $ \ Files{..} -> getSessions sessionsFile
     shootings <- withMVar files $ \ Files{..} -> getShootings shootingsFile
@@ -74,7 +73,6 @@ run port env@Env{..} eGrades eLocationConfigFile eSessions eShootings eCameras e
 
         -- behaviors
         bTabs <- stepper tabs eTabs
-        bPhotographers <- stepper photographers ePhotographers
         bCameras <- stepper cameras eCameras
         bShootings <- stepper shootings eShootings
         bDoneshooting <- stepper doneshooting eDoneshooting
@@ -93,7 +91,7 @@ run port env@Env{..} eGrades eLocationConfigFile eSessions eShootings eCameras e
                                             bDoneshooting
                                             bDagsdato
                                             bDagsdatoBackup
-                                            bPhotographers
+                                            ePhotographers
                                             tabs
 
         UI.onChanges bTabs (view env win eGrades bLocationFile bSessions
@@ -103,5 +101,5 @@ run port env@Env{..} eGrades eLocationConfigFile eSessions eShootings eCameras e
                                             bDoneshooting
                                             bDagsdato
                                             bDagsdatoBackup
-                                            bPhotographers)
+                                            ePhotographers)
 
