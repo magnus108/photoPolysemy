@@ -46,174 +46,106 @@ locationFileView Env{..} bLocationFile = do
     UI.div # sink items (sequenceA [pure title_, content, pure pickers, open])
 
 
+setSelectedGrade :: Grades -> String -> Grades
+setSelectedGrade grades name = Grades (ListZipper.mapFocus (const (Grade name)) (unGrades grades))
+
+
 locationSection :: Env -> Window -> Behavior LocationFile -> Event Grades -> Tabs -> UI ()
 locationSection env@Env{..} win bLocationFile eGrades tabs = mdo
--- INITIAL LOAD
+    -- INITIAL LOAD
     grades <- liftIO $ withMVar files $ \ Files{..} -> getGrades gradesFile
 
     content <- locationFileView env bLocationFile
-------------------------------------------------------------------------------
+
     input <- UI.input # set value (showGrade grades)
                         # set (attr "id") "focusGrade"
                         # set UI.type_ "text"
 
-----------------------------------------------------------------------------------------
-    let currentGrade = extractGrade grades
-    let elems = ListZipper.iextend (\index grades'' ->
-            let
-                thisGrade = extract grades''
-            in
-                ( index
-                , thisGrade == currentGrade
-                , selector
-                , extract grades''
-                , Grades grades''
-                )
-            ) (unGrades grades)
+    let eValChange = setSelectedGrade
+                        <$> bGrades
+                        <@> UI.valueChange input
 
-    let grades' = ListZipper.toNonEmpty $ fmap (mkGrade env) elems
-    childs <- mapM fst grades'
-    let eSelChange = fmap (filterJust . snd) grades'
-    selector <- UI.select # set children (toList childs)
+    grades' <- mkGrades env grades
 
-----------------------------------------------------------------------------------------
-    let eValChange = (\b i -> Grades (ListZipper.mapFocus (const (Grade i)) (unGrades b))) <$> bGrades <@> UI.valueChange input
+    selector <- UI.select # set children grades'
+
+    let eSelChange = filterJust $ asum . ListZipper.toNonEmpty
+            <$> ((\b pickedIndex -> ListZipper.iextend (\thisIndex grades'' ->
+                if pickedIndex == show thisIndex
+                   then Just (Grades grades'')
+                   else Nothing
+            ) (unGrades b) )
+            <$> bGrades
+            <@> selectionChange' selector)
 
 
     bGrades <- stepper grades $ head <$> unions'
-        (ListZipper.appendr [eGrades ,eValChange] eSelChange)
+        (eGrades :| [eValChange, eSelChange])
 
-
-    --HELPER
-    let bEditing element' = stepper False $ and <$> unions [True <$ UI.focus element', False <$ UI.blur element']
+    gradesContent <- gradesView env bLocationFile bGrades
 
     bEditingInput <-  bEditing input
-    --bEditingSelector <- bEditing selector
+    bEditingSelector <- bEditing selector
 
-
-    -- OPTIMIZATION THING
-    _ <- liftIOLater $ onChange bGrades $ \s -> runUI win $ do
-                        --    opts' <- sequence $ fmap (\x -> UI.option # set text (unGrade x) # set value (unGrade x)) $ ListZipper.toList (unGrades s)
-                        --   let len' = Just (length (ListZipper.lefts (unGrades s)))
-                        --  _ <- element selector # set children opts' # set UI.selection len'
-        --editingSelector <- liftIO $ currentValue bEditingSelector
-        --unless editingSelector $ void $ 
-        --    element input # set value (unGrade (extractGrade s))
+    _ <- liftIOLater $ onChange bGrades $ \newGrades -> runUI win $ do
+        editingSelector <- liftIO $ currentValue bEditingSelector
+        unless editingSelector $ void $ do
+            newGrades' <- mkGrades env newGrades
+            element selector # set children newGrades'
 
         editingInput <- liftIO $ currentValue bEditingInput
-        unless editingInput $ void $ element input # set value (unGrade (extractGrade s))
+        unless editingInput $ void $ element input # set value (showGrade newGrades)
 
     _ <- onEvent eValChange $ \e ->
         liftIO $ withMVar files $ \ Files{..} -> writeGrades gradesFile e
 
-    _ <- onEvent (head <$> unions' eSelChange) $ \e -> do
+    _ <- onEvent eSelChange $ \e ->
         liftIO $ withMVar files $ \ Files{..} -> writeGrades gradesFile e
-
-------------------------------------------------------------------------------
 
     tabs' <- mkTabs env tabs
     navigation <- mkNavigation env tabs
 
-    view <- UI.div #+ fmap element [tabs', content, input, selector, navigation]
+    view <- UI.div #+ fmap element [tabs', content, input, selector, gradesContent, navigation]
 
     void $ UI.getBody win # set children [view]
 
     UI.setFocus input
 
 
+mkGrades :: Env -> Grades -> UI [Element]
+mkGrades env grades = do
+    let currentGrade = extractGrade grades
+    let elems = ListZipper.iextend (\index grades' ->
+            let
+                thisGrade = extract grades'
+            in
+                ( index
+                , thisGrade == currentGrade
+                , extract grades'
+                )
+            ) (unGrades grades)
 
-mkGrade :: Env -> (Int, Bool, Element, Grade, Grades) -> (UI Element, Event (Maybe Grades))
-mkGrade Env{..} (thisIndex, isCenter, selector, grade, grades) = do
+    grades' <- mapM (mkGrade env) elems
+
+    return (ListZipper.toList grades')
+
+
+mkGrade :: Env -> (Int, Bool, Grade) -> UI Element
+mkGrade Env{..} (thisIndex, isCenter, grade) = do
     let name = unGrade grade
-
     let option = UI.option # set value (show thisIndex) # set text name
-
-    let event = selectionChange' selector <&> \pickedIndex -> if pickedIndex == show thisIndex then Just grades else Nothing
-
     if isCenter then
-        (option # set UI.selected True, event)
-    else
-        (option, event)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    {-
-
-
-
-mkGrades :: Env -> Element -> Behavior Grades -> UI Element
-mkGrades Env{..} input bGrades = mdo
-
-    {-
-    let elements' = bGrades <&> (\grades -> do
-            let currentGrade = extract (unGrades grades)
-            let elems = ListZipper.iextend (\index grades'' ->
-                    let
-                        thisGrade = extract grades''
-                    in
-                        ( index, thisGrade == currentGrade
-                        , selector
-                        , extract grades''
-                        , Grades grades''
-                        )
-                    ) (unGrades grades)
-
-            let grades' = fmap (mkGrade env) elems
-            ListZipper.toList grades'
-            )
-
-    element selector # sink items elements'
-    -}
-
-
-mkGrade :: Env -> (Int, Bool, Element, Grade, Grades) -> UI Element
-mkGrade Env{..} (thisIndex, isCenter, selector, grade, grades) = do
-    UI.on UI.selectionChange selector $ \pickedIndex ->
-        when (fromMaybe (-1) pickedIndex == thisIndex) $
-            liftIO $ withMVar files $ \ Files{..} -> do
-                writeGrades gradesFile grades
-
-    let name = show grade
-
-    let option = UI.option # set (attr "value") name  # set text name
-
-    if isCenter then
-        option # set (UI.attr "selected") ""
+        option # set UI.selected True
     else
         option
-        
 
-gradesView :: Env -> Element -> Behavior LocationFile -> Behavior Grades -> UI Element
-gradesView env@Env{..} input _ bGrades = do
+
+gradesView :: Env -> Behavior LocationFile -> Behavior Grades -> UI Element
+gradesView Env{..} _ bGrades = do
     gradeInsert <- mkButton "insert" "Tilføj ny"
-    UI.on UI.click gradeInsert $ \_ -> do
-        liftIO $ withMVar files $ \ Files{..} -> do
-            --TODO fix this up
-            grades <- currentValue bGrades
+    let eClick = bGrades <@ UI.click gradeInsert
+    _ <- onEvent eClick $ \grades ->
+        liftIO $ withMVar files $ \ Files{..} ->
             writeGrades gradesFile $ Grades $ ListZipper.insert (unGrades grades) (Grade "")
-        UI.setFocus input
 
-
-    view <- mkGrades env input bGrades
-
-    select <- UI.div #+ fmap element [view, input]
-    UI.div #+ fmap element [gradeInsert, select]
--}
+    UI.div #+ fmap element [gradeInsert]
