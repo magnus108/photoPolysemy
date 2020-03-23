@@ -71,37 +71,42 @@ locationSection env@Env{..} win bLocationFile eGrades tabs = mdo
                 )
             ) (unGrades grades)
 
-    let grades' = fmap (mkGrade env) elems
-    childs <- sequence $ ListZipper.toList grades'
-    selector <- UI.select # set children childs
+    let grades' = ListZipper.toNonEmpty $ fmap (mkGrade env) elems
+    childs <- mapM fst grades'
+    let eSelChange = fmap (filterJust . snd) grades'
+    selector <- UI.select # set children (toList childs)
 
 ----------------------------------------------------------------------------------------
-
     let eValChange = (\b i -> Grades (ListZipper.mapFocus (const (Grade i)) (unGrades b))) <$> bGrades <@> UI.valueChange input
-    let eSelChange = (\b n -> Grades (ListZipper.toN (unGrades b) n)) <$> bGrades <@> filterJust (selectionChange' selector)
 
 
     bGrades <- stepper grades $ head <$> unions'
-        (eGrades :| [ eValChange , eSelChange])
+        (ListZipper.appendr [eGrades ,eValChange] eSelChange)
 
 
     --HELPER
-    bEditing <- stepper False $ and <$>
-        unions [True <$ UI.focus input, False <$ UI.blur input]
+    let bEditing element' = stepper False $ and <$> unions [True <$ UI.focus element', False <$ UI.blur element']
+
+    bEditingInput <-  bEditing input
+    --bEditingSelector <- bEditing selector
 
 
     -- OPTIMIZATION THING
     _ <- liftIOLater $ onChange bGrades $ \s -> runUI win $ do
-        editing <- liftIO $ currentValue bEditing
-        opts' <- sequence $ fmap (\x -> UI.option # set text (unGrade x) # set value (unGrade x)) $ ListZipper.toList (unGrades s)
-        let len' = Just (length (ListZipper.lefts (unGrades s)))
-        _ <- element selector # set children opts' # set UI.selection len'
-        unless editing $ void $ element input # set value (unGrade (extractGrade s))
+                        --    opts' <- sequence $ fmap (\x -> UI.option # set text (unGrade x) # set value (unGrade x)) $ ListZipper.toList (unGrades s)
+                        --   let len' = Just (length (ListZipper.lefts (unGrades s)))
+                        --  _ <- element selector # set children opts' # set UI.selection len'
+        --editingSelector <- liftIO $ currentValue bEditingSelector
+        --unless editingSelector $ void $ 
+        --    element input # set value (unGrade (extractGrade s))
+
+        editingInput <- liftIO $ currentValue bEditingInput
+        unless editingInput $ void $ element input # set value (unGrade (extractGrade s))
 
     _ <- onEvent eValChange $ \e ->
         liftIO $ withMVar files $ \ Files{..} -> writeGrades gradesFile e
 
-    _ <- onEvent eSelChange $ \e -> do
+    _ <- onEvent (head <$> unions' eSelChange) $ \e -> do
         liftIO $ withMVar files $ \ Files{..} -> writeGrades gradesFile e
 
 ------------------------------------------------------------------------------
@@ -117,18 +122,18 @@ locationSection env@Env{..} win bLocationFile eGrades tabs = mdo
 
 
 
-mkGrade :: Env -> (Int, Bool, Element, Grade, Grades) -> UI Element
---mkGrade Env{..} (thisIndex, isCenter, selector, grade, grades) = do
-mkGrade Env{..} (index, isCenter, _, grade, _) = do
+mkGrade :: Env -> (Int, Bool, Element, Grade, Grades) -> (UI Element, Event (Maybe Grades))
+mkGrade Env{..} (thisIndex, isCenter, selector, grade, grades) = do
     let name = unGrade grade
 
-    let option = UI.option # set value (show index) # set text name
+    let option = UI.option # set value (show thisIndex) # set text name
+
+    let event = selectionChange' selector <&> \pickedIndex -> if pickedIndex == show thisIndex then Just grades else Nothing
 
     if isCenter then
-        option # set (UI.attr "selected") ""
+        (option # set UI.selected True, event)
     else
-        option
-        
+        (option, event)
 
 
 

@@ -4,6 +4,8 @@
 module Utils.ListZipper
     ( ListZipper(..)
     , toN
+    , toNonEmpty
+    , appendr
     , focus
     , isRight
     , isLeft
@@ -25,14 +27,14 @@ import Data.List (reverse, (++), length)
 import Data.Functor
 import Data.Ord
 import Data.Eq
-import Data.Foldable (Foldable, foldMap)
+import Data.Foldable (Foldable, foldMap, foldr)
 import Data.Traversable
 import Control.Applicative
 import Text.Show
 import Data.Maybe
 import Data.Int
 import GHC.Generics
-import Data.List.NonEmpty (NonEmpty(..), (<|), tail)
+import Data.List.NonEmpty (NonEmpty(..), (<|), tail, cons)
 import Data.Aeson
 import Data.Bool
 
@@ -112,6 +114,14 @@ iterate' f x =
 
 toList :: ListZipper a -> [a]
 toList (ListZipper ls x rs) = (reverse ls) ++ (x : rs)
+
+
+-- > appendr [1,2,3] (4 :| [5]) == 1 :| [2,3,4,5]
+appendr :: [a] -> NonEmpty a -> NonEmpty a
+appendr l nel = foldr cons nel l
+
+toNonEmpty :: ListZipper a -> NonEmpty a
+toNonEmpty (ListZipper ls x rs) = appendr (reverse ls) (x :| rs)
 
 
 iextend :: (Int -> ListZipper a -> b) -> ListZipper a -> ListZipper b 
