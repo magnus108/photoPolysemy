@@ -26,8 +26,8 @@ newtype Photographers = Photographers { unPhotographers :: ListZipper Photograph
     deriving (FromJSON, ToJSON)
 
 
-getPhotographers :: (MonadIO m, MonadThrow m) => FilePath -> m Photographers
-getPhotographers = readJSONFile
+getPhotographers :: (MonadIO m, MonadThrow m) => FilePath -> m (Either String Photographers)
+getPhotographers = readJSONFile'
 
 
 writePhotographers :: (MonadIO m) => FilePath -> Photographers -> m ()

@@ -57,6 +57,9 @@ locationSection env@Env{..} win bLocationFile eGrades tabs = mdo
 
     content <- locationFileView env bLocationFile
 
+
+    gradeInsert <- mkButton "insert" "Tilføj ny"
+
     input <- UI.input # set value (showGrade grades)
                         # set (attr "id") "focusGrade"
                         # set UI.type_ "text"
@@ -82,8 +85,6 @@ locationSection env@Env{..} win bLocationFile eGrades tabs = mdo
     bGrades <- stepper grades $ head <$> unions'
         (eGrades :| [eValChange, eSelChange])
 
-    gradesContent <- gradesView env bLocationFile bGrades
-
     bEditingInput <-  bEditing input
     bEditingSelector <- bEditing selector
 
@@ -102,10 +103,18 @@ locationSection env@Env{..} win bLocationFile eGrades tabs = mdo
     _ <- onEvent eSelChange $ \e ->
         liftIO $ withMVar files $ \ Files{..} -> writeGrades gradesFile e
 
+
+    let eClick = bGrades <@ UI.click gradeInsert
+
+    _ <- onEvent eClick $ \grades'' ->
+        liftIO $ withMVar files $ \ Files{..} ->
+            writeGrades gradesFile $ Grades $ ListZipper.insert (unGrades grades'') (Grade "")
+
+
     tabs' <- mkTabs env tabs
     navigation <- mkNavigation env tabs
 
-    view <- UI.div #+ fmap element [tabs', content, input, selector, gradesContent, navigation]
+    view <- UI.div #+ fmap element [tabs', content, input, selector, gradeInsert, navigation]
 
     void $ UI.getBody win # set children [view]
 
@@ -139,13 +148,3 @@ mkGrade Env{..} (thisIndex, isCenter, grade) = do
     else
         option
 
-
-gradesView :: Env -> Behavior LocationFile -> Behavior Grades -> UI Element
-gradesView Env{..} _ bGrades = do
-    gradeInsert <- mkButton "insert" "Tilføj ny"
-    let eClick = bGrades <@ UI.click gradeInsert
-    _ <- onEvent eClick $ \grades ->
-        liftIO $ withMVar files $ \ Files{..} ->
-            writeGrades gradesFile $ Grades $ ListZipper.insert (unGrades grades) (Grade "")
-
-    UI.div #+ fmap element [gradeInsert]

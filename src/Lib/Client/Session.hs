@@ -45,10 +45,11 @@ mkSessions env bSessions = do
             (TreeZipper _ []) -> do
                 let children' = mkSessions' env (Sessions sessions)
                 [children']
-            (TreeZipper _ (Context _ f _:_)) -> do
+            (TreeZipper x (Context _ f _:_)) -> do
                 let parent = mkParent env (Sessions sessions) f
-                let children' =mkSessions' env (Sessions sessions)
-                [parent, children']
+                let this = mkParent env (Sessions sessions) (datum x)
+                let children' = mkSessions' env (Sessions sessions)
+                [parent, this, children']
 
     UI.div # sink items bSessions'
 

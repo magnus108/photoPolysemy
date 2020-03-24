@@ -55,7 +55,6 @@ mkCameras env bCameras = do
     UI.div #. "buttons has-addons" # sink items bCameras'
 
 
-
 mkCamera :: Env -> (Camera, Bool, Cameras) -> UI Element
 mkCamera Env{..} (camera, isCenter, cameras)
     | isCenter = do

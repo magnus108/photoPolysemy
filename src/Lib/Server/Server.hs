@@ -34,7 +34,7 @@ import Lib.Client.Photographer
 import Utils.ListZipper (focus)
 
 
-view :: Env -> Window -> Event Grades -> Behavior LocationFile -> Behavior Sessions -> Behavior Shootings -> Behavior Cameras -> Behavior Dump -> Behavior Doneshooting -> Behavior Dagsdato -> Behavior DagsdatoBackup -> Event Photographers -> Tabs -> UI ()
+view :: Env -> Window -> Event Grades -> Behavior LocationFile -> Behavior Sessions -> Behavior Shootings -> Behavior Cameras -> Behavior Dump -> Behavior Doneshooting -> Behavior Dagsdato -> Behavior DagsdatoBackup -> Event (Either String Photographers) -> Tabs -> UI ()
 view env win eGrades bLocationFile bSessions bShootings bCameras bDump bDoneshooting bDagsdato bDagsdatoBackup ePhotographers tabs = do
     let currentTab = focus (unTabs tabs)
     case currentTab of
@@ -52,7 +52,7 @@ view env win eGrades bLocationFile bSessions bShootings bCameras bDump bDoneshoo
 
 
 
-run :: Int -> Env -> UI.Event Grades ->  UI.Event LocationFile -> UI.Event Sessions -> UI.Event Shootings -> UI.Event Cameras -> UI.Event Dump -> UI.Event Doneshooting -> UI.Event Dagsdato -> UI.Event DagsdatoBackup -> UI.Event Tabs -> UI.Event Photographers -> IO ()
+run :: Int -> Env -> UI.Event Grades ->  UI.Event LocationFile -> UI.Event Sessions -> UI.Event Shootings -> UI.Event Cameras -> UI.Event Dump -> UI.Event Doneshooting -> UI.Event Dagsdato -> UI.Event DagsdatoBackup -> UI.Event Tabs -> UI.Event (Either String Photographers) -> IO ()
 run port env@Env{..} eGrades eLocationConfigFile eSessions eShootings eCameras eDump eDoneshooting eDagsdato eDagsdatoBackup eTabs ePhotographers = do
     tabs <- withMVar files $ \ Files{..} -> getTabs tabsFile
     cameras <- withMVar files $ \ Files{..} -> getCameras camerasFile

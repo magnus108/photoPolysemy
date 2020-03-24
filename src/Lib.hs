@@ -170,7 +170,7 @@ grades mgr Files{..} _ handler =
         (\e -> print e >> (handler =<< getGrades gradesFile))
 
 
-configPhotographers :: WatchManager -> Files -> WatchMap -> Handler Photographers -> IO StopListening
+configPhotographers :: WatchManager -> Files -> WatchMap -> Handler (Either String Photographers) -> IO StopListening
 configPhotographers mgr Files{..} _ handler = watchDir
         mgr
         (dropFileName photographersFile)

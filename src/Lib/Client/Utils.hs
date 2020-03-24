@@ -1,13 +1,18 @@
 module Lib.Client.Utils
     ( items
+    , item
     , unions'
     , selectionChange'
-    , bEditing 
+    , bEditing
     ) where
 
 import qualified Graphics.UI.Threepenny as UI
 import Graphics.UI.Threepenny.Core
 
+
+item :: WriteAttr Element (UI Element)
+item = mkWriteAttr $ \item container -> void $
+    element container # set children [] #+ [item]
 
 items :: WriteAttr Element [UI Element]
 items = mkWriteAttr $ \item container -> void $

@@ -1,8 +1,10 @@
+{-# LANGUAGE ScopedTypeVariables #-}
 module Prelude
     ( module Relude
     , module Json
     , module Conduit
     , readJSONFile
+    , readJSONFile'
     , writeJSONFile
     , fromEither
     ) where
@@ -10,6 +12,8 @@ module Prelude
 import Relude
 import Conduit
 import Data.Conduit.Attoparsec
+
+import Control.Exception
 
 import Data.Aeson as Json (FromJSON (parseJSON), ToJSON (toJSON), json, Result(Error, Success), fromJSON, fromEncoding, toEncoding)
 import System.IO.Error
@@ -35,3 +39,9 @@ writeJSONFile fp x = liftIO $ runConduitRes $ yield (fromEncoding $ toEncoding x
 
 fromEither :: Either a a -> a
 fromEither = either id id
+
+
+readJSONFile' :: (MonadIO m, FromJSON a) => FilePath -> m (Either String a)
+readJSONFile' fp = do
+    let conduit = runConduitRes $ sourceFile fp .| sinkFromJSON
+    liftIO $ fmap Right conduit `catch` (\( e :: SomeException ) -> return $ Left (show e) )
