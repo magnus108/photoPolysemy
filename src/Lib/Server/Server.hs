@@ -34,11 +34,11 @@ import Lib.Client.Photographer
 import Utils.ListZipper (focus)
 
 
-view :: Env -> Window -> Event Grades -> Behavior LocationFile -> Behavior Sessions -> Behavior Shootings -> Behavior Cameras -> Behavior Dump -> Behavior Doneshooting -> Behavior Dagsdato -> Behavior DagsdatoBackup -> Event (Either String Photographers) -> Tabs -> UI ()
-view env win eGrades bLocationFile bSessions bShootings bCameras bDump bDoneshooting bDagsdato bDagsdatoBackup ePhotographers tabs = do
+view :: Env -> Window -> Event Grades -> Behavior LocationFile -> Behavior Sessions -> Behavior Shootings -> Behavior Cameras -> Event (Either String Dump) -> Behavior Doneshooting -> Behavior Dagsdato -> Behavior DagsdatoBackup -> Event (Either String Photographers) -> Tabs -> UI ()
+view env win eGrades bLocationFile bSessions bShootings bCameras eDump bDoneshooting bDagsdato bDagsdatoBackup ePhotographers tabs = do
     let currentTab = focus (unTabs tabs)
     case currentTab of
-        DumpTab -> dumpSection env win bDump tabs
+        DumpTab -> dumpSection env win tabs eDump
         DoneshootingTab -> doneshootingSection env win bDoneshooting tabs
         PhotographersTab -> photographersSection env win ePhotographers tabs
         ShootingsTab -> shootingsSection env win bShootings tabs
@@ -52,7 +52,7 @@ view env win eGrades bLocationFile bSessions bShootings bCameras bDump bDoneshoo
 
 
 
-run :: Int -> Env -> UI.Event Grades ->  UI.Event LocationFile -> UI.Event Sessions -> UI.Event Shootings -> UI.Event Cameras -> UI.Event Dump -> UI.Event Doneshooting -> UI.Event Dagsdato -> UI.Event DagsdatoBackup -> UI.Event Tabs -> UI.Event (Either String Photographers) -> IO ()
+run :: Int -> Env -> UI.Event Grades ->  UI.Event LocationFile -> UI.Event Sessions -> UI.Event Shootings -> UI.Event Cameras -> UI.Event (Either String Dump) -> UI.Event Doneshooting -> UI.Event Dagsdato -> UI.Event DagsdatoBackup -> UI.Event Tabs -> UI.Event (Either String Photographers) -> IO ()
 run port env@Env{..} eGrades eLocationConfigFile eSessions eShootings eCameras eDump eDoneshooting eDagsdato eDagsdatoBackup eTabs ePhotographers = do
     tabs <- withMVar files $ \ Files{..} -> getTabs tabsFile
     cameras <- withMVar files $ \ Files{..} -> getCameras camerasFile
@@ -61,7 +61,6 @@ run port env@Env{..} eGrades eLocationConfigFile eSessions eShootings eCameras e
     doneshooting <- withMVar files $ \ Files{..} -> getDoneshooting doneshootingFile
     dagsdato <- withMVar files $ \ Files{..} -> getDagsdato dagsdatoFile
     dagsdatoBackup <- withMVar files $ \ Files{..} -> getDagsdatoBackup dagsdatoBackupFile
-    dump <- withMVar files $ \ Files{..} -> getDump dumpFile
     locationFile <- withMVar files $ \ Files{..} -> getLocationFile locationConfigFile
 
     startGUI defaultConfig
@@ -79,15 +78,13 @@ run port env@Env{..} eGrades eLocationConfigFile eSessions eShootings eCameras e
         bSessions <- stepper sessions eSessions
         bDagsdato <- stepper dagsdato eDagsdato
         bDagsdatoBackup <- stepper dagsdatoBackup eDagsdatoBackup
-        bDump <- stepper dump eDump
         bLocationFile <- stepper locationFile eLocationConfigFile
-
 
  
         view env win eGrades bLocationFile bSessions
                                             bShootings
                                             bCameras
-                                            bDump
+                                            eDump
                                             bDoneshooting
                                             bDagsdato
                                             bDagsdatoBackup
@@ -97,7 +94,7 @@ run port env@Env{..} eGrades eLocationConfigFile eSessions eShootings eCameras e
         UI.onChanges bTabs (view env win eGrades bLocationFile bSessions
                                             bShootings
                                             bCameras
-                                            bDump
+                                            eDump
                                             bDoneshooting
                                             bDagsdato
                                             bDagsdatoBackup

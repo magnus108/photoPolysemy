@@ -15,29 +15,41 @@ import Lib.App (Env(..), Files(..))
 import Control.Concurrent.MVar (withMVar)
 
 
-dumpView :: Env -> Behavior Dump -> UI Element
-dumpView Env{..} bDump = do
+dumpView :: Env -> Either String Dump -> UI Element
+dumpView Env{..} x = case x of
+    Left x -> do
+        title_ <- UI.p # set text "Der er en fejl med dump mappe"
 
-    title_ <- UI.div #+ [UI.string "Dump mappe"]
+        picker <- UI.div #+
+            [ mkFolderPicker "dumpPicker" "Vælg config folder" $ \folder ->
+                when (folder /= "") $
+                    withMVar files $ \ Files{..} ->
+                        writeFile dumpFile (show folder)
+            ]
 
-    let content' = bDump <&> \(Dump dump) -> [UI.string (show dump)]
+        UI.div #+ fmap element [ title_, picker]
+    Right dump -> do
 
-    content <- UI.div # sink items content'
+        title_ <- UI.div #+ [UI.string "Dump mappe"]
 
-    picker <- UI.div #+
-        [ mkFolderPicker "dumpPicker" "Vælg config folder" $ \folder ->
-            when (folder /= "") $
-                withMVar files $ \ Files{..} ->
-                    writeFile dumpFile (show folder)
-        ]
+        content <- UI.div #+ [UI.string (unDump dump)]
 
-    UI.div #+ fmap element [ title_, content, picker]
+        picker <- UI.div #+
+            [ mkFolderPicker "dumpPicker" "Vælg config folder" $ \folder ->
+                when (folder /= "") $
+                    withMVar files $ \ Files{..} ->
+                        writeFile dumpFile (show folder)
+            ]
+
+        UI.div #+ fmap element [ title_, content, picker]
 
 
-dumpSection :: Env -> Window -> Behavior Dump -> Tabs -> UI ()
-dumpSection env@Env{..} win bDump tabs = do
+dumpSection :: Env -> Window -> Tabs -> Event (Either String Dump) -> UI ()
+dumpSection env@Env{..} win tabs eDump = do
+    dump <- liftIO $ withMVar files $ \ Files{..} -> getDump dumpFile
+    bDump <- stepper dump eDump
 
-    content <- dumpView env bDump
+    content <- UI.div # sink item (dumpView env <$> bDump)
 
     tabs' <- mkTabs env tabs
     navigation <- mkNavigation env tabs

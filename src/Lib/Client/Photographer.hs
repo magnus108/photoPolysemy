@@ -53,7 +53,7 @@ mkPhotographers env@Env{..} photographers' =  case photographers' of
                 --TODO FEJL BLIVER ignoret med denne løsning
                 photographers <- liftIO $ getPhotographers file
                 liftIO $ withMVar files $ \ Files{..} -> do
-                    void $ mapM (writePhotographers photographersFile) photographers
+                    mapM_ (writePhotographers photographersFile) photographers
 
         para <- UI.p # set text "Der er en fejl med fotografer"
         UI.div # set children [para, picker]

@@ -1,8 +1,11 @@
+{-# LANGUAGE ScopedTypeVariables #-}
 module Lib
     ( mkEnv
     , runServer
     , main
     ) where
+
+import Control.Exception (SomeException(..), catch)
 
 import System.FilePath
 import Control.Concurrent.MVar (withMVar, modifyMVar_)
@@ -230,7 +233,7 @@ dirDoneshooting mgr Files{..} _ handler = do
         (\e -> print e >> handler ())
 
 
-configDump :: WatchManager -> Files -> WatchMap -> Handler Dump -> Handler () -> IO StopListening
+configDump :: WatchManager -> Files -> WatchMap -> Handler (Either String Dump) -> Handler () -> IO StopListening
 configDump mgr files@Files{..} watchMap handler handleDumpDir = watchDir
         mgr
         (dropFileName dumpFile)
@@ -238,7 +241,6 @@ configDump mgr files@Files{..} watchMap handler handleDumpDir = watchDir
         (\e -> do
             print e
             handler =<< getDump dumpFile
-
             -- TODO these two are related
             modifyMVar_ watchMap $ \ h -> do
                 h HashMap.! "stopDirDump"
@@ -250,12 +252,16 @@ configDump mgr files@Files{..} watchMap handler handleDumpDir = watchDir
 
 dirDump :: WatchManager -> Files -> WatchMap -> Handler () -> IO StopListening
 dirDump mgr Files{..} _ handler = do
-    (Dump path) <- getDump dumpFile
-    watchDir
-        mgr
-        path
-        (const True)
-        (\e -> print e >> handler ())
+    dumpPath <- getDump dumpFile
+    case dumpPath of
+      Left _ -> return (return ()) -- TODO this sucks
+      Right path -> do
+        watchDir
+            mgr
+            (unDump path)
+            (const True)
+            (\e -> print e >> handler ())
+                `catch` (\( e :: SomeException ) -> return $ return () ) --TODO this sucks
 
 
 configDagsdato :: WatchManager -> Files -> WatchMap -> Handler Dagsdato -> Handler () -> IO StopListening
