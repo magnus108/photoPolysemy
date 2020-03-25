@@ -13,8 +13,8 @@ newtype LocationFile = LocationFile { unLocationFile :: FilePath }
     deriving (FromJSON, ToJSON)
 
 
-getLocationFile :: (MonadIO m, MonadThrow m) => FilePath -> m LocationFile
-getLocationFile = readJSONFile
+getLocationFile :: (MonadIO m, MonadThrow m) => FilePath -> m (Either String LocationFile)
+getLocationFile = readJSONFile'
 
 
 writeLocationFile :: (MonadIO m) => FilePath -> LocationFile -> m ()

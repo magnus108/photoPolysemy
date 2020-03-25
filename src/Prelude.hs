@@ -44,4 +44,4 @@ fromEither = either id id
 readJSONFile' :: (MonadIO m, FromJSON a) => FilePath -> m (Either String a)
 readJSONFile' fp = do
     let conduit = runConduitRes $ sourceFile fp .| sinkFromJSON
-    liftIO $ fmap Right conduit `catch` (\( e :: SomeException ) -> return $ Left (show e) )
+    liftIO $ try conduit <&> first (\e -> show (e :: SomeException))

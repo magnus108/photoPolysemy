@@ -17,25 +17,41 @@ import Lib.App (Env(..), Files(..))
 import Control.Concurrent.MVar (withMVar)
 
 
-dagsdatoBackupView :: Env -> Behavior DagsdatoBackup -> UI Element
-dagsdatoBackupView Env{..} bDagsdatoBackup = do
-    title_ <- UI.div #+ [UI.string "DagsdatoBackup mappe"]
-    content <- UI.div # sink items (bDagsdatoBackup <&> \(DagsdatoBackup dagsdatoBackup) -> [UI.string dagsdatoBackup])
+dagsdatoBackupView :: Env -> Either String DagsdatoBackup -> UI Element
+dagsdatoBackupView Env{..} = \case
+    Left _ -> do
+        title_ <- UI.p # set text "Der er en fejl med dagsdato backup mappe"
 
-    picker <- UI.div #+
-            [ mkFolderPicker "dagsdatoBackupPicker" "Vælg config folder" $ \folder ->
-                when (folder /= "") $
-                    withMVar files $ \ Files{..} ->
-                        writeFile dagsdatoBackupFile (show folder)
-            ]
+        picker <- UI.div #+
+                [ mkFolderPicker "dagsdatoBackupPicker" "Vælg config folder" $ \folder ->
+                    when (folder /= "") $
+                        withMVar files $ \ Files{..} ->
+                            writeFile dagsdatoBackupFile (show folder)
+                ]
 
-    UI.div #+ fmap element [title_, content, picker]
+        UI.div #+ fmap element [title_, picker]
+
+    Right dagsdatoBackup -> do
+        title_ <- UI.div #+ [UI.string "DagsdatoBackup mappe"]
+        content <- UI.div #+ [UI.string (unDagsdatoBackup dagsdatoBackup)]
+
+        picker <- UI.div #+
+                [ mkFolderPicker "dagsdatoBackupPicker" "Vælg config folder" $ \folder ->
+                    when (folder /= "") $
+                        withMVar files $ \ Files{..} ->
+                            writeFile dagsdatoBackupFile (show folder)
+                ]
+
+        UI.div #+ fmap element [title_, content, picker]
 
 
-dagsdatoBackupSection :: Env -> Window -> Behavior DagsdatoBackup -> Tabs -> UI ()
-dagsdatoBackupSection env@Env{..} win bDagsdatoBackup tabs = do
+dagsdatoBackupSection :: Env -> Window -> Event (Either String DagsdatoBackup) -> Tabs -> UI ()
+dagsdatoBackupSection env@Env{..} win eDagsdatoBackup tabs = do
 
-    content <- dagsdatoBackupView env bDagsdatoBackup
+    dagsdatoBackup <- liftIO $ withMVar files $ \ Files{..} -> getDagsdatoBackup dagsdatoBackupFile
+    bDagsdatoBackup <- stepper dagsdatoBackup eDagsdatoBackup
+
+    content <- UI.div # sink item (dagsdatoBackupView env <$> bDagsdatoBackup)
 
     tabs' <- mkTabs env tabs
     navigation <- mkNavigation env tabs

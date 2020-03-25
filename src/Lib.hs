@@ -149,7 +149,7 @@ configTab mgr Files{..} _ handler = watchDir
         (\e -> print e >> (handler =<< getTabs tabsFile))
 
 
-configLocationFile :: WatchManager -> Files -> WatchMap -> Handler LocationFile -> IO StopListening
+configLocationFile :: WatchManager -> Files -> WatchMap -> Handler (Either String LocationFile) -> IO StopListening
 configLocationFile mgr Files{..} _ handler = watchDir
         mgr
         (dropFileName locationConfigFile)
@@ -158,8 +158,9 @@ configLocationFile mgr Files{..} _ handler = watchDir
             print e
             locationFile <- getLocationFile locationConfigFile
             handler locationFile
-            grades' <- fromMaybe (Grades (ListZipper [] (Grade "") [])) <$> parseGrades locationFile
-            writeGrades gradesFile grades'
+            grades' <- mapM parseGrades locationFile
+            let grades'' = either (const (Grades (ListZipper [] (Grade "") []))) id (join grades')
+            writeGrades gradesFile grades''
         )
 
 -- der skal skydes et lag in herimellem der kan lytte på locationen
@@ -181,7 +182,7 @@ configPhotographers mgr Files{..} _ handler = watchDir
         (\e -> print e >> (handler =<< getPhotographers photographersFile))
 
 
-configSessions :: WatchManager -> Files -> WatchMap -> Handler Sessions -> IO StopListening
+configSessions :: WatchManager -> Files -> WatchMap -> Handler (Either String Sessions) -> IO StopListening
 configSessions mgr Files{..} _ handler = watchDir
         mgr
         (dropFileName sessionsFile)
@@ -189,7 +190,7 @@ configSessions mgr Files{..} _ handler = watchDir
         (\e -> print e >> (handler =<< getSessions sessionsFile))
 
 
-configCameras :: WatchManager -> Files -> WatchMap -> Handler Cameras -> IO StopListening
+configCameras :: WatchManager -> Files -> WatchMap -> Handler (Either String Cameras) -> IO StopListening
 configCameras mgr Files{..} _ handler = watchDir
         mgr
         (dropFileName camerasFile)
@@ -197,7 +198,7 @@ configCameras mgr Files{..} _ handler = watchDir
         (\e -> print e >> (handler =<< getCameras camerasFile))
 
 
-configShootings :: WatchManager -> Files -> WatchMap -> Handler Shootings -> IO StopListening
+configShootings :: WatchManager -> Files -> WatchMap -> Handler (Either String Shootings) -> IO StopListening
 configShootings mgr Files{..} _ handler = watchDir
         mgr
         (dropFileName shootingsFile)
@@ -205,7 +206,7 @@ configShootings mgr Files{..} _ handler = watchDir
         (\e -> print e >> (handler =<< getShootings shootingsFile))
 
 
-configDoneshooting :: WatchManager -> Files -> WatchMap -> Handler Doneshooting -> Handler () -> IO StopListening
+configDoneshooting :: WatchManager -> Files -> WatchMap -> Handler (Either String Doneshooting) -> Handler () -> IO StopListening
 configDoneshooting mgr files@Files{..} watchMap handler handleDonshootingDir = watchDir
         mgr
         (dropFileName doneshootingFile)
@@ -225,12 +226,16 @@ configDoneshooting mgr files@Files{..} watchMap handler handleDonshootingDir = w
 
 dirDoneshooting :: WatchManager -> Files -> WatchMap -> Handler () -> IO StopListening
 dirDoneshooting mgr Files{..} _ handler = do
-    (Doneshooting path) <- getDoneshooting doneshootingFile
-    watchDir
-        mgr
-        path
-        (const True)
-        (\e -> print e >> handler ())
+    doneshootingPath <- getDoneshooting doneshootingFile
+    case doneshootingPath of
+        Left _ -> return ( return ())
+        Right path -> do
+            watchDir
+                mgr
+                (unDoneshooting path)
+                (const True)
+                (\e -> print e >> handler ())
+                    `catch` (\( e :: SomeException ) -> return $ return () ) --TODO this sucks
 
 
 configDump :: WatchManager -> Files -> WatchMap -> Handler (Either String Dump) -> Handler () -> IO StopListening
@@ -264,7 +269,7 @@ dirDump mgr Files{..} _ handler = do
                 `catch` (\( e :: SomeException ) -> return $ return () ) --TODO this sucks
 
 
-configDagsdato :: WatchManager -> Files -> WatchMap -> Handler Dagsdato -> Handler () -> IO StopListening
+configDagsdato :: WatchManager -> Files -> WatchMap -> Handler (Either String Dagsdato) -> Handler () -> IO StopListening
 configDagsdato mgr files@Files{..} watchMap handler handleDagsdatoDir = watchDir
         mgr
         (dropFileName dagsdatoFile)
@@ -284,15 +289,18 @@ configDagsdato mgr files@Files{..} watchMap handler handleDagsdatoDir = watchDir
 
 dirDagsdato :: WatchManager -> Files -> WatchMap -> Handler () -> IO StopListening
 dirDagsdato mgr Files{..} _ handler = do
-    (Dagsdato path) <- getDagsdato dagsdatoFile
-    watchDir
-        mgr
-        path
-        (const True)
-        (\e -> print e >> handler ())
+    dagsdatoPath <- getDagsdato dagsdatoFile
+    case dagsdatoPath of
+        Left _ -> return (return ())
+        Right path -> 
+            watchDir
+                mgr
+                (unDagsdato path)
+                (const True)
+                (\e -> print e >> handler ())
 
 
-configDagsdatoBackup :: WatchManager -> Files -> WatchMap -> Handler DagsdatoBackup -> Handler () -> IO StopListening
+configDagsdatoBackup :: WatchManager -> Files -> WatchMap -> Handler (Either String DagsdatoBackup) -> Handler () -> IO StopListening
 configDagsdatoBackup mgr files@Files{..} watchMap handler handleDagsdatoBackupDir = watchDir
         mgr
         (dropFileName dagsdatoBackupFile)
@@ -312,12 +320,15 @@ configDagsdatoBackup mgr files@Files{..} watchMap handler handleDagsdatoBackupDi
 
 dirDagsdatoBackup :: WatchManager -> Files -> WatchMap -> Handler () -> IO StopListening
 dirDagsdatoBackup mgr Files{..} _ handler = do
-    (DagsdatoBackup path) <- getDagsdatoBackup dagsdatoBackupFile
-    watchDir
-        mgr
-        path
-        (const True)
-        (\e -> print e >> handler ())
+    dagsdatoBackupPath <- getDagsdatoBackup dagsdatoBackupFile
+    case dagsdatoBackupPath of
+        Left _ -> return (return ()) -- TODO this sucks
+        Right path -> watchDir
+            mgr
+            (unDagsdatoBackup path)
+            (const True)
+            (\e -> print e >> handler ())
+                `catch` (\( e :: SomeException ) -> return $ return () ) --TODO this sucks
 
 
 main :: Int -> IO ()

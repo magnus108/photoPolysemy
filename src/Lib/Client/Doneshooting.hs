@@ -16,26 +16,41 @@ import Lib.Client.Utils
 import Lib.App (Env(..), Files(..))
 import Control.Concurrent.MVar (withMVar)
 
-doneshootingView :: Env -> Behavior Doneshooting -> UI Element
-doneshootingView Env{..} bDoneshooting = do
-    title_ <- UI.div #+ [UI.string "Doneshooting mappe"]
+doneshootingView :: Env -> Either String Doneshooting -> UI Element
+doneshootingView Env{..} = \case
+    Left _ -> do
+        title_ <- UI.p # set text "Doneshooting mappe ikke valgt"
 
-    content <- UI.div # sink items (bDoneshooting <&> \(Doneshooting doneshooting) -> [UI.string doneshooting])
+        picker <- UI.div #+
+                [ mkFolderPicker "doneshootingPicker" "Vælg config folder" $ \folder ->
+                    when (folder /= "") $
+                        withMVar files $ \ Files{..} ->
+                            writeFile doneshootingFile (show folder)
+                ]
 
-    picker <- UI.div #+
-            [ mkFolderPicker "doneshootingPicker" "Vælg config folder" $ \folder ->
-                when (folder /= "") $
-                    withMVar files $ \ Files{..} ->
-                        writeFile doneshootingFile (show folder)
-            ]
+        UI.div #+ fmap element [title_, picker]
 
-    UI.div #+ fmap element [title_, content, picker]
+    Right doneshooting -> do
+        title_ <- UI.div #+ [UI.string "Doneshooting mappe"]
+
+        content <- UI.div #+ [UI.string (unDoneshooting doneshooting)]
+
+        picker <- UI.div #+
+                [ mkFolderPicker "doneshootingPicker" "Vælg config folder" $ \folder ->
+                    when (folder /= "") $
+                        withMVar files $ \ Files{..} ->
+                            writeFile doneshootingFile (show folder)
+                ]
+
+        UI.div #+ fmap element [title_, content, picker]
 
 
-doneshootingSection :: Env -> Window -> Behavior Doneshooting -> Tabs -> UI ()
-doneshootingSection env@Env{..} win bDoneshooting tabs = do
+doneshootingSection :: Env -> Window -> Event (Either String Doneshooting) -> Tabs -> UI ()
+doneshootingSection env@Env{..} win eDoneshooting tabs = do
+    doneshooting <- liftIO $ withMVar files $ \ Files{..} -> getDoneshooting doneshootingFile
+    bDoneshooting <- stepper doneshooting eDoneshooting
 
-    content <- doneshootingView env bDoneshooting
+    content <- UI.div # sink item (doneshootingView env <$> bDoneshooting)
 
     tabs' <- mkTabs env tabs
     navigation <- mkNavigation env tabs

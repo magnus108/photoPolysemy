@@ -24,8 +24,8 @@ newtype Cameras = Cameras { unCameras :: ListZipper Camera }
     deriving (FromJSON, ToJSON)
 
 
-getCameras :: (MonadIO m, MonadThrow m) => FilePath -> m Cameras
-getCameras = readJSONFile
+getCameras :: (MonadIO m, MonadThrow m) => FilePath -> m (Either String Cameras)
+getCameras = readJSONFile'
 
 
 writeCameras :: (MonadIO m) => FilePath -> Cameras -> m ()

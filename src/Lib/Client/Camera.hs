@@ -21,10 +21,12 @@ import qualified Utils.ListZipper as ListZipper
 import Control.Concurrent.MVar
 
 
-camerasSection :: Env -> Window -> Behavior Cameras -> Tabs -> UI ()
-camerasSection env@Env{..} win bCameras tabs = do
+camerasSection :: Env -> Window -> Event (Either String Cameras) -> Tabs -> UI ()
+camerasSection env@Env{..} win eCameras tabs = do
+    cameras <- liftIO $ withMVar files $ \ Files{..} -> getCameras camerasFile
 
-    content <- mkCameras env bCameras
+    bCameras <- stepper cameras eCameras
+    content <- UI.div # sink item (mkCameras env <$> bCameras)
 
     tabs' <- mkTabs env tabs
     navigation <- mkNavigation env tabs
@@ -38,22 +40,21 @@ camerasSection env@Env{..} win bCameras tabs = do
     void $ UI.getBody win # set children [view]
 
 
-mkCameras :: Env -> Behavior Cameras -> UI Element
-mkCameras env bCameras = do
-    let bCameras' = bCameras <&> \(Cameras cameras) -> do
-            let currentCamera = focus cameras
-            let elems = cameras =>> \cameras'' -> let
-                        thisCamera = focus cameras''
-                    in
-                        ( thisCamera
-                        , thisCamera == currentCamera
-                        , Cameras cameras''
-                        )
-            let cameras' = fmap (mkCamera env) elems
-            ListZipper.toList cameras'
+mkCameras :: Env -> Either String Cameras -> UI Element
+mkCameras env = \case
+    Left _ -> UI.div # set text "Camera ikke valgt" --TODO det her skulle jo aldrig ske
 
-    UI.div #. "buttons has-addons" # sink items bCameras'
-
+    Right (Cameras cameras) -> do
+        let currentCamera = focus cameras
+        let elems = cameras =>> \cameras'' -> let
+                    thisCamera = focus cameras''
+                in
+                    ( thisCamera
+                    , thisCamera == currentCamera
+                    , Cameras cameras''
+                    )
+        cameras' <- mapM (mkCamera env) elems
+        UI.div #. "buttons has-addons" # set children (ListZipper.toList cameras')
 
 mkCamera :: Env -> (Camera, Bool, Cameras) -> UI Element
 mkCamera Env{..} (camera, isCenter, cameras)

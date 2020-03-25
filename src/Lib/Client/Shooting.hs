@@ -21,10 +21,12 @@ import qualified Utils.ListZipper as ListZipper
 import Control.Concurrent.MVar
 
 
-shootingsSection :: Env -> Window -> Behavior Shootings -> Tabs -> UI ()
-shootingsSection env@Env{..} win bShootings tabs = do
+shootingsSection :: Env -> Window -> Event (Either String Shootings) -> Tabs -> UI ()
+shootingsSection env@Env{..} win eShootings tabs = do
+    shootings <- liftIO $ withMVar files $ \ Files{..} -> getShootings shootingsFile
+    bShootings <- stepper shootings eShootings
 
-    content <- mkShootings env bShootings
+    content <- UI.div # sink item (mkShootings env <$> bShootings)
 
     tabs' <- mkTabs env tabs
     navigation <- mkNavigation env tabs
@@ -38,21 +40,21 @@ shootingsSection env@Env{..} win bShootings tabs = do
     void $ UI.getBody win # set children [view]
 
 
-mkShootings :: Env -> Behavior Shootings -> UI Element
-mkShootings env bShootings = do
-    let bShootings' = bShootings <&> \(Shootings shootings) -> do
-            let currentShooting = focus shootings
-            let elems = shootings =>> \shootings'' -> let
-                        thisShooting = focus shootings''
-                    in
-                        ( thisShooting
-                        , thisShooting == currentShooting
-                        , Shootings shootings''
-                        )
-            let shootings' = fmap (mkShooting env) elems
-            ListZipper.toList shootings'
+mkShootings :: Env -> Either String Shootings -> UI Element
+mkShootings env = \case
+    Left _ -> UI.div # set text "Shooting ikke sat" -- TODO skulle ikke se
+    Right (Shootings shootings) -> do
+        let currentShooting = focus shootings
+        let elems = shootings =>> \shootings'' -> let
+                    thisShooting = focus shootings''
+                in
+                    ( thisShooting
+                    , thisShooting == currentShooting
+                    , Shootings shootings''
+                    )
+        shootings' <- mapM (mkShooting env) elems
+        UI.div #. "buttons has-addons" # set children (ListZipper.toList shootings')
 
-    UI.div #. "buttons has-addons" # sink items bShootings'
 
 
 mkShooting :: Env -> (Shooting, Bool, Shootings) -> UI Element

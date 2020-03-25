@@ -24,39 +24,43 @@ import Control.Concurrent.MVar (withMVar)
 
 
 
-locationFileView :: Env -> Behavior LocationFile -> UI Element
-locationFileView Env{..} bLocationFile = do
-    let title_ = UI.div #+ [UI.string "Lokation"]
-    let content = bLocationFile <&> \locationFile -> UI.div #+ [UI.string (unLocationFile locationFile)]
+locationFileView :: Env -> Either String LocationFile -> UI Element
+locationFileView Env{..} = \case
+    Left _ -> UI.div #+ [UI.string "FEJL"]
+    Right locationFile -> do
+        title_ <- UI.div #+ [UI.string "Lokation"]
+        content <- UI.div #+ [UI.string (unLocationFile locationFile)]
 
-    pick <- mkFilePicker "locationFilePicker" "Vælg lokations" $ \file ->
-            when (file /= "") $
-                withMVar files $ \ Files{..} ->
-                    writeLocationFile locationConfigFile (LocationFile file)
+        pick <- mkFilePicker "locationFilePicker" "Vælg lokations" $ \file ->
+                when (file /= "") $
+                    withMVar files $ \ Files{..} ->
+                        writeLocationFile locationConfigFile (LocationFile file)
 
-    make <- mkFileMaker "locationsPicker" "Ny CSV" $ \file ->
-            when (file /= "") $
-                withMVar files $ \ Files{..} ->
-                    writeLocationFile locationConfigFile (LocationFile file)
+        make <- mkFileMaker "locationsPicker" "Ny CSV" $ \file ->
+                when (file /= "") $
+                    withMVar files $ \ Files{..} ->
+                        writeLocationFile locationConfigFile (LocationFile file)
 
-    let pickers = UI.div #. "buttons has-addons" #+ [element pick, element make]
+        pickers <- UI.div #. "buttons has-addons" #+ [element pick, element make]
 
-    let open = bLocationFile <&> mkOpenFile "open" "Åben csv" . unLocationFile
+        open <- mkOpenFile "open" "Åben csv" (unLocationFile locationFile)
 
-    UI.div # sink items (sequenceA [pure title_, content, pure pickers, open])
+        UI.div # set children [ title_, content,  pickers, open]
 
 
 setSelectedGrade :: Grades -> String -> Grades
 setSelectedGrade grades name = Grades (ListZipper.mapFocus (const (Grade name)) (unGrades grades))
 
 
-locationSection :: Env -> Window -> Behavior LocationFile -> Event Grades -> Tabs -> UI ()
-locationSection env@Env{..} win bLocationFile eGrades tabs = mdo
+locationSection :: Env -> Window -> Event (Either String LocationFile) -> Event Grades -> Tabs -> UI ()
+locationSection env@Env{..} win eLocationConfigFile eGrades tabs = mdo
     -- INITIAL LOAD
     grades <- liftIO $ withMVar files $ \ Files{..} -> getGrades gradesFile
+    locationFile <- liftIO $ withMVar files $ \ Files{..} -> getLocationFile locationConfigFile
 
-    content <- locationFileView env bLocationFile
+    bLocationFile <- stepper locationFile eLocationConfigFile
 
+    content <- UI.div # sink item (locationFileView env <$> bLocationFile)
 
     gradeInsert <- mkButton "insert" "Tilføj ny"
 

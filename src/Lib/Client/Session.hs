@@ -21,10 +21,12 @@ import Utils.RoseTree as RT
 import Utils.TreeZipper
 
 
-sessionsSection :: Env -> Window -> Behavior Sessions -> Tabs -> UI ()
-sessionsSection env@Env{..} win bSessions tabs = do
+sessionsSection :: Env -> Window -> Event (Either String Sessions) -> Tabs -> UI ()
+sessionsSection env@Env{..} win eSessions tabs = do
+    sessions <- liftIO $ withMVar files $ \ Files{..} -> getSessions sessionsFile
+    bSessions <- stepper sessions eSessions
 
-    content <- mkSessions env bSessions
+    content <- UI.div # sink item (mkSessions env <$> bSessions)
 
     tabs' <- mkTabs env tabs
     navigation <- mkNavigation env tabs
@@ -39,19 +41,21 @@ sessionsSection env@Env{..} win bSessions tabs = do
 
 
 -- TODO this is no good
-mkSessions :: Env -> Behavior Sessions -> UI Element
-mkSessions env bSessions = do
-    let bSessions' = bSessions <&> \(Sessions sessions) -> case sessions of
-            (TreeZipper _ []) -> do
-                let children' = mkSessions' env (Sessions sessions)
-                [children']
-            (TreeZipper x (Context _ f _:_)) -> do
-                let parent = mkParent env (Sessions sessions) f
-                let this = mkParent env (Sessions sessions) (datum x)
-                let children' = mkSessions' env (Sessions sessions)
-                [parent, this, children']
+mkSessions :: Env -> Either String Sessions -> UI Element
+mkSessions env  = \case 
+    Left _ -> UI.p # set text "Session ikke valgt" -- TODO skulle ikke ku ske
+    Right (Sessions sessions) -> do
+        let children' = case sessions of
+                (TreeZipper _ []) -> do
+                    let children' = mkSessions' env (Sessions sessions)
+                    [children']
+                (TreeZipper x (Context _ f _:_)) -> do
+                    let parent = mkParent env (Sessions sessions) f
+                    let this = mkParent env (Sessions sessions) (datum x)
+                    let children' = mkSessions' env (Sessions sessions)
+                    [parent, this, children']
 
-    UI.div # sink items bSessions'
+        UI.div #+ children'
 
 mkSessions' :: Env -> Sessions -> UI Element
 mkSessions' env (Sessions sessions) = do

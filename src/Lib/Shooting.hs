@@ -24,8 +24,8 @@ newtype Shootings = Shootings { unShootings :: ListZipper Shooting }
     deriving (FromJSON, ToJSON)
 
 
-getShootings :: (MonadIO m, MonadThrow m) => FilePath -> m Shootings
-getShootings = readJSONFile
+getShootings :: (MonadIO m, MonadThrow m) => FilePath -> m (Either String Shootings)
+getShootings = readJSONFile'
 
 
 writeShootings :: (MonadIO m) => FilePath -> Shootings -> m ()

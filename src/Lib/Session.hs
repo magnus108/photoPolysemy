@@ -34,8 +34,8 @@ newtype Sessions = Sessions { unSessions:: TreeZipper Decisions Session }
     deriving (FromJSON, ToJSON)
 
 
-getSessions :: (MonadIO m, MonadThrow m) => FilePath -> m Sessions
-getSessions = readJSONFile
+getSessions :: (MonadIO m, MonadThrow m) => FilePath -> m (Either String Sessions)
+getSessions = readJSONFile'
 
 
 writeSessions :: (MonadIO m) => FilePath -> Sessions -> m ()

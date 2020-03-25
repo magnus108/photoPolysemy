@@ -1,19 +1,17 @@
-{-# LANGUAGE DeriveAnyClass #-}
-
 module Lib.Doneshooting
     ( Doneshooting(..)
     , getDoneshooting
     , writeDoneshooting
     ) where
 
-data Doneshooting = Doneshooting FilePath
+newtype Doneshooting = Doneshooting { unDoneshooting :: FilePath }
     deriving (Eq, Ord, Show)
     deriving (Generic)
     deriving (FromJSON, ToJSON)
 
 
-getDoneshooting :: (MonadIO m, MonadThrow m) => FilePath -> m Doneshooting
-getDoneshooting = readJSONFile
+getDoneshooting :: (MonadIO m, MonadThrow m) => FilePath -> m (Either String Doneshooting)
+getDoneshooting = readJSONFile'
 
 
 writeDoneshooting :: (MonadIO m) => FilePath -> Doneshooting -> m ()

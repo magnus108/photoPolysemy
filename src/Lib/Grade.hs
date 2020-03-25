@@ -56,19 +56,19 @@ myOptionsDecode :: DecodeOptions
 myOptionsDecode = defaultDecodeOptions { decDelimiter = fromIntegral (ord ';') }
 
 --TODO move me
-parseGrades :: LocationFile -> IO (Maybe Grades)
+parseGrades :: LocationFile -> IO (Either String Grades)
 parseGrades locationFile = do
     data' <-  BL.readFile (unLocationFile locationFile)
 
     let locationData = decodeWith myOptionsDecode NoHeader $ data' :: Either String (Vector.Vector Photographee)
 
     case locationData of
-            Left _ -> return Nothing
+            Left _ -> return (Left "fejl")
             Right locData -> do
                 let grades = nub $ Vector.toList $ fmap _grade locData
                 case grades of
-                    [] -> return Nothing
-                    x:xs -> return $ Just $ Grades $ fmap Grade $ ListZipper [] x xs
+                    [] -> return (Left "fejl")
+                    x:xs -> return $ Right $ Grades $ fmap Grade $ ListZipper [] x xs
 
 
 
