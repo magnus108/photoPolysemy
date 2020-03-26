@@ -298,6 +298,8 @@ dirDagsdato mgr Files{..} _ handler = do
                 (unDagsdato path)
                 (const True)
                 (\e -> print e >> handler ())
+                    `catch` (\( e :: SomeException ) -> return $ return () ) --TODO this sucks
+
 
 
 configDagsdatoBackup :: WatchManager -> Files -> WatchMap -> Handler (Either String DagsdatoBackup) -> Handler () -> IO StopListening
