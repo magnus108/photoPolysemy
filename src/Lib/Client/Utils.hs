@@ -11,12 +11,12 @@ import Graphics.UI.Threepenny.Core
 
 
 item :: WriteAttr Element (UI Element)
-item = mkWriteAttr $ \item container -> void $
-    element container # set children [] #+ [item]
+item = mkWriteAttr $ \item' container -> void $
+    element container # set children [] #+ [item']
 
 items :: WriteAttr Element [UI Element]
-items = mkWriteAttr $ \item container -> void $
-    element container # set children [] #+ item
+items = mkWriteAttr $ \item' container -> void $
+    element container # set children [] #+ item'
 
 
 unions' :: NonEmpty (Event a) -> Event (NonEmpty a)

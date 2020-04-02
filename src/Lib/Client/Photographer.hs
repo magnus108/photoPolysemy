@@ -1,5 +1,6 @@
 module Lib.Client.Photographer
     ( photographersSection
+    , Data(..)
     ) where
 
 
@@ -18,16 +19,48 @@ import Utils.Comonad
 import Utils.ListZipper (focus)
 import qualified Utils.ListZipper as ListZipper
 
-import Control.Concurrent.MVar
+import Control.Concurrent
+import Control.Concurrent.Async
+
+data Data e s
+    = NotAsked
+    | Loading
+    | Failure e
+    | Data s
+
+
+newtype Model = Model { unModel :: Data String Photographers }
+
+
+initalState :: Model
+initalState = Model NotAsked
+
+
+initialize :: Env -> Handler (Data String Photographers) -> IO ()
+initialize Env{..} handler = do
+    _ <- handler Loading
+    withMVar files $ \ Files{..} -> do
+        _ <- threadDelay 5000000
+        val <- getPhotographers photographersFile
+        case val of
+            Left e ->
+                handler (Failure e)
+            Right s ->
+                handler (Data s)
 
 
 photographersSection :: Env -> Window -> Event (Either String Photographers) -> Tabs -> UI ()
 photographersSection env@Env{..} win ePhotographers tabs = do
-    photographers <- liftIO $ withMVar files $ \ Files{..} -> getPhotographers photographersFile
+    (eInitial, eInitialHandle) <- liftIO newEvent
+    let (ePhotographersErr, ePhotographersSucc) = split ePhotographers
 
-    bPhotographers <- stepper photographers ePhotographers
+    bModel <- stepper initalState $ head <$> unions'
+        ((Model . Data <$> ePhotographersSucc)
+            :| [ Model . Failure <$> ePhotographersErr
+               , Model <$> eInitial
+               ])
 
-    content <- UI.div # sink item (mkPhotographers env <$> bPhotographers)
+    content <- UI.div # sink item (mkPhotographers env <$> bModel)
 
     tabs' <- mkTabs env tabs
     navigation <- mkNavigation env tabs
@@ -38,38 +71,41 @@ photographersSection env@Env{..} win ePhotographers tabs = do
         , navigation
         ]
 
+    liftIO $ async $ initialize env eInitialHandle
+
     void $ UI.getBody win # set children [view]
 
 
-mkPhotographers :: Env -> Either String Photographers -> UI Element
-mkPhotographers env@Env{..} photographers' =  case photographers' of
-    Left e -> do
+mkPhotographers :: Env -> Model -> UI Element
+mkPhotographers env@Env{..} model = do
+    case unModel model of
+        NotAsked -> UI.div # set text "Starting.."
+        Loading -> UI.div # set text "Loading.."
+        Data (Photographers photographers) -> do
+                let currentPhotographer = focus photographers
+                let elems = photographers =>> \photographers''-> let
+                                thisPhotographer = focus photographers''
+                            in
+                                ( thisPhotographer
+                                , thisPhotographer == currentPhotographer
+                                , Photographers photographers''
+                                )
+                elems' <- mapM (mkPhotographer env) elems
+                UI.div #. "buttons has-addons" # set children (ListZipper.toList elems')
+        Failure _ -> do
+            picker <- mkFilePicker "photographerPicker" "Vælg import fil" $ \file -> 
+                when (file /= "") $ do
+                    --TODO er det engentligt det her man vil?
+                    --TODO og hvad gør vi med fejl?
+                    --TODO med nuværende løsning er COPY nok
+                    --TODO FEJL BLIVER ignoret med denne løsning
+                    photographers <- liftIO $ getPhotographers file
+                    liftIO $ withMVar files $ \ Files{..} -> do
+                        mapM_ (writePhotographers photographersFile) photographers
 
-        picker <- mkFilePicker "photographerPicker" "Vælg import fil" $ \file -> 
-            when (file /= "") $ do
-                --TODO er det engentligt det her man vil?
-                --TODO og hvad gør vi med fejl?
-                --TODO med nuværende løsning er COPY nok
-                --TODO FEJL BLIVER ignoret med denne løsning
-                photographers <- liftIO $ getPhotographers file
-                liftIO $ withMVar files $ \ Files{..} -> do
-                    mapM_ (writePhotographers photographersFile) photographers
+            para <- UI.p # set text "Der er en fejl med fotografer"
+            UI.div # set children [para, picker]
 
-        para <- UI.p # set text "Der er en fejl med fotografer"
-        UI.div # set children [para, picker]
-
-    Right (Photographers photographers) -> do
-        let currentPhotographer = focus photographers
-        let elems = photographers =>> \photographers''-> let
-                        thisPhotographer = focus photographers''
-                    in
-                        ( thisPhotographer
-                        , thisPhotographer == currentPhotographer
-                        , Photographers photographers''
-                        )
-        elems' <- mapM (mkPhotographer env) elems
-        UI.div #. "buttons has-addons"
-               # set children (ListZipper.toList elems')
 
 mkPhotographer :: Env -> (Photographer, Bool, Photographers) -> UI Element
 mkPhotographer Env{..} (photographer, isCenter, photographers)

@@ -51,7 +51,7 @@ runServer port env@Env{..} = do
     (_, hDirDagsdatoBackup) <- newEvent
     (eConfigDagsdatoBackup, hConfigDagsdatoBackup) <- newEvent
 
-    (_, hDirDump) <- newEvent
+    (eDumpDir, hDumpDir) <- newEvent
     (eConfigDump, hConfigDump) <- newEvent
 
     (eTabs, hTab) <- newEvent
@@ -102,8 +102,8 @@ runServer port env@Env{..} = do
             stopDirDagsdatoBackup <- dirDagsdatoBackup mgr files' watchers hDirDagsdatoBackup
 
             --Dump
-            stopConfigDump <- configDump mgr files' watchers hConfigDump hDirDump
-            stopDirDump <- dirDump mgr files' watchers hDirDump
+            stopConfigDump <- configDump mgr files' watchers hConfigDump hDumpDir
+            stopDirDump <- dirDump mgr files' watchers hDumpDir
 
             --TODO setter
             modifyMVar_ watchers $ \_ -> do
@@ -135,7 +135,7 @@ runServer port env@Env{..} = do
                     ]
 
         --VERY important this is here
-        Server.run port env eGrades eLocationConfigFile eSessions eShootings eCameras eConfigDump eConfigDoneshooting eConfigDagsdato eConfigDagsdatoBackup eTabs ePhotographers
+        Server.run port env eGrades eLocationConfigFile eSessions eShootings eCameras eConfigDump eDumpDir eConfigDoneshooting eConfigDagsdato eConfigDagsdatoBackup eTabs ePhotographers
 
 
 type WatchMap = MVar (HashMap String StopListening)
@@ -235,10 +235,10 @@ dirDoneshooting mgr Files{..} _ handler = do
                 (unDoneshooting path)
                 (const True)
                 (\e -> print e >> handler ())
-                    `catch` (\( e :: SomeException ) -> return $ return () ) --TODO this sucks
+                    `catch` (\( _ :: SomeException ) -> return $ return () ) --TODO this sucks
 
 
-configDump :: WatchManager -> Files -> WatchMap -> Handler (Either String Dump) -> Handler () -> IO StopListening
+configDump :: WatchManager -> Files -> WatchMap -> Handler (Either String Dump) -> Handler (Either String DumpDir) -> IO StopListening
 configDump mgr files@Files{..} watchMap handler handleDumpDir = watchDir
         mgr
         (dropFileName dumpFile)
@@ -255,7 +255,7 @@ configDump mgr files@Files{..} watchMap handler handleDumpDir = watchDir
 
 
 
-dirDump :: WatchManager -> Files -> WatchMap -> Handler () -> IO StopListening
+dirDump :: WatchManager -> Files -> WatchMap -> Handler (Either String DumpDir) -> IO StopListening
 dirDump mgr Files{..} _ handler = do
     dumpPath <- getDump dumpFile
     case dumpPath of
@@ -265,8 +265,8 @@ dirDump mgr Files{..} _ handler = do
             mgr
             (unDump path)
             (const True)
-            (\e -> print e >> handler ())
-                `catch` (\( e :: SomeException ) -> return $ return () ) --TODO this sucks
+            (\e -> print e >> getDumpDir (unDump path) >>= handler) --TODO alså det jo lidt noget hø
+                `catch` (\( _ :: SomeException ) -> return $ return () ) --TODO this sucks
 
 
 configDagsdato :: WatchManager -> Files -> WatchMap -> Handler (Either String Dagsdato) -> Handler () -> IO StopListening
@@ -298,7 +298,7 @@ dirDagsdato mgr Files{..} _ handler = do
                 (unDagsdato path)
                 (const True)
                 (\e -> print e >> handler ())
-                    `catch` (\( e :: SomeException ) -> return $ return () ) --TODO this sucks
+                    `catch` (\( _ :: SomeException ) -> return $ return () ) --TODO this sucks
 
 
 
@@ -330,7 +330,7 @@ dirDagsdatoBackup mgr Files{..} _ handler = do
             (unDagsdatoBackup path)
             (const True)
             (\e -> print e >> handler ())
-                `catch` (\( e :: SomeException ) -> return $ return () ) --TODO this sucks
+                `catch` (\( _ :: SomeException ) -> return $ return () ) --TODO this sucks
 
 
 main :: Int -> IO ()

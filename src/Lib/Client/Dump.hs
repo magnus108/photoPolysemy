@@ -17,7 +17,7 @@ import Control.Concurrent.MVar (withMVar)
 
 dumpView :: Env -> Either String Dump -> UI Element
 dumpView Env{..} = \case
-    Left x -> do
+    Left _ -> do
         title_ <- UI.p # set text "Der er en fejl med dump mappe"
 
         picker <- UI.div #+

@@ -29,13 +29,14 @@ import Lib.Client.Dagsdato
 import Lib.Client.DagsdatoBackup
 import Lib.Client.Doneshooting
 import Lib.Client.Photographer
+import Lib.Client.Main
 
 
 import Utils.ListZipper (focus)
 
 
-view :: Env -> Window -> Event Grades -> Event (Either String LocationFile) -> Event (Either String Sessions) -> Event (Either String Shootings) -> Event (Either String Cameras) -> Event (Either String Dump) -> Event (Either String Doneshooting) -> Event (Either String Dagsdato) -> Event (Either String DagsdatoBackup) -> Event (Either String Photographers) -> Tabs -> UI ()
-view env win eGrades eLocationConfigFile eSessions eShootings eCameras eDump eDoneshooting eDagsdato eDagsdatoBackup ePhotographers tabs = do
+view :: Env -> Window -> Event Grades -> Event (Either String LocationFile) -> Event (Either String Sessions) -> Event (Either String Shootings) -> Event (Either String Cameras) -> Event (Either String Dump) -> Event (Either String DumpDir) -> Event (Either String Doneshooting) -> Event (Either String Dagsdato) -> Event (Either String DagsdatoBackup) -> Event (Either String Photographers) -> Tabs -> UI ()
+view env win eGrades eLocationConfigFile eSessions eShootings eCameras eDump eDumpDir eDoneshooting eDagsdato eDagsdatoBackup ePhotographers tabs = do
     let currentTab = focus (unTabs tabs)
     case currentTab of
         DumpTab -> dumpSection env win tabs eDump
@@ -47,13 +48,14 @@ view env win eGrades eLocationConfigFile eSessions eShootings eCameras eDump eDo
         DagsdatoTab -> dagsdatoSection env win eDagsdato tabs
         DagsdatoBackupTab -> dagsdatoBackupSection env win eDagsdatoBackup tabs
         LocationTab -> locationSection env win eLocationConfigFile eGrades tabs
-        _ -> return ()
+        MainTab -> mainSection env win tabs eDump eDumpDir
+        _ -> mainSection env win tabs eDump eDumpDir
+        
 
 
 
-
-run :: Int -> Env -> UI.Event Grades ->  UI.Event (Either String LocationFile) -> UI.Event (Either String Sessions) -> UI.Event (Either String Shootings) -> UI.Event (Either String Cameras) -> UI.Event (Either String Dump) -> UI.Event (Either String Doneshooting) -> UI.Event (Either String Dagsdato) -> UI.Event (Either String DagsdatoBackup) -> UI.Event Tabs -> UI.Event (Either String Photographers) -> IO ()
-run port env@Env{..} eGrades eLocationConfigFile eSessions eShootings eCameras eDump eDoneshooting eDagsdato eDagsdatoBackup eTabs ePhotographers = do
+run :: Int -> Env -> UI.Event Grades ->  UI.Event (Either String LocationFile) -> UI.Event (Either String Sessions) -> UI.Event (Either String Shootings) -> UI.Event (Either String Cameras) -> UI.Event (Either String Dump) -> UI.Event (Either String DumpDir) -> UI.Event (Either String Doneshooting) -> UI.Event (Either String Dagsdato) -> UI.Event (Either String DagsdatoBackup) -> UI.Event Tabs -> UI.Event (Either String Photographers) -> IO ()
+run port env@Env{..} eGrades eLocationConfigFile eSessions eShootings eCameras eDump eDumpDir eDoneshooting eDagsdato eDagsdatoBackup eTabs ePhotographers = do
     tabs <- withMVar files $ \ Files{..} -> getTabs tabsFile
 
     startGUI defaultConfig
@@ -70,6 +72,7 @@ run port env@Env{..} eGrades eLocationConfigFile eSessions eShootings eCameras e
                                             eShootings
                                             eCameras
                                             eDump
+                                            eDumpDir
                                             eDoneshooting
                                             eDagsdato
                                             eDagsdatoBackup
@@ -80,6 +83,7 @@ run port env@Env{..} eGrades eLocationConfigFile eSessions eShootings eCameras e
                                             eShootings
                                             eCameras
                                             eDump
+                                            eDumpDir
                                             eDoneshooting
                                             eDagsdato
                                             eDagsdatoBackup

@@ -47,13 +47,13 @@ mkSessions env  = \case
     Right (Sessions sessions) -> do
         let children' = case sessions of
                 (TreeZipper _ []) -> do
-                    let children' = mkSessions' env (Sessions sessions)
-                    [children']
+                    let children'' = mkSessions' env (Sessions sessions)
+                    [children'']
                 (TreeZipper x (Context _ f _:_)) -> do
                     let parent = mkParent env (Sessions sessions) f
                     let this = mkParent env (Sessions sessions) (datum x)
-                    let children' = mkSessions' env (Sessions sessions)
-                    [parent, this, children']
+                    let children'' = mkSessions' env (Sessions sessions)
+                    [parent, this, children'']
 
         UI.div #+ children'
 
