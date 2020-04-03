@@ -1,19 +1,17 @@
 {-# LANGUAGE DeriveAnyClass #-}
-module Lib.App.Env
-       ( Env(..)
-       , Files(..)
+module Lib.App.Files2
+       ( Files2(..)
        , loadFiles
        ) where
 
-import Lib.App.Files2
-
-data Files = Files
+data Files2 = Files2
     { dumpFile :: !FilePath
     , doneshootingFile :: !FilePath
     , dagsdatoFile :: !FilePath
     , dagsdatoBackupFile :: !FilePath
     , shootingsFile :: !FilePath
     , sessionsFile :: !FilePath
+    , photographersFile :: !FilePath
     , gradesFile :: !FilePath
     , camerasFile :: !FilePath
     , tabsFile :: !FilePath
@@ -22,7 +20,5 @@ data Files = Files
       deriving (FromJSON, ToJSON)
       deriving (Show)
 
-data Env = Env
-    { files :: MVar Files
-    , mPhotographersFile :: MVar FilePath
-    }
+loadFiles :: (MonadIO m, MonadThrow m) => FilePath -> m Files2
+loadFiles = readJSONFile

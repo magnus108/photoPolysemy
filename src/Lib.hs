@@ -13,6 +13,7 @@ import qualified Data.HashMap.Strict as HashMap
 import System.FSNotify
 
 import Lib.App (Files(..),loadFiles, Env(..))
+import Lib.App.Files2
 import Lib.Config (Config (..), loadConfig)
 import Lib.Tab (Tabs, getTabs)
 import Lib.Photographer (Photographers, getPhotographers)
@@ -36,7 +37,10 @@ import Graphics.UI.Threepenny (newEvent, Handler)
 
 mkEnv :: Config -> IO Env
 mkEnv _ = do
-    files <- newMVar =<< loadFiles "config.json"
+    Files2{..} <- loadFiles "config.json"
+    mPhotographersFile <- newMVar photographersFile
+    files <- newMVar Files{..}
+
     pure Env{..}
 
 
@@ -68,6 +72,9 @@ runServer port env@Env{..} = do
 
     watchers <- newMVar mempty
     withManager $ \mgr -> do
+        --Photographers
+        stopConfigPhotographers <- configPhotographers mgr mPhotographersFile watchers hPhotographers
+
         withMVar files $ \ files' -> do
             --Tabs
             stopConfigTab <- configTab mgr files' watchers hTab
@@ -77,8 +84,6 @@ runServer port env@Env{..} = do
             --Location
             stopConfigLocationFile <- configLocationFile mgr files' watchers hLocationConfigFile
 
-            --Photographers
-            stopConfigPhotographers <- configPhotographers mgr files' watchers hPhotographers
 
             --Sessions
             stopConfigSessions <- configSessions mgr files' watchers hSessions
@@ -174,12 +179,14 @@ grades mgr Files{..} _ handler =
         (\e -> print e >> (handler =<< getGrades gradesFile))
 
 
-configPhotographers :: WatchManager -> Files -> WatchMap -> Handler (Either String Photographers) -> IO StopListening
-configPhotographers mgr Files{..} _ handler = watchDir
+configPhotographers :: WatchManager -> MVar FilePath -> WatchMap -> Handler (Either String Photographers) -> IO StopListening
+configPhotographers mgr mFilepath _ handler = do
+    filepath <- readMVar mFilepath
+    watchDir
         mgr
-        (dropFileName photographersFile)
-        (\e -> eventPath e == photographersFile)
-        (\e -> print e >> (handler =<< getPhotographers photographersFile))
+        (dropFileName filepath)
+        (\e -> eventPath e == filepath)
+        (\e -> print e >> (handler =<< getPhotographers =<< readMVar mFilepath))
 
 
 configSessions :: WatchManager -> Files -> WatchMap -> Handler (Either String Sessions) -> IO StopListening

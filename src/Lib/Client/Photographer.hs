@@ -39,9 +39,9 @@ initalState = Model NotAsked
 initialize :: Env -> Handler (Data String Photographers) -> IO ()
 initialize Env{..} handler = do
     _ <- handler Loading
-    withMVar files $ \ Files{..} -> do
-        _ <- threadDelay 5000000
-        val <- getPhotographers photographersFile
+    _ <- threadDelay 5000000
+    withMVar mPhotographersFile $ \file -> do
+        val <- getPhotographers file
         case val of
             Left e ->
                 handler (Failure e)
@@ -71,9 +71,8 @@ photographersSection env@Env{..} win ePhotographers tabs = do
         , navigation
         ]
 
-    liftIO $ async $ initialize env eInitialHandle
-
-    void $ UI.getBody win # set children [view]
+    UI.getBody win # set children [view]
+        >> liftIOLater (withAsync (initialize env eInitialHandle) wait) --TODO not error safe
 
 
 mkPhotographers :: Env -> Model -> UI Element
@@ -100,8 +99,8 @@ mkPhotographers env@Env{..} model = do
                     --TODO med nuværende løsning er COPY nok
                     --TODO FEJL BLIVER ignoret med denne løsning
                     photographers <- liftIO $ getPhotographers file
-                    liftIO $ withMVar files $ \ Files{..} -> do
-                        mapM_ (writePhotographers photographersFile) photographers
+                    liftIO $ withMVar mPhotographersFile $ \file -> do
+                        mapM_ (writePhotographers file) photographers
 
             para <- UI.p # set text "Der er en fejl med fotografer"
             UI.div # set children [para, picker]
@@ -116,6 +115,6 @@ mkPhotographer Env{..} (photographer, isCenter, photographers)
         let name = _name photographer
         forwardButton <- mkButton "idd" name
         UI.on UI.click forwardButton $ \_ ->
-            liftIO $ withMVar files $ \ Files{..} ->
-                writePhotographers photographersFile photographers
+            liftIO $ withMVar mPhotographersFile $ \file ->
+                writePhotographers file photographers
         return forwardButton
