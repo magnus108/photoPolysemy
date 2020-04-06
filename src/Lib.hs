@@ -20,6 +20,7 @@ import Lib.Photographer (Photographers, getPhotographers)
 
 import Utils.ListZipper
 
+import Lib.Photographer
 import Lib.Grade
 import Lib.Location
 import Lib.Session
@@ -179,14 +180,17 @@ grades mgr Files{..} _ handler =
         (\e -> print e >> (handler =<< getGrades gradesFile))
 
 
-configPhotographers :: WatchManager -> MVar FilePath -> WatchMap -> Handler (Either String Photographers) -> IO StopListening
+configPhotographers :: WatchManager -> MVar FilePath -> WatchMap -> Handler (Data String Photographers) -> IO StopListening
 configPhotographers mgr mFilepath _ handler = do
     filepath <- readMVar mFilepath
     watchDir
         mgr
         (dropFileName filepath)
         (\e -> eventPath e == filepath)
-        (\e -> print e >> (handler =<< getPhotographers =<< readMVar mFilepath))
+        --TODO SPAWNER THREAD SOM IKKE DØR
+        --TODO SPAWNER THREAD SOM IKKE DØR
+        --TODO SPAWNER THREAD SOM IKKE DØR
+        (\e -> print e >> (void $ getPhotographers mFilepath handler))
 
 
 configSessions :: WatchManager -> Files -> WatchMap -> Handler (Either String Sessions) -> IO StopListening

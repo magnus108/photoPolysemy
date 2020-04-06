@@ -35,7 +35,7 @@ import Lib.Client.Main
 import Utils.ListZipper (focus)
 
 
-view :: Env -> Window -> Event Grades -> Event (Either String LocationFile) -> Event (Either String Sessions) -> Event (Either String Shootings) -> Event (Either String Cameras) -> Event (Either String Dump) -> Event (Either String DumpDir) -> Event (Either String Doneshooting) -> Event (Either String Dagsdato) -> Event (Either String DagsdatoBackup) -> Event (Either String Photographers) -> Tabs -> UI ()
+view :: Env -> Window -> Event Grades -> Event (Either String LocationFile) -> Event (Either String Sessions) -> Event (Either String Shootings) -> Event (Either String Cameras) -> Event (Either String Dump) -> Event (Either String DumpDir) -> Event (Either String Doneshooting) -> Event (Either String Dagsdato) -> Event (Either String DagsdatoBackup) -> Event (Data String Photographers) -> Tabs -> UI ()
 view env win eGrades eLocationConfigFile eSessions eShootings eCameras eDump eDumpDir eDoneshooting eDagsdato eDagsdatoBackup ePhotographers tabs = do
     let currentTab = focus (unTabs tabs)
     case currentTab of
@@ -54,7 +54,7 @@ view env win eGrades eLocationConfigFile eSessions eShootings eCameras eDump eDu
 
 
 
-run :: Int -> Env -> UI.Event Grades ->  UI.Event (Either String LocationFile) -> UI.Event (Either String Sessions) -> UI.Event (Either String Shootings) -> UI.Event (Either String Cameras) -> UI.Event (Either String Dump) -> UI.Event (Either String DumpDir) -> UI.Event (Either String Doneshooting) -> UI.Event (Either String Dagsdato) -> UI.Event (Either String DagsdatoBackup) -> UI.Event Tabs -> UI.Event (Either String Photographers) -> IO ()
+run :: Int -> Env -> UI.Event Grades ->  UI.Event (Either String LocationFile) -> UI.Event (Either String Sessions) -> UI.Event (Either String Shootings) -> UI.Event (Either String Cameras) -> UI.Event (Either String Dump) -> UI.Event (Either String DumpDir) -> UI.Event (Either String Doneshooting) -> UI.Event (Either String Dagsdato) -> UI.Event (Either String DagsdatoBackup) -> UI.Event Tabs -> UI.Event (Data String Photographers) -> IO ()
 run port env@Env{..} eGrades eLocationConfigFile eSessions eShootings eCameras eDump eDumpDir eDoneshooting eDagsdato eDagsdatoBackup eTabs ePhotographers = do
     tabs <- withMVar files $ \ Files{..} -> getTabs tabsFile
 

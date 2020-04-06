@@ -11,7 +11,7 @@ import Lib.Tab
 import Lib.Photographer
 import Lib.Client.Tab
 
-import Lib.App (Env(..), Files(..))
+import Lib.App (Env(..))
 
 import Lib.Client.Utils
 import Lib.Client.Element
@@ -20,38 +20,23 @@ import Utils.ListZipper (focus)
 import qualified Utils.ListZipper as ListZipper
 
 import Control.Concurrent
-import Control.Concurrent.Async
-
-data Data e s
-    = NotAsked
-    | Loading
-    | Failure e
-    | Data s
 
 
-newtype Model = Model { unModel :: Data String Photographers }
 
-
-initalState :: Model
-initalState = Model NotAsked
-
-
-initialize :: Env -> IO (Either String Photographers)
-initialize Env{..} = do
-    withMVar mPhotographersFile $ \file -> do
-        _ <- threadDelay 5000000
-        getPhotographers file
-
-
-photographersSection :: Env -> Window -> Event (Either String Photographers) -> Tabs -> UI ()
+photographersSection :: Env -> Window -> Event (Data String Photographers) -> Tabs -> UI ()
 photographersSection env@Env{..} win ePhotographers tabs = do
+    let (_, eLoading, ePhotographersErr, ePhotographersSucc) = splitData ePhotographers
+
     (eInitial, eInitialHandle) <- liftIO newEvent
-    let (ePhotographersErr, ePhotographersSucc) = split ePhotographers
+
+    _ <- getPhotographers mPhotographersFile eInitialHandle
+
 
     bModel <- stepper initalState $ head <$> unions'
         ((Model . Data <$> ePhotographersSucc)
             :| [ Model . Failure <$> ePhotographersErr
                , Model <$> eInitial
+               , Model Loading <$ eLoading
                ])
 
     content <- UI.div # sink item (mkPhotographers env <$> bModel)
@@ -67,14 +52,6 @@ photographersSection env@Env{..} win ePhotographers tabs = do
 
     void $ UI.getBody win # set children [view]
 
-    _ <- liftIO $ eInitialHandle Loading
-
-    liftIO $ void $ forkFinally (initialize env) $ \res -> do
-        case res of
-            Left e -> eInitialHandle $ Failure (show e)
-            Right x -> case x of
-                    Left e' -> eInitialHandle $ Failure e'
-                    Right s -> eInitialHandle $ Data s
 
 
 
@@ -101,9 +78,9 @@ mkPhotographers env@Env{..} model =
                     --TODO og hvad gør vi med fejl?
                     --TODO med nuværende løsning er COPY nok
                     --TODO FEJL BLIVER ignoret med denne løsning
-                    photographers <- liftIO $ getPhotographers file
-                    liftIO $ withMVar mPhotographersFile $ \file -> do
-                        mapM_ (writePhotographers file) photographers
+                    photographers <- liftIO $ getPhotographers' file
+                    liftIO $ withMVar mPhotographersFile $ \photographersFile -> do
+                        mapM_ (writePhotographers photographersFile) photographers
 
             para <- UI.p # set text "Der er en fejl med fotografer"
             UI.div # set children [para, picker]
