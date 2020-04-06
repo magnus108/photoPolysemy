@@ -36,17 +36,11 @@ initalState :: Model
 initalState = Model NotAsked
 
 
-initialize :: Env -> Handler (Data String Photographers) -> IO ()
-initialize Env{..} handler = do
-    _ <- handler Loading
-    _ <- threadDelay 5000000
+initialize :: Env -> IO (Either String Photographers)
+initialize Env{..} = do
     withMVar mPhotographersFile $ \file -> do
-        val <- getPhotographers file
-        case val of
-            Left e ->
-                handler (Failure e)
-            Right s ->
-                handler (Data s)
+        _ <- threadDelay 5000000
+        getPhotographers file
 
 
 photographersSection :: Env -> Window -> Event (Either String Photographers) -> Tabs -> UI ()
@@ -71,12 +65,21 @@ photographersSection env@Env{..} win ePhotographers tabs = do
         , navigation
         ]
 
-    UI.getBody win # set children [view]
-        >> liftIOLater (withAsync (initialize env eInitialHandle) wait) --TODO not error safe
+    void $ UI.getBody win # set children [view]
+
+    _ <- liftIO $ eInitialHandle Loading
+
+    liftIO $ void $ forkFinally (initialize env) $ \res -> do
+        case res of
+            Left e -> eInitialHandle $ Failure (show e)
+            Right x -> case x of
+                    Left e' -> eInitialHandle $ Failure e'
+                    Right s -> eInitialHandle $ Data s
+
 
 
 mkPhotographers :: Env -> Model -> UI Element
-mkPhotographers env@Env{..} model = do
+mkPhotographers env@Env{..} model =
     case unModel model of
         NotAsked -> UI.div # set text "Starting.."
         Loading -> UI.div # set text "Loading.."
