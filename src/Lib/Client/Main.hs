@@ -6,6 +6,7 @@ module Lib.Client.Main
 import Graphics.UI.Threepenny.Core
 import qualified Graphics.UI.Threepenny as UI
 
+import Lib.Data
 import Lib.Tab
 import Lib.Dump
 import Lib.Client.Tab
@@ -14,44 +15,71 @@ import Lib.Client.Utils
 import Lib.App (Env(..), Files(..))
 import Control.Concurrent.MVar
 
+import qualified Control.Lens as Lens
 
-mainSection :: Env -> Window -> Tabs -> Event (Either String Dump) -> Event (Either String DumpDir) -> UI ()
+
+mainSection :: Env -> Window -> Tabs -> Event (Either String Dump) -> Event (Data String DumpDir) -> UI ()
 mainSection env@Env{..} win tabs eDump eDumpDir = do
-
-    dump <- liftIO $ withMVar files $ \ Files{..} -> getDump dumpFile
+{-
     -- TODO this dump
     dumpDir <- liftIO $ withMVar files $ \ Files{..} -> do
         let filePath = unDump <$> dump
         dumpDir <- mapM getDumpDir filePath
         return $ join dumpDir
 
-    case dumpDir of
-        Left _ -> do
-                tabs' <- mkTabs env tabs
-                navigation <- mkNavigation env tabs
-                view <- UI.div #+ fmap element
-                    [ tabs'
-                    , navigation
-                    ]
 
-                void $ UI.getBody win # set children [view]
+    (eInitial, eInitialHandle) <- liftIO newEvent
 
-        Right dumpDir' -> do
-                let (_, eDumpDirSucc) = split eDumpDir
-
-                bDumpDir <- stepper dumpDir' eDumpDirSucc
-
-                _ <- stepper dump eDump
-
-                count <- UI.div # sink item ((string . show . length . unDumpDir) <$> bDumpDir)
+    _ <- getPhotographers mPhotographersFile eInitialHandle
 
 
-                tabs' <- mkTabs env tabs
-                navigation <- mkNavigation env tabs
-                view <- UI.div #+ fmap element
-                    [ tabs'
-                    , count
-                    , navigation
-                    ]
+    bModel <- stepper initalState $ head <$> unions'
+        ((Model . Data <$> ePhotographersSucc)
+            :| [ Model . Failure <$> ePhotographersErr
+               , Model <$> eInitial
+               , Model Loading <$ eLoading
+               ])
+        -}
 
-                void $ UI.getBody win # set children [view]
+
+    let (_, loading, err, succ) = splitData eDumpDir
+    (eInitial, eInitialHandle) <- liftIO newEvent
+
+    dump <- liftIO $ withMVar files $ \ Files{..} -> getDump dumpFile
+    let filePath = unDump <$> dump
+    -- ignore that this could be error 
+    -- FIX ME....gt
+    _ <- mapM (\x -> getDumpDir x eInitialHandle) filePath
+
+    bModel <- accumB initialState $ concatenate' <$> unions'
+        ((Lens.set dumpDir . Data <$> succ)
+            :| [ Lens.set dumpDir . Failure <$> err
+               , Lens.set dumpDir <$> eInitial
+               , Lens.set dumpDir Loading <$ loading
+               ])
+
+    content <- UI.div # sink item (mkDumpDir env <$> bModel)
+
+    tabs' <- mkTabs env tabs
+    navigation <- mkNavigation env tabs
+
+    view <- UI.div #+ fmap element
+        [ tabs'
+        , content
+        , navigation
+        ]
+
+    void $ UI.getBody win # set children [view]
+
+
+
+mkDumpDir :: Env -> Model -> UI Element
+mkDumpDir env@Env{..} model =
+    case _dumpDir model of
+        NotAsked -> UI.div # set text "Starting.."
+        Loading -> UI.div # set text "Loading.."
+        Failure _ -> do
+            para <- UI.p # set text "Der er en fejl med fotografer"
+            UI.div # set children [para]
+        Data (DumpDir dir) -> do
+            UI.div # set text (show $ length dir)

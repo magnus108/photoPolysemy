@@ -10,12 +10,13 @@ module Lib.Photographer
     , initalState
     , splitData
     , Model(..)
-    , Data(..)
     ) where
 
 import Graphics.UI.Threepenny.Core
 import Control.Concurrent
 import Utils.ListZipper
+
+import Lib.Data
 
 type Name = String
 type Tid = String
@@ -46,47 +47,17 @@ writePhotographers = writeJSONFile
 
 
 
-
-
-
-data Data e s
-    = NotAsked
-    | Loading
-    | Failure e
-    | Data s
-
-
 newtype Model = Model { unModel :: Data String Photographers }
 
 
 initalState :: Model
 initalState = Model NotAsked
 
-
-splitData :: Event (Data e s) -> (Event (), Event (), Event e, Event s)
-splitData e = 
-    (filterJust $ fromNotAsked <$> e
-    , filterJust $ fromLoading <$> e
-    , filterJust $ fromFailure <$> e
-    , filterJust $ fromData <$> e
-    )
-    where
-        fromLoading  Loading = Just ()
-        fromLoading  _ = Nothing
-        fromData (Data s) = Just s
-        fromData _ = Nothing
-        fromFailure (Failure e') = Just e'
-        fromFailure _ = Nothing
-        fromNotAsked NotAsked = Just ()
-        fromNotAsked _ = Nothing
-
-
 forker :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler (Data String Photographers) -> m (Either String Photographers)
 forker file handle = do
     liftIO $ withMVar file $ \f -> do
         _ <- liftIO $ handle Loading
-        _ <- threadDelay 5000000
-        readJSONFile' f
+        getPhotographers' f
 
 
 getPhotographers :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler (Data String Photographers) -> m ThreadId
@@ -97,5 +68,3 @@ getPhotographers file handle = do
             Right x -> case x of
                     Left e' -> handle $ Failure e'
                     Right s -> handle $ Data s
-
-

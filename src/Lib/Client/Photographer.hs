@@ -7,6 +7,7 @@ module Lib.Client.Photographer
 import Graphics.UI.Threepenny.Core
 import qualified Graphics.UI.Threepenny as UI
 
+import Lib.Data
 import Lib.Tab
 import Lib.Photographer
 import Lib.Client.Tab

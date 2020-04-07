@@ -2,6 +2,7 @@ module Lib.Client.Utils
     ( items
     , item
     , unions'
+    , concatenate'
     , selectionChange'
     , bEditing
     ) where
@@ -21,6 +22,9 @@ items = mkWriteAttr $ \item' container -> void $
 
 unions' :: NonEmpty (Event a) -> Event (NonEmpty a)
 unions' = foldr (unionWith (<>)) never . fmap (fmap (:|[]))
+
+concatenate' :: Foldable f => f (a -> a) -> (a -> a)
+concatenate' = foldr (.) id
 
 
 unsafeMapUI :: Element -> (t -> UI b) -> Event t -> Event b

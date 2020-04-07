@@ -20,7 +20,7 @@ import Lib.Photographer (Photographers, getPhotographers)
 
 import Utils.ListZipper
 
-import Lib.Photographer
+import Lib.Data
 import Lib.Grade
 import Lib.Location
 import Lib.Session
@@ -249,7 +249,7 @@ dirDoneshooting mgr Files{..} _ handler = do
                     `catch` (\( _ :: SomeException ) -> return $ return () ) --TODO this sucks
 
 
-configDump :: WatchManager -> Files -> WatchMap -> Handler (Either String Dump) -> Handler (Either String DumpDir) -> IO StopListening
+configDump :: WatchManager -> Files -> WatchMap -> Handler (Either String Dump) -> Handler (Data String DumpDir) -> IO StopListening
 configDump mgr files@Files{..} watchMap handler handleDumpDir = watchDir
         mgr
         (dropFileName dumpFile)
@@ -266,7 +266,7 @@ configDump mgr files@Files{..} watchMap handler handleDumpDir = watchDir
 
 
 
-dirDump :: WatchManager -> Files -> WatchMap -> Handler (Either String DumpDir) -> IO StopListening
+dirDump :: WatchManager -> Files -> WatchMap -> Handler (Data String DumpDir) -> IO StopListening
 dirDump mgr Files{..} _ handler = do
     dumpPath <- getDump dumpFile
     case dumpPath of
@@ -276,8 +276,7 @@ dirDump mgr Files{..} _ handler = do
             mgr
             (unDump path)
             (const True)
-            (\e -> print e >> getDumpDir (unDump path) >>= handler) --TODO alså det jo lidt noget hø
-                `catch` (\( _ :: SomeException ) -> return $ return () ) --TODO this sucks
+            (\e -> print e >> (void $ getDumpDir (unDump path) handler))
 
 
 configDagsdato :: WatchManager -> Files -> WatchMap -> Handler (Either String Dagsdato) -> Handler () -> IO StopListening
