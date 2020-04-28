@@ -21,7 +21,8 @@ import Lib.Photographer (Photographers, getPhotographers)
 import Utils.ListZipper
 
 import Lib.Data
-import Lib.Grade
+import Lib.Grade (Grades, getGrades, writeGrades, Grade(..), Grades(..), parseGrades)
+import qualified Lib.Grade as Grades
 import Lib.Location
 import Lib.Session
 import Lib.Shooting
@@ -171,13 +172,13 @@ configLocationFile mgr Files{..} _ handler = watchDir
 
 -- der skal skydes et lag in herimellem der kan lytte på locationen
 
-grades :: WatchManager -> Files -> WatchMap -> Handler Grades -> IO StopListening
+grades :: WatchManager -> Files -> WatchMap -> Handler (Data String Grades) -> IO StopListening
 grades mgr Files{..} _ handler =
     watchDir
         mgr
         (dropFileName gradesFile)
         (\e -> eventPath e == gradesFile)
-        (\e -> print e >> (handler =<< getGrades gradesFile))
+        (\e -> print e >> (void $ getGrades gradesFile handler))
 
 
 configPhotographers :: WatchManager -> MVar FilePath -> WatchMap -> Handler (Data String Photographers) -> IO StopListening

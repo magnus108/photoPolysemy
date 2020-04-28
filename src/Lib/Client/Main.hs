@@ -8,7 +8,9 @@ import qualified Graphics.UI.Threepenny as UI
 
 import Lib.Data
 import Lib.Tab
-import Lib.Dump
+import Lib.Grade
+import Lib.Dump (Dump(..), Model, DumpDir(..), getDump, dumpDir, _dumpDir, getDumpDir)
+import qualified Lib.Dump as Dump
 import Lib.Client.Tab
 import Lib.Client.Utils
 
@@ -18,29 +20,8 @@ import Control.Concurrent.MVar
 import qualified Control.Lens as Lens
 
 
-mainSection :: Env -> Window -> Tabs -> Event (Either String Dump) -> Event (Data String DumpDir) -> UI ()
-mainSection env@Env{..} win tabs eDump eDumpDir = do
-{-
-    -- TODO this dump
-    dumpDir <- liftIO $ withMVar files $ \ Files{..} -> do
-        let filePath = unDump <$> dump
-        dumpDir <- mapM getDumpDir filePath
-        return $ join dumpDir
-
-
-    (eInitial, eInitialHandle) <- liftIO newEvent
-
-    _ <- getPhotographers mPhotographersFile eInitialHandle
-
-
-    bModel <- stepper initalState $ head <$> unions'
-        ((Model . Data <$> ePhotographersSucc)
-            :| [ Model . Failure <$> ePhotographersErr
-               , Model <$> eInitial
-               , Model Loading <$ eLoading
-               ])
-        -}
-
+mainSection :: Env -> Window -> Tabs -> Event (Data String Grades) -> Event (Either String Dump) -> Event (Data String DumpDir) -> UI ()
+mainSection env@Env{..} win tabs eGrade eDump eDumpDir = do
 
     let (_, loading, err, succ) = splitData eDumpDir
     (eInitial, eInitialHandle) <- liftIO newEvent
@@ -51,13 +32,14 @@ mainSection env@Env{..} win tabs eDump eDumpDir = do
     -- FIX ME....gt
     _ <- mapM (\x -> getDumpDir x eInitialHandle) filePath
 
-    bModel <- accumB initialState $ concatenate' <$> unions'
+    bModel <- accumB Dump.initialState $ concatenate' <$> unions'
         ((Lens.set dumpDir . Data <$> succ)
             :| [ Lens.set dumpDir . Failure <$> err
                , Lens.set dumpDir <$> eInitial
                , Lens.set dumpDir Loading <$ loading
                ])
 
+    input <- UI.input #. "input" # set UI.type_ "text"
     content <- UI.div # sink item (mkDumpDir env <$> bModel)
 
     tabs' <- mkTabs env tabs
@@ -66,6 +48,7 @@ mainSection env@Env{..} win tabs eDump eDumpDir = do
     view <- UI.div #+ fmap element
         [ tabs'
         , content
+        , input
         , navigation
         ]
 
@@ -73,7 +56,7 @@ mainSection env@Env{..} win tabs eDump eDumpDir = do
 
 
 
-mkDumpDir :: Env -> Model -> UI Element
+mkDumpDir :: Env -> Dump.Model -> UI Element
 mkDumpDir env@Env{..} model =
     case _dumpDir model of
         NotAsked -> UI.div # set text "Starting.."

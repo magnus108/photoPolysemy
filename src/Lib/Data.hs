@@ -10,6 +10,7 @@ data Data e s
     | Loading
     | Failure e
     | Data s
+        deriving Show
 
 
 splitData :: Event (Data e s) -> (Event (), Event (), Event e, Event s)

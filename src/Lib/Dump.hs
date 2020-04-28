@@ -18,7 +18,6 @@ import Lib.Data
 
 import Control.Lens
 
-
 newtype Dump = Dump { unDump :: FilePath }
     deriving (Eq, Ord, Show)
     deriving (Generic)
@@ -39,8 +38,6 @@ getDumpDir' :: (MonadIO m, MonadThrow m) => FilePath -> m (Either String DumpDir
 getDumpDir' filepath = do
     dir <- liftIO $ try (listDirectory filepath) <&> first (\e -> show (e :: SomeException))
     return $ DumpDir <$> dir
-
-
 
 
 data Model = Model { _dumpDir :: Data String DumpDir
