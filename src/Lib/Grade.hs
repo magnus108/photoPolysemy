@@ -15,7 +15,6 @@ module Lib.Grade
     , parseGrades
     ) where
 
-import Control.Exception (try)
 import Control.Concurrent
 
 import Utils.Comonad

@@ -29,11 +29,11 @@ dumpView Env{..} = \case
 
         UI.div #+ fmap element [ title_, picker]
 
-    Right dump -> do
+    Right dump' -> do
 
         title_ <- UI.div #+ [UI.string "Dump mappe"]
 
-        content <- UI.div #+ [UI.string (unDump dump)]
+        content <- UI.div #+ [UI.string (unDump dump')]
 
         picker <- UI.div #+
             [ mkFolderPicker "dumpPicker" "Vælg config folder" $ \folder ->
@@ -47,8 +47,8 @@ dumpView Env{..} = \case
 
 dumpSection :: Env -> Window -> Tabs -> Event (Either String Dump) -> UI ()
 dumpSection env@Env{..} win tabs eDump = do
-    dump <- liftIO $ withMVar files $ \ Files{..} -> getDump dumpFile
-    bDump <- stepper dump eDump
+    dump' <- liftIO $ withMVar files $ \ Files{..} -> getDump dumpFile
+    bDump <- stepper dump' eDump
 
     content <- UI.div # sink item (dumpView env <$> bDump)
 

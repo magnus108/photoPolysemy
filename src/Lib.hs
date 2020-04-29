@@ -22,7 +22,6 @@ import Utils.ListZipper
 
 import Lib.Data
 import Lib.Grade (Grades, getGrades, writeGrades, Grade(..), Grades(..), parseGrades)
-import qualified Lib.Grade as Grades
 import Lib.Location
 import Lib.Session
 import Lib.Shooting

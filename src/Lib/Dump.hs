@@ -2,6 +2,7 @@
 module Lib.Dump
     ( Dump(..)
     , DumpDir(..)
+    , dump
     , getDump
     , dumpDir
     , getDumpDir

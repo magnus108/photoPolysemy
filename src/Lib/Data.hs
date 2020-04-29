@@ -1,6 +1,7 @@
 module Lib.Data
     ( Data(..)
     , splitData
+    , Split(..)
     ) where
 
 import Graphics.UI.Threepenny.Core
@@ -13,16 +14,24 @@ data Data e s
         deriving Show
 
 
-splitData :: Event (Data e s) -> (Event (), Event (), Event e, Event s)
-splitData e = 
-    (filterJust $ fromNotAsked <$> e
-    , filterJust $ fromLoading <$> e
-    , filterJust $ fromFailure <$> e
-    , filterJust $ fromData <$> e
-    )
+data Split e s = Split { notAsked :: Event ()
+                          , loading :: Event ()
+                          , failure :: Event e
+                          , success :: Event s
+                          }
+
+
+splitData :: Event (Data e s) -> Split e s
+splitData e =
+    let notAsked = filterJust $ fromNotAsked <$> e
+        loading = filterJust $ fromLoading <$> e
+        failure = filterJust $ fromFailure <$> e
+        success = filterJust $ fromData <$> e
+    in
+        Split{..}
     where
-        fromLoading  Loading = Just ()
-        fromLoading  _ = Nothing
+        fromLoading Loading = Just ()
+        fromLoading _ = Nothing
         fromData (Data s) = Just s
         fromData _ = Nothing
         fromFailure (Failure e') = Just e'

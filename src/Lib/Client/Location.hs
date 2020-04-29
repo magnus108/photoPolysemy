@@ -4,7 +4,6 @@ module Lib.Client.Location
     ) where
 
 
-import Control.Concurrent
 import Lib.Client.Utils
 import qualified Control.Lens as Lens
 
@@ -54,37 +53,37 @@ locationFileView Env{..} = \case
 inputGrade :: Model -> String -> Maybe Grades
 inputGrade model name =
     case _grades model of
-        Data grades -> Just $ Grades (ListZipper.mapFocus (const (Grade name)) (unGrades grades))
+        Data grades' -> Just $ Grades (ListZipper.mapFocus (const (Grade name)) (unGrades grades'))
         _ -> Nothing
 
 newGrade :: Model -> Maybe Grades
 newGrade model =
     case _grades model of
-        Data grades -> Just $ Grades $ ListZipper.insert (unGrades grades) (Grade "")
+        Data grades' -> Just $ Grades $ ListZipper.insert (unGrades grades') (Grade "")
         _ -> Nothing
 
 selectGrade :: Model -> Int -> Maybe Grades
 selectGrade model selected =
     case _grades model of
         -- TODO this just wierd
-        Data grades -> asum $ ListZipper.toNonEmpty $
-                    ListZipper.iextend (\thisIndex grades' ->
+        Data grades' -> asum $ ListZipper.toNonEmpty $
+                    ListZipper.iextend (\thisIndex grades'' ->
                             if selected == thisIndex then
-                                Just (Grades grades')
+                                Just (Grades grades'')
                             else
-                                Nothing) (unGrades grades)
+                                Nothing) (unGrades grades')
         _ -> Nothing
 
 locationSection :: Env -> Window -> Event (Either String LocationFile) -> Event (Data String Grades) -> Tabs -> UI ()
 locationSection env@Env{..} win eLocationConfigFile eGrades tabs = do
     (eInitial, eInitialHandle) <- liftIO newEvent
-    let (_, eLoading, eGradesErr, eGradesSucc) = splitData eGrades
+    let eSplit = splitData eGrades
 
     bModel <- accumB initialState $ concatenate' <$> unions'
-        ((Lens.set grades . Data <$> eGradesSucc)
-            :| [ Lens.set grades . Failure <$> eGradesErr
+        ((Lens.set grades . Data <$> (success eSplit))
+            :| [ Lens.set grades . Failure <$> failure eSplit
                , Lens.set grades <$> eInitial
-               , Lens.set grades Loading <$ eLoading
+               , Lens.set grades Loading <$ (loading eSplit)
                ])
 
 
@@ -114,22 +113,22 @@ locationSection env@Env{..} win eLocationConfigFile eGrades tabs = do
         case _grades newModel of
             NotAsked -> do
                 unless (editingInput || editingSelector) $ void $ do
-                    item <- string "Starting.."
-                    void $ element content # set children [item]
+                    text' <- string "Starting.."
+                    void $ element content # set children [text']
             Loading -> do
                 unless (editingInput || editingSelector) $ void $ do
-                    item <- string "Loading.."
-                    void $ element content # set children [item]
+                    text' <- string "Loading.."
+                    void $ element content # set children [text']
             Failure _ -> do
                 unless (editingInput || editingSelector) $ void $ do
                     para <- UI.p # set text "Noget fejl klasser"
                     void $ element content # set children [para]
-            Data grades -> do
+            Data grades' -> do
                 unless (editingSelector) $ void $ do
-                    grades' <- mkGrades env grades
-                    element selector # set children grades'
+                    grades'' <- mkGrades env grades'
+                    element selector # set children grades''
                 unless (editingInput) $ void $ do
-                    element input # set value (showGrade grades)
+                    element input # set value (showGrade grades')
                 unless (editingInput || editingSelector) $ void $ do
                     void $ element content # set children [gradeInsert, input, selector]
 
@@ -158,21 +157,21 @@ locationSection env@Env{..} win eLocationConfigFile eGrades tabs = do
 
 
 mkGrades :: Env -> Grades -> UI [Element]
-mkGrades env grades = do
-    let currentGrade = extractGrade grades
-    let elems = ListZipper.iextend (\index grades' ->
+mkGrades env grades' = do
+    let currentGrade = extractGrade grades'
+    let elems = ListZipper.iextend (\index grades'' ->
             let
-                thisGrade = extract grades'
+                thisGrade = extract grades''
             in
                 ( index
                 , thisGrade == currentGrade
-                , extract grades'
+                , extract grades''
                 )
-            ) (unGrades grades)
+            ) (unGrades grades')
 
-    grades' <- mapM (mkGrade env) elems
+    grades'' <- mapM (mkGrade env) elems
 
-    return (ListZipper.toList grades')
+    return (ListZipper.toList grades'')
 
 
 mkGrade :: Env -> (Int, Bool, Grade) -> UI Element

@@ -41,7 +41,9 @@ view env win eGrades eLocationConfigFile eSessions eShootings eCameras eDump eDu
     case currentTab of
         DumpTab -> dumpSection env win tabs eDump
         DoneshootingTab -> doneshootingSection env win eDoneshooting tabs
-        PhotographersTab -> photographersSection env win ePhotographers tabs
+        PhotographersTab -> do
+            let eSplit = splitData ePhotographers
+            photographersSection env win eSplit tabs
         ShootingsTab -> shootingsSection env win eShootings tabs
         SessionsTab -> sessionsSection env win eSessions tabs
         CamerasTab -> camerasSection env win eCameras tabs

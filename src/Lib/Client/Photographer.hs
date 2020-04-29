@@ -24,9 +24,8 @@ import Control.Concurrent
 
 
 
-photographersSection :: Env -> Window -> Event (Data String Photographers) -> Tabs -> UI ()
-photographersSection env@Env{..} win ePhotographers tabs = do
-    let (_, eLoading, ePhotographersErr, ePhotographersSucc) = splitData ePhotographers
+photographersSection :: Env -> Window -> Split String Photographers -> Tabs -> UI ()
+photographersSection env@Env{..} win eSplit tabs = do
 
     (eInitial, eInitialHandle) <- liftIO newEvent
 
@@ -34,10 +33,10 @@ photographersSection env@Env{..} win ePhotographers tabs = do
 
 
     bModel <- stepper initalState $ head <$> unions'
-        ((Model . Data <$> ePhotographersSucc)
-            :| [ Model . Failure <$> ePhotographersErr
+        ((Model . Data <$> success eSplit)
+            :| [ Model . Failure <$> failure eSplit
                , Model <$> eInitial
-               , Model Loading <$ eLoading
+               , Model Loading <$ loading eSplit
                ])
 
     content <- UI.div # sink item (mkPhotographers env <$> bModel)

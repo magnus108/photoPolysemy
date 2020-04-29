@@ -9,7 +9,7 @@ import qualified Graphics.UI.Threepenny as UI
 import Lib.Data
 import Lib.Tab
 import Lib.Grade
-import Lib.Dump (Dump(..), Model, DumpDir(..), getDump, dumpDir, _dumpDir, getDumpDir)
+import Lib.Dump (Dump(..), DumpDir(..), getDump, dumpDir, _dumpDir, getDumpDir)
 import qualified Lib.Dump as Dump
 import Lib.Client.Tab
 import Lib.Client.Utils
@@ -21,9 +21,9 @@ import qualified Control.Lens as Lens
 
 
 mainSection :: Env -> Window -> Tabs -> Event (Data String Grades) -> Event (Either String Dump) -> Event (Data String DumpDir) -> UI ()
-mainSection env@Env{..} win tabs eGrade eDump eDumpDir = do
+mainSection env@Env{..} win tabs _ _ eDumpDir = do
 
-    let (_, loading, err, succ) = splitData eDumpDir
+    let eSplit = splitData eDumpDir
     (eInitial, eInitialHandle) <- liftIO newEvent
 
     dump <- liftIO $ withMVar files $ \ Files{..} -> getDump dumpFile
@@ -33,10 +33,10 @@ mainSection env@Env{..} win tabs eGrade eDump eDumpDir = do
     _ <- mapM (\x -> getDumpDir x eInitialHandle) filePath
 
     bModel <- accumB Dump.initialState $ concatenate' <$> unions'
-        ((Lens.set dumpDir . Data <$> succ)
-            :| [ Lens.set dumpDir . Failure <$> err
+        ((Lens.set dumpDir . Data <$> (success eSplit))
+            :| [ Lens.set dumpDir . Failure <$> (failure eSplit)
                , Lens.set dumpDir <$> eInitial
-               , Lens.set dumpDir Loading <$ loading
+               , Lens.set dumpDir Loading <$ (loading eSplit)
                ])
 
     input <- UI.input #. "input" # set UI.type_ "text"
@@ -57,7 +57,7 @@ mainSection env@Env{..} win tabs eGrade eDump eDumpDir = do
 
 
 mkDumpDir :: Env -> Dump.Model -> UI Element
-mkDumpDir env@Env{..} model =
+mkDumpDir Env{..} model =
     case _dumpDir model of
         NotAsked -> UI.div # set text "Starting.."
         Loading -> UI.div # set text "Loading.."

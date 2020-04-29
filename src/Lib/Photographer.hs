@@ -24,7 +24,6 @@ type Tid = String
 data Photographer = Photographer
     { _name :: Name
     , _tid :: Tid
-    --TODO --ord?
     } deriving (Show, Ord, Eq, Generic, ToJSON, FromJSON)
 
 
@@ -39,11 +38,6 @@ getPhotographers' = readJSONFile'
 
 writePhotographers :: (MonadIO m) => FilePath -> Photographers -> m ()
 writePhotographers = writeJSONFile
-
-
-
-
-
 
 
 
