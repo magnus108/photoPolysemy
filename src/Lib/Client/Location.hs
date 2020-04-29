@@ -4,7 +4,9 @@ module Lib.Client.Location
     ) where
 
 
+import Control.Concurrent
 import Lib.Client.Utils
+import qualified Control.Lens as Lens
 
 import Reactive.Threepenny
 import Graphics.UI.Threepenny.Core
@@ -13,6 +15,7 @@ import qualified Graphics.UI.Threepenny as UI
 import Utils.Comonad
 import qualified Utils.ListZipper as ListZipper
 
+import Lib.Data
 import Lib.Grade
 import Lib.Tab
 import Lib.Location
@@ -48,81 +51,110 @@ locationFileView Env{..} = \case
         UI.div # set children [ title_, content,  pickers, open]
 
 
-setSelectedGrade :: Grades -> String -> Grades
-setSelectedGrade grades name = Grades (ListZipper.mapFocus (const (Grade name)) (unGrades grades))
+inputGrade :: Model -> String -> Maybe Grades
+inputGrade model name =
+    case _grades model of
+        Data grades -> Just $ Grades (ListZipper.mapFocus (const (Grade name)) (unGrades grades))
+        _ -> Nothing
+
+newGrade :: Model -> Maybe Grades
+newGrade model =
+    case _grades model of
+        Data grades -> Just $ Grades $ ListZipper.insert (unGrades grades) (Grade "")
+        _ -> Nothing
+
+selectGrade :: Model -> Int -> Maybe Grades
+selectGrade model selected =
+    case _grades model of
+        -- TODO this just wierd
+        Data grades -> asum $ ListZipper.toNonEmpty $
+                    ListZipper.iextend (\thisIndex grades' ->
+                            if selected == thisIndex then
+                                Just (Grades grades')
+                            else
+                                Nothing) (unGrades grades)
+        _ -> Nothing
+
+locationSection :: Env -> Window -> Event (Either String LocationFile) -> Event (Data String Grades) -> Tabs -> UI ()
+locationSection env@Env{..} win eLocationConfigFile eGrades tabs = do
+    (eInitial, eInitialHandle) <- liftIO newEvent
+    let (_, eLoading, eGradesErr, eGradesSucc) = splitData eGrades
+
+    bModel <- accumB initialState $ concatenate' <$> unions'
+        ((Lens.set grades . Data <$> eGradesSucc)
+            :| [ Lens.set grades . Failure <$> eGradesErr
+               , Lens.set grades <$> eInitial
+               , Lens.set grades Loading <$ eLoading
+               ])
 
 
-locationSection :: Env -> Window -> Event (Either String LocationFile) -> Event Grades -> Tabs -> UI ()
-locationSection env@Env{..} win eLocationConfigFile eGrades tabs = mdo
-    -- INITIAL LOAD
-    grades <- liftIO $ withMVar files $ \ Files{..} -> getGrades gradesFile
     locationFile <- liftIO $ withMVar files $ \ Files{..} -> getLocationFile locationConfigFile
-
     bLocationFile <- stepper locationFile eLocationConfigFile
+    locationContent <- UI.div # sink item (locationFileView env <$> bLocationFile)
 
-    content <- UI.div # sink item (locationFileView env <$> bLocationFile)
+
+    content <- UI.div --TODO initialize
 
     gradeInsert <- mkButton "insert" "Tilføj ny"
+    input <- UI.input # set UI.id_ "focusGrade" # set UI.type_ "text"
+    selector <- UI.select
 
-    input <- UI.input # set value (showGrade grades)
-                        # set (attr "id") "focusGrade"
-                        # set UI.type_ "text"
-
-    let eValChange = setSelectedGrade
-                        <$> bGrades
-                        <@> UI.valueChange input
-
-    grades' <- mkGrades env grades
-
-    selector <- UI.select # set children grades'
-
-    let eSelChange = filterJust $ asum . ListZipper.toNonEmpty
-            <$> ((\b pickedIndex -> ListZipper.iextend (\thisIndex grades'' ->
-                if pickedIndex == show thisIndex
-                   then Just (Grades grades'')
-                   else Nothing
-            ) (unGrades b) )
-            <$> bGrades
-            <@> selectionChange' selector)
+    let eNewGrade = filterJust $ newGrade <$> bModel <@ UI.click gradeInsert
+    let eValChange = filterJust $ inputGrade <$> bModel <@> UI.valueChange input
+    let eSelChange = filterJust $ selectGrade <$> bModel <@> (filterJust (selectionChange' selector))
 
 
-    bGrades <- stepper grades $ head <$> unions'
-        (eGrades :| [eValChange, eSelChange])
-
-    bEditingInput <-  bEditing input
     bEditingSelector <- bEditing selector
+    bEditingInput <- bEditing input
 
-    _ <- liftIOLater $ onChange bGrades $ \newGrades -> runUI win $ do
-        editingSelector <- liftIO $ currentValue bEditingSelector
-        unless editingSelector $ void $ do
-            newGrades' <- mkGrades env newGrades
-            element selector # set children newGrades'
-
+    _ <- onChanges bModel $ \newModel -> do
         editingInput <- liftIO $ currentValue bEditingInput
-        unless editingInput $ void $ element input # set value (showGrade newGrades)
+        editingSelector <- liftIO $ currentValue bEditingSelector
 
-    _ <- onEvent eValChange $ \e ->
-        liftIO $ withMVar files $ \ Files{..} -> writeGrades gradesFile e
+        case _grades newModel of
+            NotAsked -> do
+                unless (editingInput || editingSelector) $ void $ do
+                    item <- string "Starting.."
+                    void $ element content # set children [item]
+            Loading -> do
+                unless (editingInput || editingSelector) $ void $ do
+                    item <- string "Loading.."
+                    void $ element content # set children [item]
+            Failure _ -> do
+                unless (editingInput || editingSelector) $ void $ do
+                    para <- UI.p # set text "Noget fejl klasser"
+                    void $ element content # set children [para]
+            Data grades -> do
+                unless (editingSelector) $ void $ do
+                    grades' <- mkGrades env grades
+                    element selector # set children grades'
+                unless (editingInput) $ void $ do
+                    element input # set value (showGrade grades)
+                unless (editingInput || editingSelector) $ void $ do
+                    void $ element content # set children [gradeInsert, input, selector]
 
-    _ <- onEvent eSelChange $ \e ->
-        liftIO $ withMVar files $ \ Files{..} -> writeGrades gradesFile e
+    let customEvent = head <$> unions' (eNewGrade :| [eValChange, eSelChange])
 
+    _ <- onEvent customEvent $ \e-> do
+        liftIO $ withMVar mGradesFile $ \file -> do
+            liftIO $ writeGrades file e
 
-    let eClick = bGrades <@ UI.click gradeInsert
-
-    _ <- onEvent eClick $ \grades'' ->
-        liftIO $ withMVar files $ \ Files{..} ->
-            writeGrades gradesFile $ Grades $ ListZipper.insert (unGrades grades'') (Grade "")
-
+    _ <- getGrades mGradesFile eInitialHandle
 
     tabs' <- mkTabs env tabs
     navigation <- mkNavigation env tabs
 
-    view <- UI.div #+ fmap element [tabs', content, input, selector, gradeInsert, navigation]
+    view <- UI.div #+ fmap element
+        [ tabs'
+        , content
+        , locationContent
+        , navigation
+        ]
 
     void $ UI.getBody win # set children [view]
 
-    UI.setFocus input
+    UI.setFocus input -- Can only do this if element exists and should not do this if not focus
+
 
 
 mkGrades :: Env -> Grades -> UI [Element]
@@ -151,4 +183,3 @@ mkGrade Env{..} (thisIndex, isCenter, grade) = do
         option # set UI.selected True
     else
         option
-

@@ -31,8 +31,8 @@ unsafeMapUI :: Element -> (t -> UI b) -> Event t -> Event b
 unsafeMapUI el f = unsafeMapIO (\a -> getWindow el >>= \w -> runUI w (f a))
 
 
-selectionChange' :: Element -> Event String
-selectionChange' el = unsafeMapUI el (const $ UI.get UI.value el) (domEvent "change" el)
+selectionChange' :: Element -> Event (Maybe Int)
+selectionChange' el = readMaybe <$> unsafeMapUI el (const $ UI.get UI.value el) (domEvent "change" el)
 
 
 bEditing :: Element -> UI (Behavior Bool)

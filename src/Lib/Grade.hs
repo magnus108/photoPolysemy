@@ -88,7 +88,7 @@ writeGrades :: (MonadIO m) => FilePath -> Grades -> m ()
 writeGrades = writeJSONFile
 
 
-data Model = Model { _grades :: Data String Grades }
+data Model = Model { _grades :: Data String Grades } deriving Show
 
 makeLenses ''Model
 
@@ -96,20 +96,18 @@ makeLenses ''Model
 initialState :: Model
 initialState = Model NotAsked
 
-forker :: (MonadIO m, MonadThrow m) => FilePath -> Handler (Data String Grades) -> m (Either String Grades)
+forker :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler (Data String Grades) -> m (Either String Grades)
 forker file handle = do
-    _ <- liftIO $ handle Loading
-    getGrades' file
+    liftIO $ withMVar file $ \f -> do
+        _ <- liftIO $ handle Loading
+        getGrades' f
 
 
-getGrades :: (MonadIO m, MonadThrow m) => FilePath -> Handler (Data String Grades) -> m ThreadId
+getGrades :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler (Data String Grades) -> m ThreadId
 getGrades file handle = do
     liftIO $ forkFinally (forker file handle) $ \res -> do
         case res of
             Left e -> handle $ Failure (show e)
             Right x -> case x of
                     Left e' -> handle $ Failure e'
-                    Right s -> do
-                        putStrLn "WWHHHHHHHHHHHAT"
-                        putStrLn (show s)
-                        handle $ Data s
+                    Right s -> handle $ Data s

@@ -41,6 +41,7 @@ mkEnv :: Config -> IO Env
 mkEnv _ = do
     Files2{..} <- loadFiles "config.json"
     mPhotographersFile <- newMVar photographersFile
+    mGradesFile <- newMVar gradesFile
     files <- newMVar Files{..}
 
     pure Env{..}
@@ -77,12 +78,13 @@ runServer port env@Env{..} = do
         --Photographers
         stopConfigPhotographers <- configPhotographers mgr mPhotographersFile watchers hPhotographers
 
+        --Grades
+        stopGrades <- grades mgr mGradesFile watchers hGrades
+
         withMVar files $ \ files' -> do
             --Tabs
             stopConfigTab <- configTab mgr files' watchers hTab
 
-            --Grades
-            stopGrades <- grades mgr files' watchers hGrades
             --Location
             stopConfigLocationFile <- configLocationFile mgr files' watchers hLocationConfigFile
 
@@ -172,13 +174,14 @@ configLocationFile mgr Files{..} _ handler = watchDir
 
 -- der skal skydes et lag in herimellem der kan lytte på locationen
 
-grades :: WatchManager -> Files -> WatchMap -> Handler (Data String Grades) -> IO StopListening
-grades mgr Files{..} _ handler =
+grades :: WatchManager -> MVar FilePath -> WatchMap -> Handler (Data String Grades) -> IO StopListening
+grades mgr mFilepath _ handler = do
+    filepath <- readMVar mFilepath
     watchDir
         mgr
-        (dropFileName gradesFile)
-        (\e -> eventPath e == gradesFile)
-        (\e -> print e >> (void $ getGrades gradesFile handler))
+        (dropFileName filepath)
+        (\e -> eventPath e == filepath)
+        (\e -> print e >> (void $ getGrades mFilepath handler))
 
 
 configPhotographers :: WatchManager -> MVar FilePath -> WatchMap -> Handler (Data String Photographers) -> IO StopListening
