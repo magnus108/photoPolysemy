@@ -5,6 +5,8 @@ module Lib
     , main
     ) where
 
+import qualified Graphics.UI.Threepenny as UI
+
 import Control.Exception (SomeException(..), catch)
 
 import System.FilePath
@@ -30,6 +32,7 @@ import Lib.Dagsdato
 import Lib.DagsdatoBackup
 import Lib.Doneshooting
 import Lib.Dump
+import qualified Lib.Photographer as Photographer
 
 import qualified Lib.Server.Server as Server
 
@@ -142,8 +145,11 @@ runServer port env@Env{..} = do
                     ,("stopDirDump", stopDirDump)
                     ]
 
+        bPhotographers <- UI.stepper Photographer.initalState ePhotographers
+        _ <- getPhotographers mPhotographersFile hPhotographers
+
         --VERY important this is here
-        Server.run port env eGrades eLocationConfigFile eSessions eShootings eCameras eConfigDump eDumpDir eConfigDoneshooting eConfigDagsdato eConfigDagsdatoBackup eTabs ePhotographers
+        Server.run port env eGrades eLocationConfigFile eSessions eShootings eCameras eConfigDump eDumpDir eConfigDoneshooting eConfigDagsdato eConfigDagsdatoBackup eTabs bPhotographers
 
 
 type WatchMap = MVar (HashMap String StopListening)
@@ -180,10 +186,10 @@ grades mgr mFilepath _ handler = do
         mgr
         (dropFileName filepath)
         (\e -> eventPath e == filepath)
-        (\e -> print e >> (void $ getGrades mFilepath handler))
+        (\e -> void $ print e >> getGrades mFilepath handler )
 
 
-configPhotographers :: WatchManager -> MVar FilePath -> WatchMap -> Handler (Data String Photographers) -> IO StopListening
+configPhotographers :: WatchManager -> MVar FilePath -> WatchMap -> Handler (Photographer.Model) -> IO StopListening
 configPhotographers mgr mFilepath _ handler = do
     filepath <- readMVar mFilepath
     watchDir
@@ -193,7 +199,7 @@ configPhotographers mgr mFilepath _ handler = do
         --TODO SPAWNER THREAD SOM IKKE DØR
         --TODO SPAWNER THREAD SOM IKKE DØR
         --TODO SPAWNER THREAD SOM IKKE DØR
-        (\e -> print e >> (void $ getPhotographers mFilepath handler))
+        (\e -> void $ print e >> getPhotographers mFilepath handler)
 
 
 configSessions :: WatchManager -> Files -> WatchMap -> Handler (Either String Sessions) -> IO StopListening

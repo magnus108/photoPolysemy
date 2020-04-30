@@ -1,5 +1,4 @@
 {-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE NoGeneralizedNewtypeDeriving #-}
 
 module Lib.Photographer
     ( Photographer(..)
@@ -8,11 +7,12 @@ module Lib.Photographer
     , getPhotographers'
     , writePhotographers
     , initalState
-    , splitData
     , Model(..)
     ) where
 
+-- TODO get this import out
 import Graphics.UI.Threepenny.Core
+
 import Control.Concurrent
 import Utils.ListZipper
 
@@ -36,8 +36,8 @@ newtype Photographers = Photographers { unPhotographers :: ListZipper Photograph
 getPhotographers' :: (MonadIO m, MonadThrow m) => FilePath -> m (Either String Photographers)
 getPhotographers' = readJSONFile'
 
-writePhotographers :: (MonadIO m) => FilePath -> Photographers -> m ()
-writePhotographers = writeJSONFile
+writePhotographers' :: (MonadIO m) => FilePath -> Photographers -> m ()
+writePhotographers' = writeJSONFile
 
 
 
@@ -47,18 +47,25 @@ newtype Model = Model { unModel :: Data String Photographers }
 initalState :: Model
 initalState = Model NotAsked
 
-forker :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler (Data String Photographers) -> m (Either String Photographers)
-forker file handle = do
-    liftIO $ withMVar file $ \f -> do
-        _ <- liftIO $ handle Loading
+
+--TODO could do some notification on save..
+write :: (MonadIO m, MonadThrow m) => MVar FilePath -> Photographers -> m ()
+write file photographers = liftIO $ withMVar file $ \f -> writePhotographers' f photographers
+
+--TODO could handle error on write.
+writePhotographers :: (MonadIO m) => MVar FilePath -> Photographers -> m ThreadId
+writePhotographers file photographers = liftIO $ forkFinally (write file photographers ) $ \ _ -> return ()
+
+
+read :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler Model -> m (Either String Photographers)
+read file handle = liftIO $ withMVar file $ \f -> do
+        _ <- liftIO $ handle (Model Loading)
         getPhotographers' f
 
 
-getPhotographers :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler (Data String Photographers) -> m ThreadId
-getPhotographers file handle = do
-    liftIO $ forkFinally (forker file handle) $ \res -> do
-        case res of
-            Left e -> handle $ Failure (show e)
-            Right x -> case x of
-                    Left e' -> handle $ Failure e'
-                    Right s -> handle $ Data s
+getPhotographers :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler Model -> m ThreadId
+getPhotographers file handle = liftIO $ forkFinally (read file handle) $ \case
+    Left e -> handle $ Model (Failure (show e))
+    Right x -> case x of
+            Left e' -> handle $ Model (Failure e')
+            Right s -> handle $ Model (Data s)

@@ -41,7 +41,6 @@ dependencies:
 
 default-extensions:
 - LambdaCase
-- GeneralizedNewtypeDeriving
 - RecordWildCards
 - OverloadedStrings
 - DerivingStrategies

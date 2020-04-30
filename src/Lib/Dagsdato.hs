@@ -1,3 +1,5 @@
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+
 module Lib.Dagsdato
     ( Dagsdato(..)
     , getDagsdato

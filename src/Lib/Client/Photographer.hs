@@ -20,26 +20,11 @@ import Utils.Comonad
 import Utils.ListZipper (focus)
 import qualified Utils.ListZipper as ListZipper
 
-import Control.Concurrent
 
-
-
-photographersSection :: Env -> Window -> Split String Photographers -> Tabs -> UI ()
-photographersSection env@Env{..} win eSplit tabs = do
-
-    (eInitial, eInitialHandle) <- liftIO newEvent
-
-    _ <- getPhotographers mPhotographersFile eInitialHandle
-
-
-    bModel <- stepper initalState $ head <$> unions'
-        ((Model . Data <$> success eSplit)
-            :| [ Model . Failure <$> failure eSplit
-               , Model <$> eInitial
-               , Model Loading <$ loading eSplit
-               ])
-
-    content <- UI.div # sink item (mkPhotographers env <$> bModel)
+photographersSection :: Env -> Window -> Tabs -> Behavior Model -> UI ()
+photographersSection env@Env{..} win tabs bModel = do
+    let bView = mkPhotographers env <$> bModel
+    content <- UI.div # sink item bView
 
     tabs' <- mkTabs env tabs
     navigation <- mkNavigation env tabs
@@ -52,14 +37,17 @@ photographersSection env@Env{..} win eSplit tabs = do
 
     void $ UI.getBody win # set children [view]
 
-
+    --MANGLER TRANSLATIONS
+    --MANGERL OPTRYDNING I imports
+    --MANGLER OPTRYDNING i tabs og navigation
+    --Mangler OPTRYDNING i mkPhotographers
 
 
 mkPhotographers :: Env -> Model -> UI Element
 mkPhotographers env@Env{..} model =
     case unModel model of
-        NotAsked -> UI.div # set text "Starting.."
-        Loading -> UI.div # set text "Loading.."
+        NotAsked -> UI.div #+ [string "Starting.."]
+        Loading -> UI.div #+ [string "Loading.."]
         Data (Photographers photographers) -> do
                 let currentPhotographer = focus photographers
                 let elems = photographers =>> \photographers''-> let
@@ -79,8 +67,7 @@ mkPhotographers env@Env{..} model =
                     --TODO med nuværende løsning er COPY nok
                     --TODO FEJL BLIVER ignoret med denne løsning
                     photographers <- liftIO $ getPhotographers' file
-                    liftIO $ withMVar mPhotographersFile $ \photographersFile -> do
-                        mapM_ (writePhotographers photographersFile) photographers
+                    forM_ photographers $ writePhotographers mPhotographersFile
 
             para <- UI.p # set text "Der er en fejl med fotografer"
             UI.div # set children [para, picker]
@@ -94,7 +81,5 @@ mkPhotographer Env{..} (photographer, isCenter, photographers)
     | otherwise = do
         let name = _name photographer
         forwardButton <- mkButton "idd" name
-        UI.on UI.click forwardButton $ \_ ->
-            liftIO $ withMVar mPhotographersFile $ \file ->
-                writePhotographers file photographers
+        UI.on UI.click forwardButton $ \_ -> writePhotographers mPhotographersFile photographers
         return forwardButton
