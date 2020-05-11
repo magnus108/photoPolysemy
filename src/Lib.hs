@@ -20,7 +20,7 @@ import Lib.App (Files(..),loadFiles, Env(..))
 import Lib.App.Files2
 import Lib.Config (Config (..), loadConfig)
 import Lib.Tab (Tabs, getTabs)
-import Lib.Photographer (Photographers, getPhotographers)
+import Lib.Photographer (getPhotographers)
 
 import Utils.ListZipper
 
@@ -284,7 +284,7 @@ configDump mgr mDumpFile watchMap handler handleDumpDir = do
         --TODO SPAWNER THREAD SOM IKKE DØR
         (\e -> do
             print e
-            Dump.getDump mDumpFile handler
+            _ <- Dump.getDump mDumpFile handler
             modifyMVar_ watchMap $ \ h -> do
                 h HashMap.! "stopDirDump"
                 stopDirDump <- dirDump mgr mDumpFile watchMap handleDumpDir

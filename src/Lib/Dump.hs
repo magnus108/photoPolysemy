@@ -89,12 +89,12 @@ writeDump' = writeJSONFile
 
 --TODO could do some notification on save..
 write :: (MonadIO m, MonadThrow m) => MVar FilePath -> Dump -> m ()
-write file dump = liftIO $ withMVar file $ \f -> writeDump' f dump
+write file dump' = liftIO $ withMVar file $ \f -> writeDump' f dump'
 
 
 --TODO could handle error on write.
 writeDump :: (MonadIO m) => MVar FilePath -> Dump -> m ThreadId
-writeDump file dump = liftIO $ forkFinally (write file dump) $ \ _ -> return ()
+writeDump file dump' = liftIO $ forkFinally (write file dump') $ \ _ -> return ()
 
 
 read :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler DumpModel -> m (Either String Dump)

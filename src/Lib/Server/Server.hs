@@ -11,7 +11,6 @@ import Lib.App (Env(..), Files(..))
 import Lib.Translation
 import Lib.Data
 import Lib.Tab
-import Lib.Photographer
 import qualified Lib.Photographer as Photographer
 import Lib.Camera
 import Lib.Shooting
