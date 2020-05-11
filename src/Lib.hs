@@ -36,6 +36,7 @@ import Lib.DagsdatoBackup
 import Lib.Doneshooting
 import Lib.Dump
 import qualified Lib.Dump as Dump
+import qualified Lib.Dagsdato as Dagsdato
 import qualified Lib.Photographer as Photographer
 
 import qualified Lib.Server.Server as Server
@@ -50,6 +51,7 @@ mkEnv _ = do
     mPhotographersFile <- newMVar photographersFile
     mGradesFile <- newMVar gradesFile
     mDumpFile <- newMVar dumpFile
+    mDagsdatoFile <- newMVar dagsdatoFile
     mTranslationFile <- newMVar translationFile
 
     files <- newMVar Files{..}
@@ -94,6 +96,10 @@ runServer port env@Env{..} = do
         stopConfigDump <- configDump mgr mDumpFile watchers hConfigDump hDumpDir
         stopDirDump <- dirDump mgr mDumpFile watchers hDumpDir
 
+        --Dagsdato
+        stopConfigDagsdato <- configDagsdato mgr mDagsdatoFile watchers hConfigDagsdato hDirDagsdato
+        stopDirDagsdato <- dirDagsdato mgr mDagsdatoFile watchers hDirDagsdato
+
         withMVar files $ \ files' -> do
             --Tabs
             stopConfigTab <- configTab mgr files' watchers hTab
@@ -115,9 +121,6 @@ runServer port env@Env{..} = do
             stopConfigDoneshooting <- configDoneshooting mgr files' watchers hConfigDoneshooting hDirDoneshooting
             stopDirDoneshooting <- dirDoneshooting mgr files' watchers hDirDoneshooting
 
-            --Dagsdato
-            stopConfigDagsdato <- configDagsdato mgr files' watchers hConfigDagsdato hDirDagsdato
-            stopDirDagsdato <- dirDagsdato mgr files' watchers hDirDagsdato
 
             --Dagsdato backup
             stopConfigDagsdatoBackup <- configDagsdatoBackup mgr files' watchers hConfigDagsdatoBackup hDirDagsdatoBackup
@@ -161,9 +164,13 @@ runServer port env@Env{..} = do
         bDump <- UI.stepper Dump.initalState eConfigDump
         _ <- Dump.getDump mDumpFile hConfigDump
 
+        --Dump
+        bDagsdato <- UI.stepper Dagsdato.initialState eConfigDagsdato
+        _ <- Dagsdato.getDagsdato mDagsdatoFile hConfigDagsdato
+
         translations <- Translation.read mTranslationFile
         --VERY important this is here
-        Server.run port env (fromJust (rightToMaybe translations)) eGrades eLocationConfigFile eSessions eShootings eCameras bDump eDumpDir eConfigDoneshooting eConfigDagsdato eConfigDagsdatoBackup eTabs bPhotographers
+        Server.run port env (fromJust (rightToMaybe translations)) eGrades eLocationConfigFile eSessions eShootings eCameras bDump eDumpDir eConfigDoneshooting bDagsdato eConfigDagsdatoBackup eTabs bPhotographers
 
 
 type WatchMap = MVar (HashMap String StopListening)
@@ -306,27 +313,29 @@ dirDump mgr mDump _ handler = do
             (\e -> print e >> (void $ getDumpDir (unDump path) handler))
 
 
-configDagsdato :: WatchManager -> Files -> WatchMap -> Handler (Either String Dagsdato) -> Handler () -> IO StopListening
-configDagsdato mgr files@Files{..} watchMap handler handleDagsdatoDir = watchDir
+configDagsdato :: WatchManager -> MVar FilePath -> WatchMap -> Handler (Dagsdato.Model) -> Handler () -> IO StopListening
+configDagsdato mgr mDagsdatoFile watchMap handler handleDagsdatoDir = do
+    filepath <- readMVar mDagsdatoFile
+    watchDir
         mgr
-        (dropFileName dagsdatoFile)
-        (\e -> eventPath e == dagsdatoFile)
+        (dropFileName filepath)
+        (\e -> eventPath e == filepath)
         (\e -> do
             print e
-            handler =<< getDagsdato dagsdatoFile
-
-            -- TODO these two are related
+            _ <- Dagsdato.getDagsdato mDagsdatoFile handler
             modifyMVar_ watchMap $ \ h -> do
                 h HashMap.! "stopDirDagsdato"
-                stopDirDagsdato <- dirDagsdato mgr files watchMap handleDagsdatoDir
+                stopDirDagsdato <- dirDagsdato mgr mDagsdatoFile watchMap handleDagsdatoDir
                 return $ HashMap.insert "stopDirDagsdato" stopDirDagsdato h
         )
 
 
 
-dirDagsdato :: WatchManager -> Files -> WatchMap -> Handler () -> IO StopListening
-dirDagsdato mgr Files{..} _ handler = do
-    dagsdatoPath <- getDagsdato dagsdatoFile
+
+dirDagsdato :: WatchManager -> MVar FilePath -> WatchMap -> Handler () -> IO StopListening
+dirDagsdato mgr mDagsdatoFile _ handler = do
+    dagsdatoFile <- readMVar mDagsdatoFile
+    dagsdatoPath <- getDagsdato' dagsdatoFile
     case dagsdatoPath of
         Left _ -> return (return ())
         Right path -> 

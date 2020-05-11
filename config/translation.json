@@ -1,6 +1,8 @@
 {"_starting": "Starting.."
 ,"_loading":"Loading.."
 ,"_photographersError":"Der er en fejl med fotografer"
+,"_dagsdatoError":"Der er en fejl med dagsdato"
+,"_dagsdatoTitle":"Dagsdato"
 ,"_dumpError":"Der er en fejl med dump"
 ,"_dumpTitle":"Dump mappe"
 ,"_filePicker":"Vælg import-fil"

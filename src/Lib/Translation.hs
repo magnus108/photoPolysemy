@@ -7,6 +7,8 @@ module Lib.Translation
     , loading
     , next
     , prev
+    , dagsdatoError
+    , dagsdatoTitle
     , filePicker
     , folderPicker
     , photographersError
@@ -27,6 +29,8 @@ data Translation = Translation { _loading :: String
                                , _photographersError :: String
                                , _dumpError :: String
                                , _dumpTitle :: String
+                               , _dagsdatoError :: String
+                               , _dagsdatoTitle :: String
                                , _next :: String
                                , _prev :: String
                                }

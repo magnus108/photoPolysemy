@@ -9,7 +9,6 @@ import Lib.App.Files2
 
 data Files = Files
     { doneshootingFile :: !FilePath
-    , dagsdatoFile :: !FilePath
     , dagsdatoBackupFile :: !FilePath
     , shootingsFile :: !FilePath
     , sessionsFile :: !FilePath
@@ -26,5 +25,6 @@ data Env = Env
     , mPhotographersFile :: MVar FilePath
     , mGradesFile :: MVar FilePath
     , mDumpFile :: MVar FilePath
+    , mDagsdatoFile :: MVar FilePath
     , mTranslationFile :: MVar FilePath
     }
