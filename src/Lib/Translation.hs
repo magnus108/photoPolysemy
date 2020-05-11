@@ -8,7 +8,10 @@ module Lib.Translation
     , next
     , prev
     , filePicker
+    , folderPicker
     , photographersError
+    , dumpError
+    , dumpTitle
     , getTranslation'
     , read
     , writeTranslation'
@@ -20,7 +23,10 @@ import Control.Concurrent
 data Translation = Translation { _loading :: String
                                , _starting :: String
                                , _filePicker :: String
+                               , _folderPicker :: String
                                , _photographersError :: String
+                               , _dumpError :: String
+                               , _dumpTitle :: String
                                , _next :: String
                                , _prev :: String
                                }

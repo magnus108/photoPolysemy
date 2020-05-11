@@ -10,7 +10,7 @@ import Lib.Data
 import Lib.Translation
 import Lib.Tab
 import Lib.Grade
-import Lib.Dump (Dump(..), DumpDir(..), getDump', dumpDir, _dumpDir, getDumpDir)
+import Lib.Dump (DumpModel, Dump(..), DumpDir(..), getDump', dumpDir, _dumpDir, getDumpDir)
 import qualified Lib.Dump as Dump
 import Lib.Client.Tab
 import Lib.Client.Utils
@@ -21,13 +21,13 @@ import Control.Concurrent.MVar
 import qualified Control.Lens as Lens
 
 
-mainSection :: Env -> Window -> Translation -> Tabs -> Event (Data String Grades) -> Event (Either String Dump) -> Event (Data String DumpDir) -> UI ()
+mainSection :: Env -> Window -> Translation -> Tabs -> Event (Data String Grades) -> Behavior DumpModel -> Event (Data String DumpDir) -> UI ()
 mainSection env@Env{..} win translation tabs _ _ eDumpDir = do
 
     let eSplit = splitData eDumpDir
     (eInitial, eInitialHandle) <- liftIO newEvent
 
-    dump <- liftIO $ withMVar files $ \ Files{..} -> getDump' dumpFile
+    dump <- liftIO $ withMVar files $ \ Files{..} -> getDump' "/tmp" --dumpFile
     let filePath = unDump <$> dump
     -- ignore that this could be error 
     -- FIX ME....gt

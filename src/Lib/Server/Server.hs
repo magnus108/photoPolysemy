@@ -16,6 +16,7 @@ import qualified Lib.Photographer as Photographer
 import Lib.Camera
 import Lib.Shooting
 import Lib.Doneshooting
+import qualified Lib.Dump as Dump
 import Lib.Dump
 import Lib.Dagsdato
 import Lib.DagsdatoBackup
@@ -38,7 +39,7 @@ import Lib.Client.Main
 import Utils.ListZipper (focus)
 
 
-view :: Env -> Window -> Translation -> Event (Data String Grades) -> Event (Either String LocationFile) -> Event (Either String Sessions) -> Event (Either String Shootings) -> Event (Either String Cameras) -> Event (Either String Dump) -> Event (Data String DumpDir) -> Event (Either String Doneshooting) -> Event (Either String Dagsdato) -> Event (Either String DagsdatoBackup) -> UI.Behavior Photographer.Model -> Tabs -> UI ()
+view :: Env -> Window -> Translation -> Event (Data String Grades) -> Event (Either String LocationFile) -> Event (Either String Sessions) -> Event (Either String Shootings) -> Event (Either String Cameras) -> UI.Behavior Dump.DumpModel -> Event (Data String DumpDir) -> Event (Either String Doneshooting) -> Event (Either String Dagsdato) -> Event (Either String DagsdatoBackup) -> UI.Behavior Photographer.Model -> Tabs -> UI ()
 view env win translation eGrades eLocationConfigFile eSessions eShootings eCameras eDump eDumpDir eDoneshooting eDagsdato eDagsdatoBackup bPhotographers tabs = do
     let currentTab = focus (unTabs tabs)
     case currentTab of
@@ -56,7 +57,7 @@ view env win translation eGrades eLocationConfigFile eSessions eShootings eCamer
 
 
 
-run :: Int -> Env -> Translation -> UI.Event (Data String Grades) ->  UI.Event (Either String LocationFile) -> UI.Event (Either String Sessions) -> UI.Event (Either String Shootings) -> UI.Event (Either String Cameras) -> UI.Event (Either String Dump) -> UI.Event (Data String DumpDir) -> UI.Event (Either String Doneshooting) -> UI.Event (Either String Dagsdato) -> UI.Event (Either String DagsdatoBackup) -> UI.Event Tabs -> UI.Behavior (Photographer.Model) -> IO ()
+run :: Int -> Env -> Translation -> UI.Event (Data String Grades) ->  UI.Event (Either String LocationFile) -> UI.Event (Either String Sessions) -> UI.Event (Either String Shootings) -> UI.Event (Either String Cameras) -> UI.Behavior Dump.DumpModel -> UI.Event (Data String DumpDir) -> UI.Event (Either String Doneshooting) -> UI.Event (Either String Dagsdato) -> UI.Event (Either String DagsdatoBackup) -> UI.Event Tabs -> UI.Behavior (Photographer.Model) -> IO ()
 run port env@Env{..} translations eGrades eLocationConfigFile eSessions eShootings eCameras eDump eDumpDir eDoneshooting eDagsdato eDagsdatoBackup eTabs bPhotographers = do
     tabs <- withMVar files $ \ Files{..} -> getTabs tabsFile
 

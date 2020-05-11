@@ -1,7 +1,10 @@
 {"_starting": "Starting.."
 ,"_loading":"Loading.."
 ,"_photographersError":"Der er en fejl med fotografer"
+,"_dumpError":"Der er en fejl med dump"
+,"_dumpTitle":"Dump mappe"
 ,"_filePicker":"Vælg import-fil"
+,"_folderPicker":"Vælg mappe"
 ,"_prev":"Forrige"
 ,"_next":"Næste"
 }

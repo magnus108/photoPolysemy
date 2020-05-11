@@ -4,12 +4,16 @@
 module Lib.Dump
     ( Dump(..)
     , DumpDir(..)
+    , DumpModel(..)
     , dump
+    , getDump
+    , writeDump
     , getDump'
     , dumpDir
     , getDumpDir
     , Model(..)
     , initialStateTmp
+    , initalState
     ) where
 
 import System.Directory

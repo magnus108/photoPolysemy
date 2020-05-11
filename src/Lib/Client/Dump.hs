@@ -5,6 +5,8 @@ module Lib.Client.Dump
 import Graphics.UI.Threepenny.Core
 import qualified Graphics.UI.Threepenny as UI
 
+import qualified Control.Lens as Lens
+
 import Lib.Translation
 import Lib.Tab
 import Lib.Dump
@@ -12,54 +14,46 @@ import Lib.Client.Tab
 import Lib.Client.Element
 import Lib.Client.Utils
 
+import Lib.Data
+
 import Lib.App (Env(..), Files(..))
 import Control.Concurrent.MVar (withMVar)
 
 
-dumpView :: Env -> Either String Dump -> UI Element
-dumpView Env{..} = \case
-    Left _ -> do
-        title_ <- UI.p # set text "Der er en fejl med dump mappe"
+mkDump :: Env -> Translation -> DumpModel -> [UI Element]
+mkDump env@Env{..} translations model = do
+    case unModel model of
+        NotAsked -> [UI.p #+ [Lens.views starting string translations]]
+        Loading -> [UI.p #+ [Lens.views loading string translations]]
+        Failure _ ->
+            [ UI.div #. "section" #+ [Lens.views dumpError string translations]
+                   , UI.div #. "section" #+
+                       [ mkFolderPicker "dumpPicker" (Lens.view folderPicker translations) $ \folder ->
+                            when (folder /= "") $
+                                -- todo: handle bad input
+                                void $ writeDump mDumpFile (Dump folder)
+                        ]
+                    ]
 
-        picker <- UI.div #+
-            [ mkFolderPicker "dumpPicker" "Vælg config folder" $ \folder ->
-                when (folder /= "") $
-                    withMVar files $ \ Files{..} ->
-                        writeFile dumpFile (show folder)
-            ]
-
-        UI.div #+ fmap element [ title_, picker]
-
-    Right dump' -> do
-
-        title_ <- UI.div #+ [UI.string "Dump mappe"]
-
-        content <- UI.div #+ [UI.string (unDump dump')]
-
-        picker <- UI.div #+
-            [ mkFolderPicker "dumpPicker" "Vælg config folder" $ \folder ->
-                when (folder /= "") $
-                    withMVar files $ \ Files{..} ->
-                        writeFile dumpFile (show folder)
-            ]
-
-        UI.div #+ fmap element [ title_, content, picker]
+        Data (Dump dump) ->
+            [ UI.div #. "section" #+ [UI.h2 #+ [Lens.views dumpTitle string translations], UI.string dump]
+                   , UI.div #. "section" #+
+                        [mkFolderPicker "dumpPicker" (Lens.view folderPicker translations) $ \folder ->
+                            when (folder /= "") $
+                                -- todo: handle bad input
+                                void $ writeDump mDumpFile (Dump folder)
+                        ]
+                   ]
 
 
-dumpSection :: Env -> Window -> Translation -> Tabs -> Event (Either String Dump) -> UI ()
-dumpSection env@Env{..} win translation tabs eDump = do
-    dump' <- liftIO $ withMVar files $ \ Files{..} -> getDump' dumpFile
-    bDump <- stepper dump' eDump
+dumpSection :: Env -> Window -> Translation -> Tabs -> Behavior DumpModel -> UI ()
+dumpSection env@Env{..} win translation tabs bModel = do
+    let bView = mkDump env translation <$> bModel
+    content <- UI.div # sink items bView
 
-    content <- UI.div # sink item (dumpView env <$> bDump)
+    tabs' <- mkElement "nav" #. "section" #+ [mkTabs env tabs]
+    navigation <- mkElement "footer" #. "section" #+ [mkNavigation env translation tabs]
 
-    tabs' <- mkTabs env tabs
-    navigation <- mkNavigation env translation tabs
+    view <- UI.div #+ fmap element [ content ]
 
-    view <- UI.div #+ fmap element
-        [ tabs'
-        , content
-        , navigation
-        ]
-
-    void $ UI.getBody win # set children [view]
+    void $ UI.getBody win # set children [tabs', view, navigation]

@@ -35,6 +35,7 @@ import Lib.Dagsdato
 import Lib.DagsdatoBackup
 import Lib.Doneshooting
 import Lib.Dump
+import qualified Lib.Dump as Dump
 import qualified Lib.Photographer as Photographer
 
 import qualified Lib.Server.Server as Server
@@ -48,6 +49,7 @@ mkEnv _ = do
 
     mPhotographersFile <- newMVar photographersFile
     mGradesFile <- newMVar gradesFile
+    mDumpFile <- newMVar dumpFile
     mTranslationFile <- newMVar translationFile
 
     files <- newMVar Files{..}
@@ -88,6 +90,10 @@ runServer port env@Env{..} = do
         --Grades
         stopGrades <- grades mgr mGradesFile watchers hGrades
 
+        --Dump
+        stopConfigDump <- configDump mgr mDumpFile watchers hConfigDump hDumpDir
+        stopDirDump <- dirDump mgr mDumpFile watchers hDumpDir
+
         withMVar files $ \ files' -> do
             --Tabs
             stopConfigTab <- configTab mgr files' watchers hTab
@@ -117,9 +123,6 @@ runServer port env@Env{..} = do
             stopConfigDagsdatoBackup <- configDagsdatoBackup mgr files' watchers hConfigDagsdatoBackup hDirDagsdatoBackup
             stopDirDagsdatoBackup <- dirDagsdatoBackup mgr files' watchers hDirDagsdatoBackup
 
-            --Dump
-            stopConfigDump <- configDump mgr files' watchers hConfigDump hDumpDir
-            stopDirDump <- dirDump mgr files' watchers hDumpDir
 
             --TODO setter
             modifyMVar_ watchers $ \_ -> do
@@ -150,12 +153,17 @@ runServer port env@Env{..} = do
                     ,("stopDirDump", stopDirDump)
                     ]
 
+        --Photographers
         bPhotographers <- UI.stepper Photographer.initalState ePhotographers
         _ <- getPhotographers mPhotographersFile hPhotographers
 
+        --Dump
+        bDump <- UI.stepper Dump.initalState eConfigDump
+        _ <- Dump.getDump mDumpFile hConfigDump
+
         translations <- Translation.read mTranslationFile
         --VERY important this is here
-        Server.run port env (fromJust (rightToMaybe translations)) eGrades eLocationConfigFile eSessions eShootings eCameras eConfigDump eDumpDir eConfigDoneshooting eConfigDagsdato eConfigDagsdatoBackup eTabs bPhotographers
+        Server.run port env (fromJust (rightToMaybe translations)) eGrades eLocationConfigFile eSessions eShootings eCameras bDump eDumpDir eConfigDoneshooting eConfigDagsdato eConfigDagsdatoBackup eTabs bPhotographers
 
 
 type WatchMap = MVar (HashMap String StopListening)
@@ -264,25 +272,29 @@ dirDoneshooting mgr Files{..} _ handler = do
                     `catch` (\( _ :: SomeException ) -> return $ return () ) --TODO this sucks
 
 
-configDump :: WatchManager -> Files -> WatchMap -> Handler (Either String Dump) -> Handler (Data String DumpDir) -> IO StopListening
-configDump mgr files@Files{..} watchMap handler handleDumpDir = watchDir
+configDump :: WatchManager -> MVar FilePath -> WatchMap -> Handler (Dump.DumpModel) -> Handler (Data String DumpDir) -> IO StopListening
+configDump mgr mDumpFile watchMap handler handleDumpDir = do
+    filepath <- readMVar mDumpFile
+    watchDir
         mgr
-        (dropFileName dumpFile)
-        (\e -> eventPath e == dumpFile)
+        (dropFileName filepath)
+        (\e -> eventPath e == filepath)
+        --TODO SPAWNER THREAD SOM IKKE DØR
+        --TODO SPAWNER THREAD SOM IKKE DØR
+        --TODO SPAWNER THREAD SOM IKKE DØR
         (\e -> do
             print e
-            handler =<< getDump' dumpFile
-            -- TODO these two are related
+            Dump.getDump mDumpFile handler
             modifyMVar_ watchMap $ \ h -> do
                 h HashMap.! "stopDirDump"
-                stopDirDump <- dirDump mgr files watchMap handleDumpDir
+                stopDirDump <- dirDump mgr mDumpFile watchMap handleDumpDir
                 return $ HashMap.insert "stopDirDump" stopDirDump h
         )
 
 
-
-dirDump :: WatchManager -> Files -> WatchMap -> Handler (Data String DumpDir) -> IO StopListening
-dirDump mgr Files{..} _ handler = do
+dirDump :: WatchManager -> MVar FilePath -> WatchMap -> Handler (Data String DumpDir) -> IO StopListening
+dirDump mgr mDump _ handler = do
+    dumpFile <- readMVar mDump
     dumpPath <- getDump' dumpFile
     case dumpPath of
       Left _ -> return (return ()) -- TODO this sucks

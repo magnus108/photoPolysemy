@@ -46,8 +46,8 @@ mkPhotographers env@Env{..} translations model =
             picker <- mkFilePicker "photographerPicker" (Lens.view filePicker translations) $ \file ->
                 when (file /= "") $ do
                     --TODO er det engentligt det her man vil?
-                    eitherPhotographers <- liftIO $ getPhotographers' file
-                    forM_ eitherPhotographers $ writePhotographers mPhotographersFile
+                    parsePhotographers <- liftIO $ getPhotographers' file
+                    forM_ parsePhotographers $ writePhotographers mPhotographersFile
 
             UI.div # set children [err, picker]
 
