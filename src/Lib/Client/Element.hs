@@ -29,10 +29,8 @@ control (position, idd, name) items action
 
 
 
-
-
 mkButton :: String -> String -> UI Element
-mkButton id' x = UI.button # set (attr "id") id' #. "button" #+ [string x]
+mkButton id' x = UI.button # set UI.id_ id' #. "button" #+ [string x]
 
 
 mkFolderPicker :: String -> String -> (FilePath -> IO ()) -> UI Element

@@ -5,11 +5,11 @@ module Lib.Dump
     ( Dump(..)
     , DumpDir(..)
     , dump
-    , getDump
+    , getDump'
     , dumpDir
     , getDumpDir
     , Model(..)
-    , initialState
+    , initialStateTmp
     ) where
 
 import System.Directory
@@ -27,8 +27,8 @@ newtype Dump = Dump { unDump :: FilePath }
     deriving (FromJSON, ToJSON)
 
 
-getDump :: (MonadIO m, MonadThrow m) => FilePath -> m (Either String Dump)
-getDump = readJSONFile'
+getDump' :: (MonadIO m, MonadThrow m) => FilePath -> m (Either String Dump)
+getDump' = readJSONFile'
 
 
 newtype DumpDir = DumpDir { unDumpDir :: [FilePath] }
@@ -50,8 +50,8 @@ data Model = Model { _dumpDir :: Data String DumpDir
 makeLenses ''Model
 
 
-initialState :: Model
-initialState = Model NotAsked NotAsked
+initialStateTmp :: Model
+initialStateTmp = Model NotAsked NotAsked
 
 forker :: (MonadIO m, MonadThrow m) => FilePath -> Handler (Data String DumpDir) -> m (Either String DumpDir)
 forker file handle = do
@@ -67,3 +67,41 @@ getDumpDir file handle = do
             Right x -> case x of
                     Left e' -> handle $ Failure e'
                     Right s -> handle $ Data s
+
+
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+
+newtype DumpModel = DumpModel { unModel :: Data String Dump }
+
+
+initalState :: DumpModel
+initalState = DumpModel NotAsked
+
+
+writeDump' :: (MonadIO m) => FilePath -> Dump -> m ()
+writeDump' = writeJSONFile
+
+
+--TODO could do some notification on save..
+write :: (MonadIO m, MonadThrow m) => MVar FilePath -> Dump -> m ()
+write file dump = liftIO $ withMVar file $ \f -> writeDump' f dump
+
+
+--TODO could handle error on write.
+writeDump :: (MonadIO m) => MVar FilePath -> Dump -> m ThreadId
+writeDump file dump = liftIO $ forkFinally (write file dump) $ \ _ -> return ()
+
+
+read :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler DumpModel -> m (Either String Dump)
+read file handle = liftIO $ withMVar file $ \f -> do
+        _ <- liftIO $ handle (DumpModel Loading)
+        getDump' f
+
+
+getDump :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler DumpModel -> m ThreadId
+getDump file handle = liftIO $ forkFinally (read file handle) $ \case
+    Left e -> handle $ DumpModel (Failure (show e))
+    Right x -> case x of
+            Left e' -> handle $ DumpModel (Failure e')
+            Right s -> handle $ DumpModel (Data s)

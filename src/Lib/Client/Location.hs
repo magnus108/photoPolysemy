@@ -14,6 +14,7 @@ import qualified Graphics.UI.Threepenny as UI
 import Utils.Comonad
 import qualified Utils.ListZipper as ListZipper
 
+import Lib.Translation
 import Lib.Data
 import Lib.Grade
 import Lib.Tab
@@ -74,8 +75,8 @@ selectGrade model selected =
                                 Nothing) (unGrades grades')
         _ -> Nothing
 
-locationSection :: Env -> Window -> Event (Either String LocationFile) -> Event (Data String Grades) -> Tabs -> UI ()
-locationSection env@Env{..} win eLocationConfigFile eGrades tabs = do
+locationSection :: Env -> Window -> Translation -> Event (Either String LocationFile) -> Event (Data String Grades) -> Tabs -> UI ()
+locationSection env@Env{..} win translation eLocationConfigFile eGrades tabs = do
     (eInitial, eInitialHandle) <- liftIO newEvent
     let eSplit = splitData eGrades
 
@@ -83,7 +84,7 @@ locationSection env@Env{..} win eLocationConfigFile eGrades tabs = do
         ((Lens.set grades . Data <$> (success eSplit))
             :| [ Lens.set grades . Failure <$> failure eSplit
                , Lens.set grades <$> eInitial
-               , Lens.set grades Loading <$ (loading eSplit)
+               , Lens.set grades Loading <$ (lloading eSplit)
                ])
 
 
@@ -141,7 +142,7 @@ locationSection env@Env{..} win eLocationConfigFile eGrades tabs = do
     _ <- getGrades mGradesFile eInitialHandle
 
     tabs' <- mkTabs env tabs
-    navigation <- mkNavigation env tabs
+    navigation <- mkNavigation env translation tabs
 
     view <- UI.div #+ fmap element
         [ tabs'

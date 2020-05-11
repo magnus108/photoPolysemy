@@ -8,6 +8,7 @@ import Data.Bitraversable
 import Graphics.UI.Threepenny.Core
 import qualified Graphics.UI.Threepenny as UI
 
+import Lib.Translation
 import Lib.Tab
 import Lib.Session
 import Lib.Client.Tab
@@ -21,15 +22,15 @@ import Utils.RoseTree as RT
 import Utils.TreeZipper
 
 
-sessionsSection :: Env -> Window -> Event (Either String Sessions) -> Tabs -> UI ()
-sessionsSection env@Env{..} win eSessions tabs = do
+sessionsSection :: Env -> Window -> Translation -> Event (Either String Sessions) -> Tabs -> UI ()
+sessionsSection env@Env{..} win translation eSessions tabs = do
     sessions <- liftIO $ withMVar files $ \ Files{..} -> getSessions sessionsFile
     bSessions <- stepper sessions eSessions
 
     content <- UI.div # sink item (mkSessions env <$> bSessions)
 
     tabs' <- mkTabs env tabs
-    navigation <- mkNavigation env tabs
+    navigation <- mkNavigation env translation tabs
 
     view <- UI.div #+ fmap element
             [ tabs'

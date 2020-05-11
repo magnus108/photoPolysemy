@@ -6,6 +6,7 @@ module Lib.Client.Camera
 import Graphics.UI.Threepenny.Core
 import qualified Graphics.UI.Threepenny as UI
 
+import Lib.Translation
 import Lib.Tab
 import Lib.Camera
 import Lib.Client.Tab
@@ -21,15 +22,15 @@ import qualified Utils.ListZipper as ListZipper
 import Control.Concurrent.MVar
 
 
-camerasSection :: Env -> Window -> Event (Either String Cameras) -> Tabs -> UI ()
-camerasSection env@Env{..} win eCameras tabs = do
+camerasSection :: Env -> Window -> Translation -> Event (Either String Cameras) -> Tabs -> UI ()
+camerasSection env@Env{..} win translation eCameras tabs = do
     cameras <- liftIO $ withMVar files $ \ Files{..} -> getCameras camerasFile
 
     bCameras <- stepper cameras eCameras
     content <- UI.div # sink item (mkCameras env <$> bCameras)
 
     tabs' <- mkTabs env tabs
-    navigation <- mkNavigation env tabs
+    navigation <- mkNavigation env translation tabs
 
     view <- UI.div #+ fmap element
         [ tabs'

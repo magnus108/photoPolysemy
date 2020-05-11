@@ -15,7 +15,7 @@ data Data e s
 
 
 data Split e s = Split { notAsked :: Event ()
-                          , loading :: Event ()
+                          , lloading :: Event ()
                           , failure :: Event e
                           , success :: Event s
                           }
@@ -24,7 +24,7 @@ data Split e s = Split { notAsked :: Event ()
 splitData :: Event (Data e s) -> Split e s
 splitData e =
     let notAsked = filterJust $ fromNotAsked <$> e
-        loading = filterJust $ fromLoading <$> e
+        lloading = filterJust $ fromLoading <$> e
         failure = filterJust $ fromFailure <$> e
         success = filterJust $ fromData <$> e
     in

@@ -156,7 +156,7 @@ instance Comonad ListZipper where
 
 instance Foldable ListZipper where
     foldMap f (ListZipper l x r) =
-        foldMap f l <> f x <> foldMap f r
+        foldMap f (reverse l) <> f x <> foldMap f r
 
 instance Traversable ListZipper where
     traverse f (ListZipper l x r) =

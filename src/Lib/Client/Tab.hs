@@ -10,6 +10,8 @@ import Graphics.UI.Threepenny.Core
 import qualified Graphics.UI.Threepenny as UI
 
 import Lib.Tab
+import Lib.Translation (Translation)
+import qualified Lib.Translation as Translation
 
 import Lib.Client.Element
 import Utils.Comonad
@@ -18,6 +20,7 @@ import qualified Utils.ListZipper as ListZipper
 import Control.Concurrent.MVar
 import Lib.App (Env(..), Files(..))
 
+import qualified Control.Lens as Lens
 
 mkTabs :: Env -> Tabs -> UI Element
 mkTabs env (Tabs tabs) = do
@@ -47,23 +50,23 @@ mkTab Env{..} (tab, isCenter, tabs)
         return button
 
 
-prev :: Env -> Tabs -> UI (Maybe Element)
-prev Env{..} tabs =
-    control (ListZipper.isLeft, "prev","prev") (unTabs tabs) $ \ _ ->
+prev :: Env -> Translation -> Tabs -> UI (Maybe Element)
+prev Env{..} translation tabs =
+    control (ListZipper.isLeft, "prev", Lens.view Translation.prev translation) (unTabs tabs) $ \ _ ->
         liftIO $ withMVar files $ \ Files{..} ->
             writeTabs tabsFile (Tabs (backward (unTabs tabs)))
 
 
-next :: Env -> Tabs -> UI (Maybe Element)
-next Env{..} tabs =
-    control (ListZipper.isRight,"next","next") (unTabs tabs) $ \ _ ->
+next :: Env -> Translation -> Tabs -> UI (Maybe Element)
+next Env{..} translation tabs =
+    control (ListZipper.isRight,"next",Lens.view Translation.next translation) (unTabs tabs) $ \ _ ->
         liftIO $ withMVar files $ \ Files{..} ->
             writeTabs tabsFile (Tabs (forward (unTabs tabs)))
 
 
-mkNavigation :: Env -> Tabs -> UI Element
-mkNavigation env tabs = do
-    next' <- next env tabs
-    prev' <- prev env tabs
+mkNavigation :: Env -> Translation -> Tabs -> UI Element
+mkNavigation env translation tabs = do
+    next' <- next env translation tabs
+    prev' <- prev env translation tabs
     UI.div #. "buttons has-addons"
         #+ fmap element (maybeToList prev' ++ maybeToList next')

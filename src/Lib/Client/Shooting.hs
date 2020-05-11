@@ -7,6 +7,7 @@ import Graphics.UI.Threepenny.Core
 import qualified Graphics.UI.Threepenny as UI
 
 import Lib.Tab
+import Lib.Translation
 import Lib.Shooting
 import Lib.Client.Tab
 
@@ -21,15 +22,15 @@ import qualified Utils.ListZipper as ListZipper
 import Control.Concurrent.MVar
 
 
-shootingsSection :: Env -> Window -> Event (Either String Shootings) -> Tabs -> UI ()
-shootingsSection env@Env{..} win eShootings tabs = do
+shootingsSection :: Env -> Window -> Translation -> Event (Either String Shootings) -> Tabs -> UI ()
+shootingsSection env@Env{..} win translation eShootings tabs = do
     shootings <- liftIO $ withMVar files $ \ Files{..} -> getShootings shootingsFile
     bShootings <- stepper shootings eShootings
 
     content <- UI.div # sink item (mkShootings env <$> bShootings)
 
     tabs' <- mkTabs env tabs
-    navigation <- mkNavigation env tabs
+    navigation <- mkNavigation env translation tabs
 
     view <- UI.div #+ fmap element
         [ tabs'

@@ -9,4 +9,5 @@
 , "tabsFile":"/home/magnus/Documents/projects/photoPolysemy/config/tabs.json"
 , "gradesFile":"/home/magnus/Documents/projects/photoPolysemy/config/grades.json"
 , "locationConfigFile":"/home/magnus/Documents/projects/photoPolysemy/config/locationConfig.json"
+, "translationFile":"/home/magnus/Documents/projects/photoPolysemy/config/translation.json"
 }

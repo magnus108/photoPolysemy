@@ -6,6 +6,7 @@ module Lib.Client.Doneshooting
 import Graphics.UI.Threepenny.Core
 import qualified Graphics.UI.Threepenny as UI
 
+import Lib.Translation
 import Lib.Tab
 import Lib.Doneshooting
 import Lib.Client.Tab
@@ -45,15 +46,15 @@ doneshootingView Env{..} = \case
         UI.div #+ fmap element [title_, content, picker]
 
 
-doneshootingSection :: Env -> Window -> Event (Either String Doneshooting) -> Tabs -> UI ()
-doneshootingSection env@Env{..} win eDoneshooting tabs = do
+doneshootingSection :: Env -> Window -> Translation -> Event (Either String Doneshooting) -> Tabs -> UI ()
+doneshootingSection env@Env{..} win translation eDoneshooting tabs = do
     doneshooting <- liftIO $ withMVar files $ \ Files{..} -> getDoneshooting doneshootingFile
     bDoneshooting <- stepper doneshooting eDoneshooting
 
     content <- UI.div # sink item (doneshootingView env <$> bDoneshooting)
 
     tabs' <- mkTabs env tabs
-    navigation <- mkNavigation env tabs
+    navigation <- mkNavigation env translation tabs
 
     view <- UI.div #+ fmap element
         [ tabs'

@@ -4,6 +4,7 @@ module Lib.App.Files2
        , loadFiles
        ) where
 
+-- Had to have this because of MVAR
 data Files2 = Files2
     { dumpFile :: !FilePath
     , doneshootingFile :: !FilePath
@@ -16,6 +17,7 @@ data Files2 = Files2
     , camerasFile :: !FilePath
     , tabsFile :: !FilePath
     , locationConfigFile :: !FilePath
+    , translationFile :: !FilePath
     } deriving (Generic)
       deriving (FromJSON, ToJSON)
       deriving (Show)

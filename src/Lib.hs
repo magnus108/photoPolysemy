@@ -5,6 +5,8 @@ module Lib
     , main
     ) where
 
+import Relude.Unsafe (fromJust)
+
 import qualified Graphics.UI.Threepenny as UI
 
 import Control.Exception (SomeException(..), catch)
@@ -22,6 +24,7 @@ import Lib.Photographer (Photographers, getPhotographers)
 
 import Utils.ListZipper
 
+import qualified Lib.Translation as Translation
 import Lib.Data
 import Lib.Grade (Grades, getGrades, writeGrades, Grade(..), Grades(..), parseGrades)
 import Lib.Location
@@ -42,10 +45,12 @@ import Graphics.UI.Threepenny (newEvent, Handler)
 mkEnv :: Config -> IO Env
 mkEnv _ = do
     Files2{..} <- loadFiles "config.json"
+
     mPhotographersFile <- newMVar photographersFile
     mGradesFile <- newMVar gradesFile
-    files <- newMVar Files{..}
+    mTranslationFile <- newMVar translationFile
 
+    files <- newMVar Files{..}
     pure Env{..}
 
 
@@ -148,8 +153,9 @@ runServer port env@Env{..} = do
         bPhotographers <- UI.stepper Photographer.initalState ePhotographers
         _ <- getPhotographers mPhotographersFile hPhotographers
 
+        translations <- Translation.read mTranslationFile
         --VERY important this is here
-        Server.run port env eGrades eLocationConfigFile eSessions eShootings eCameras eConfigDump eDumpDir eConfigDoneshooting eConfigDagsdato eConfigDagsdatoBackup eTabs bPhotographers
+        Server.run port env (fromJust (rightToMaybe translations)) eGrades eLocationConfigFile eSessions eShootings eCameras eConfigDump eDumpDir eConfigDoneshooting eConfigDagsdato eConfigDagsdatoBackup eTabs bPhotographers
 
 
 type WatchMap = MVar (HashMap String StopListening)
@@ -265,7 +271,7 @@ configDump mgr files@Files{..} watchMap handler handleDumpDir = watchDir
         (\e -> eventPath e == dumpFile)
         (\e -> do
             print e
-            handler =<< getDump dumpFile
+            handler =<< getDump' dumpFile
             -- TODO these two are related
             modifyMVar_ watchMap $ \ h -> do
                 h HashMap.! "stopDirDump"
@@ -277,7 +283,7 @@ configDump mgr files@Files{..} watchMap handler handleDumpDir = watchDir
 
 dirDump :: WatchManager -> Files -> WatchMap -> Handler (Data String DumpDir) -> IO StopListening
 dirDump mgr Files{..} _ handler = do
-    dumpPath <- getDump dumpFile
+    dumpPath <- getDump' dumpFile
     case dumpPath of
       Left _ -> return (return ()) -- TODO this sucks
       Right path -> do

@@ -6,6 +6,7 @@ module Lib.Client.Dagsdato
 import Graphics.UI.Threepenny.Core
 import qualified Graphics.UI.Threepenny as UI
 
+import Lib.Translation
 import Lib.Tab
 import Lib.Dagsdato
 import Lib.Client.Tab
@@ -43,15 +44,15 @@ dagsdatoView Env{..} = \case
         UI.div #+ fmap element [title_, content, picker]
 
 
-dagsdatoSection :: Env -> Window -> Event (Either String Dagsdato) -> Tabs -> UI ()
-dagsdatoSection env@Env{..} win eDagsdato tabs = do
+dagsdatoSection :: Env -> Window -> Translation -> Event (Either String Dagsdato) -> Tabs -> UI ()
+dagsdatoSection env@Env{..} win translation eDagsdato tabs = do
     dagsdato <- liftIO $ withMVar files $ \ Files{..} -> getDagsdato dagsdatoFile
     bDagsdato <- stepper dagsdato eDagsdato
 
     content <- UI.div # sink item (dagsdatoView env <$> bDagsdato)
 
     tabs' <- mkTabs env tabs
-    navigation <- mkNavigation env tabs
+    navigation <- mkNavigation env translation tabs
 
     view <- UI.div #+ fmap element
         [ tabs'

@@ -5,6 +5,7 @@ module Lib.Client.Dump
 import Graphics.UI.Threepenny.Core
 import qualified Graphics.UI.Threepenny as UI
 
+import Lib.Translation
 import Lib.Tab
 import Lib.Dump
 import Lib.Client.Tab
@@ -45,15 +46,15 @@ dumpView Env{..} = \case
         UI.div #+ fmap element [ title_, content, picker]
 
 
-dumpSection :: Env -> Window -> Tabs -> Event (Either String Dump) -> UI ()
-dumpSection env@Env{..} win tabs eDump = do
-    dump' <- liftIO $ withMVar files $ \ Files{..} -> getDump dumpFile
+dumpSection :: Env -> Window -> Translation -> Tabs -> Event (Either String Dump) -> UI ()
+dumpSection env@Env{..} win translation tabs eDump = do
+    dump' <- liftIO $ withMVar files $ \ Files{..} -> getDump' dumpFile
     bDump <- stepper dump' eDump
 
     content <- UI.div # sink item (dumpView env <$> bDump)
 
     tabs' <- mkTabs env tabs
-    navigation <- mkNavigation env tabs
+    navigation <- mkNavigation env translation tabs
 
     view <- UI.div #+ fmap element
         [ tabs'

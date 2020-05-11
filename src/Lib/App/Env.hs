@@ -26,4 +26,5 @@ data Env = Env
     { files :: MVar Files
     , mPhotographersFile :: MVar FilePath
     , mGradesFile :: MVar FilePath
+    , mTranslationFile :: MVar FilePath
     }

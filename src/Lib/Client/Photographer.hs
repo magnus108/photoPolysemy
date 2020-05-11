@@ -7,79 +7,71 @@ module Lib.Client.Photographer
 import Graphics.UI.Threepenny.Core
 import qualified Graphics.UI.Threepenny as UI
 
+import Utils.Comonad
+
+import qualified Control.Lens as Lens
+
+import Lib.App
+import Lib.Translation
 import Lib.Data
 import Lib.Tab
-import Lib.Photographer
 import Lib.Client.Tab
-
-import Lib.App (Env(..))
+import Lib.Photographer
 
 import Lib.Client.Utils
 import Lib.Client.Element
-import Utils.Comonad
-import Utils.ListZipper (focus)
-import qualified Utils.ListZipper as ListZipper
 
 
-photographersSection :: Env -> Window -> Tabs -> Behavior Model -> UI ()
-photographersSection env@Env{..} win tabs bModel = do
-    let bView = mkPhotographers env <$> bModel
-    content <- UI.div # sink item bView
 
-    tabs' <- mkTabs env tabs
-    navigation <- mkNavigation env tabs
+photographersSection :: Env -> Window -> Translation -> Tabs -> Behavior Model -> UI ()
+photographersSection env@Env{..} win translation tabs bModel = do
+    let bView = mkPhotographers env translation <$> bModel
+    content <- UI.div #. "section" # sink item bView
 
-    view <- UI.div #+ fmap element
-        [ tabs'
-        , content
-        , navigation
-        ]
+    tabs' <- mkElement "nav" #. "section" #+ [mkTabs env tabs]
+    navigation <- mkElement "footer" #. "section" #+ [mkNavigation env translation tabs]
 
-    void $ UI.getBody win # set children [view]
+    view <- UI.div #+ fmap element [ content ]
 
-    --MANGLER TRANSLATIONS
-    --MANGERL OPTRYDNING I imports
-    --MANGLER OPTRYDNING i tabs og navigation
-    --Mangler OPTRYDNING i mkPhotographers
+    void $ UI.getBody win # set children [tabs', view, navigation]
 
 
-mkPhotographers :: Env -> Model -> UI Element
-mkPhotographers env@Env{..} model =
+mkPhotographers :: Env -> Translation -> Model -> UI Element
+mkPhotographers env@Env{..} translations model =
     case unModel model of
-        NotAsked -> UI.div #+ [string "Starting.."]
-        Loading -> UI.div #+ [string "Loading.."]
+        NotAsked -> UI.p #+ [Lens.views starting string translations]
+        Loading -> UI.p #+ [Lens.views loading string translations]
+        Failure _ -> do
+            err <- UI.p #+ [Lens.views photographersError string translations]
+            picker <- mkFilePicker "photographerPicker" (Lens.view filePicker translations) $ \file ->
+                when (file /= "") $ do
+                    --TODO er det engentligt det her man vil?
+                    eitherPhotographers <- liftIO $ getPhotographers' file
+                    forM_ eitherPhotographers $ writePhotographers mPhotographersFile
+
+            UI.div # set children [err, picker]
+
         Data (Photographers photographers) -> do
-                let currentPhotographer = focus photographers
+                let currentPhotographer = extract photographers
                 let elems = photographers =>> \photographers''-> let
-                                thisPhotographer = focus photographers''
+                                thisPhotographer = extract photographers''
                             in
                                 ( thisPhotographer
                                 , thisPhotographer == currentPhotographer
                                 , Photographers photographers''
                                 )
-                elems' <- mapM (mkPhotographer env) elems
-                UI.div #. "buttons has-addons" # set children (ListZipper.toList elems')
-        Failure _ -> do
-            picker <- mkFilePicker "photographerPicker" "Vælg import fil" $ \file -> 
-                when (file /= "") $ do
-                    --TODO er det engentligt det her man vil?
-                    --TODO og hvad gør vi med fejl?
-                    --TODO med nuværende løsning er COPY nok
-                    --TODO FEJL BLIVER ignoret med denne løsning
-                    photographers <- liftIO $ getPhotographers' file
-                    forM_ photographers $ writePhotographers mPhotographersFile
-
-            para <- UI.p # set text "Der er en fejl med fotografer"
-            UI.div # set children [para, picker]
+                elems' <- forM elems $ mkPhotographer env
+                UI.div #. "buttons has-addons" # set children (toList elems')
 
 
 mkPhotographer :: Env -> (Photographer, Bool, Photographers) -> UI Element
 mkPhotographer Env{..} (photographer, isCenter, photographers)
     | isCenter = do
         let name = _name photographer
-        mkButton "idd" name #. "button is-selected" # set (attr "disabled") "true"
+        mkButton name name #. "button is-selected" # set (attr "disabled") "true"
     | otherwise = do
         let name = _name photographer
-        forwardButton <- mkButton "idd" name
-        UI.on UI.click forwardButton $ \_ -> writePhotographers mPhotographersFile photographers
-        return forwardButton
+        button <- mkButton name name
+        UI.on UI.click button $ \_ ->
+            writePhotographers mPhotographersFile photographers
+        return button
