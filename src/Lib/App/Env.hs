@@ -8,8 +8,7 @@ module Lib.App.Env
 import Lib.App.Files2
 
 data Files = Files
-    { shootingsFile :: !FilePath
-    , sessionsFile :: !FilePath
+    { sessionsFile :: !FilePath
     , gradesFile :: !FilePath
     , tabsFile :: !FilePath
     , locationConfigFile :: !FilePath
@@ -27,4 +26,5 @@ data Env = Env
     , mDagsdatoBackupFile :: MVar FilePath
     , mDoneshootingFile :: MVar FilePath
     , mTranslationFile :: MVar FilePath
+    , mShootingsFile :: MVar FilePath
     }

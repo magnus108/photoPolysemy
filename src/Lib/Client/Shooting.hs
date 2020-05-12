@@ -6,67 +6,72 @@ module Lib.Client.Shooting
 import Graphics.UI.Threepenny.Core
 import qualified Graphics.UI.Threepenny as UI
 
-import Lib.Tab
-import Lib.Translation
-import Lib.Shooting
-import Lib.Client.Tab
+import Utils.Comonad
 
-import Lib.App (Env(..), Files(..))
+import qualified Control.Lens as Lens
+
+import Lib.App
+import Lib.Translation
+import Lib.Data
+import Lib.Tab
+import Lib.Client.Tab
+import Lib.Shooting
 
 import Lib.Client.Utils
 import Lib.Client.Element
-import Utils.Comonad
-import Utils.ListZipper (focus)
-import qualified Utils.ListZipper as ListZipper
-
-import Control.Concurrent.MVar
 
 
-shootingsSection :: Env -> Window -> Translation -> Event (Either String Shootings) -> Tabs -> UI ()
-shootingsSection env@Env{..} win translation eShootings tabs = do
-    shootings <- liftIO $ withMVar files $ \ Files{..} -> getShootings shootingsFile
-    bShootings <- stepper shootings eShootings
+shootingsSection :: Env -> Window -> Translation -> Tabs -> Behavior Model -> UI ()
+shootingsSection env@Env{..} win translation tabs bModel = do
+    let bView = mkShootings env translation <$> bModel
+    content <- UI.div #. "section" # sink item bView
 
-    content <- UI.div # sink item (mkShootings env <$> bShootings)
+    tabs' <- mkElement "nav" #. "section" #+ [mkTabs env tabs]
+    navigation <- mkElement "footer" #. "section" #+ [mkNavigation env translation tabs]
 
-    tabs' <- mkTabs env tabs
-    navigation <- mkNavigation env translation tabs
+    view <- UI.div #+ fmap element [ content ]
 
-    view <- UI.div #+ fmap element
-        [ tabs'
-        , content
-        , navigation
-        ]
-
-    void $ UI.getBody win # set children [view]
+    void $ UI.getBody win # set children [tabs', view, navigation]
 
 
-mkShootings :: Env -> Either String Shootings -> UI Element
-mkShootings env = \case
-    Left _ -> UI.div # set text "Shooting ikke sat" -- TODO skulle ikke se
-    Right (Shootings shootings) -> do
-        let currentShooting = focus shootings
-        let elems = shootings =>> \shootings'' -> let
-                    thisShooting = focus shootings''
-                in
-                    ( thisShooting
-                    , thisShooting == currentShooting
-                    , Shootings shootings''
-                    )
-        shootings' <- mapM (mkShooting env) elems
-        UI.div #. "buttons has-addons" # set children (ListZipper.toList shootings')
+mkShootings :: Env -> Translation -> Model -> UI Element
+mkShootings env@Env{..} translations model =
+    case unModel model of
+        NotAsked -> UI.p #+ [Lens.views starting string translations]
+        Loading -> UI.p #+ [Lens.views loading string translations]
+        Failure _ -> do
+            err <- UI.p #+ [Lens.views shootingsError string translations]
+            picker <- mkFilePicker "shootingPicker" (Lens.view filePicker translations) $ \file ->
+                when (file /= "") $ do
+                    --TODO er det engentligt det her man vil?
+                    parseShootings <- liftIO $ getShootings' file
+                    forM_ parseShootings $ writeShootings mShootingsFile
 
+            UI.div # set children [err, picker]
 
+        Data (Shootings shootings) -> do
+                let currentShooting = extract shootings
+                let elems = shootings =>> \shootings'' -> let
+                                thisShooting = extract shootings''
+                            in
+                                ( thisShooting
+                                , thisShooting == currentShooting
+                                , Shootings shootings''
+                                )
+                elems' <- forM elems $ mkShooting env translations
+                UI.div #. "buttons has-addons" # set children (toList elems')
 
-mkShooting :: Env -> (Shooting, Bool, Shootings) -> UI Element
-mkShooting Env{..} (shooting, isCenter, shootings)
+mkShooting :: Env -> Translation -> (Shooting, Bool, Shootings) -> UI Element
+mkShooting Env{..} translations (shooting, isCenter, shootings)
     | isCenter = do
-        let name = show shooting
         mkButton "idd" name #. "button is-selected" # set (attr "disabled") "true"
     | otherwise = do
-        let name = show shooting
-        forwardButton <- mkButton "idd" name
-        UI.on UI.click forwardButton $ \_ ->
-            liftIO $ withMVar files $ \ Files{..} ->
-                writeShootings shootingsFile shootings
-        return forwardButton
+        button <- mkButton "idd" name
+        UI.on UI.click button $ \_ ->
+                writeShootings mShootingsFile shootings
+        return button
+    where
+        translator = case shooting of
+                ReShoot -> reShoot
+                Normal -> normal
+        name = Lens.view translator translations

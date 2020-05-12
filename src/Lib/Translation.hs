@@ -7,6 +7,8 @@ module Lib.Translation
     , loading
     , next
     , prev
+    , reShoot
+    , normal
     , cr2
     , cr3
     , dagsdatoBackupError
@@ -16,6 +18,7 @@ module Lib.Translation
     , doneshootingError
     , doneshootingTitle
     , camerasError
+    , shootingsError
     , filePicker
     , folderPicker
     , photographersError
@@ -35,6 +38,7 @@ data Translation = Translation { _loading :: String
                                , _folderPicker :: String
                                , _photographersError :: String
                                , _camerasError :: String
+                               , _shootingsError :: String
                                , _dumpError :: String
                                , _dumpTitle :: String
                                , _dagsdatoError :: String
@@ -47,6 +51,8 @@ data Translation = Translation { _loading :: String
                                , _prev :: String
                                , _cr3 :: String
                                , _cr2 :: String
+                               , _reShoot :: String
+                               , _normal :: String
                                }
     deriving (Show, Ord, Eq, Generic, ToJSON, FromJSON)
 

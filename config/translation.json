@@ -2,6 +2,7 @@
 ,"_loading":"Loading.."
 ,"_photographersError":"Der er en fejl med fotografer"
 ,"_camerasError":"Der er en fejl med camera indstillinger"
+,"_shootingsError":"Der er en fejl med skydning indstillinger"
 ,"_dagsdatoError":"Der er en fejl med dagsdato"
 ,"_dagsdatoTitle":"Dagsdato"
 ,"_dagsdatoBackupError":"Der er en fejl med dagsdato backup"
@@ -16,4 +17,6 @@
 ,"_next":"Næste"
 ,"_cr2":"CR2"
 ,"_cr3":"CR3"
+,"_reShoot":"Genskyd"
+,"_normal":"Normal"
 }
