@@ -6,61 +6,53 @@ module Lib.Client.DagsdatoBackup
 import Graphics.UI.Threepenny.Core
 import qualified Graphics.UI.Threepenny as UI
 
+
+import qualified Control.Lens as Lens
+
+import Lib.App
 import Lib.Translation
+import Lib.Data
 import Lib.Tab
 import Lib.DagsdatoBackup
 import Lib.Client.Tab
+import Lib.Client.Utils
 import Lib.Client.Element
 
-import Lib.Client.Utils
 
-import Lib.App (Env(..), Files(..))
-import Control.Concurrent.MVar (withMVar)
+mkDagsdatoBackup :: Env -> Translation -> Model -> [UI Element]
+mkDagsdatoBackup Env{..} translations model = do
+    case unModel model of
+        NotAsked -> [UI.p #+ [Lens.views starting string translations]]
+        Loading -> [UI.p #+ [Lens.views loading string translations]]
+        Failure _ ->
+            [ UI.div #. "section" #+ [Lens.views dagsdatoBackupError string translations]
+                   , UI.div #. "section" #+
+                       [ mkFolderPicker "dagsdatoBackupPicker" (Lens.view folderPicker translations) $ \folder ->
+                            when (folder /= "") $
+                                -- todo: handle bad input
+                                void $ writeDagsdatoBackup mDagsdatoBackupFile (DagsdatoBackup folder)
+                        ]
+                    ]
 
-
-dagsdatoBackupView :: Env -> Either String DagsdatoBackup -> UI Element
-dagsdatoBackupView Env{..} = \case
-    Left _ -> do
-        title_ <- UI.p # set text "Der er en fejl med dagsdato backup mappe"
-
-        picker <- UI.div #+
-                [ mkFolderPicker "dagsdatoBackupPicker" "Vælg config folder" $ \folder ->
-                    when (folder /= "") $
-                        withMVar files $ \ Files{..} ->
-                            writeFile dagsdatoBackupFile (show folder)
-                ]
-
-        UI.div #+ fmap element [title_, picker]
-
-    Right dagsdatoBackup -> do
-        title_ <- UI.div #+ [UI.string "DagsdatoBackup mappe"]
-        content <- UI.div #+ [UI.string (unDagsdatoBackup dagsdatoBackup)]
-
-        picker <- UI.div #+
-                [ mkFolderPicker "dagsdatoBackupPicker" "Vælg config folder" $ \folder ->
-                    when (folder /= "") $
-                        withMVar files $ \ Files{..} ->
-                            writeFile dagsdatoBackupFile (show folder)
-                ]
-
-        UI.div #+ fmap element [title_, content, picker]
+        Data (DagsdatoBackup dagsdatoBackup') ->
+            [ UI.div #. "section" #+ [UI.h2 #+ [Lens.views dagsdatoTitle string translations], UI.string dagsdatoBackup']
+                   , UI.div #. "section" #+
+                        [mkFolderPicker "dagsdatoPicker" (Lens.view folderPicker translations) $ \folder ->
+                            when (folder /= "") $
+                                -- todo: handle bad input
+                                void $ writeDagsdatoBackup mDagsdatoBackupFile (DagsdatoBackup folder)
+                        ]
+                   ]
 
 
-dagsdatoBackupSection :: Env -> Window -> Translation -> Event (Either String DagsdatoBackup) -> Tabs -> UI ()
-dagsdatoBackupSection env@Env{..} win translation eDagsdatoBackup tabs = do
+dagsdatoBackupSection :: Env -> Window -> Translation -> Tabs -> Behavior Model -> UI ()
+dagsdatoBackupSection env@Env{..} win translation tabs bModel = do
+    let bView = mkDagsdatoBackup env translation <$> bModel
+    content <- UI.div # sink items bView
 
-    dagsdatoBackup <- liftIO $ withMVar files $ \ Files{..} -> getDagsdatoBackup dagsdatoBackupFile
-    bDagsdatoBackup <- stepper dagsdatoBackup eDagsdatoBackup
+    tabs' <- mkElement "nav" #. "section" #+ [mkTabs env tabs]
+    navigation <- mkElement "footer" #. "section" #+ [mkNavigation env translation tabs]
 
-    content <- UI.div # sink item (dagsdatoBackupView env <$> bDagsdatoBackup)
+    view <- UI.div #+ fmap element [ content ]
 
-    tabs' <- mkTabs env tabs
-    navigation <- mkNavigation env translation tabs
-
-    view <- UI.div #+ fmap element
-        [ tabs'
-        , content
-        , navigation
-        ]
-
-    void $ UI.getBody win # set children [view]
+    void $ UI.getBody win # set children [tabs', view, navigation]

@@ -7,8 +7,12 @@ module Lib.Translation
     , loading
     , next
     , prev
+    , dagsdatoBackupError
+    , dagsdatoBackupTitle
     , dagsdatoError
     , dagsdatoTitle
+    , doneshootingError
+    , doneshootingTitle
     , filePicker
     , folderPicker
     , photographersError
@@ -31,6 +35,10 @@ data Translation = Translation { _loading :: String
                                , _dumpTitle :: String
                                , _dagsdatoError :: String
                                , _dagsdatoTitle :: String
+                               , _dagsdatoBackupError :: String
+                               , _dagsdatoBackupTitle :: String
+                               , _doneshootingTitle :: String
+                               , _doneshootingError :: String
                                , _next :: String
                                , _prev :: String
                                }

@@ -37,6 +37,8 @@ import Lib.Doneshooting
 import Lib.Dump
 import qualified Lib.Dump as Dump
 import qualified Lib.Dagsdato as Dagsdato
+import qualified Lib.Doneshooting as Doneshooting
+import qualified Lib.DagsdatoBackup as DagsdatoBackup
 import qualified Lib.Photographer as Photographer
 
 import qualified Lib.Server.Server as Server
@@ -52,6 +54,9 @@ mkEnv _ = do
     mGradesFile <- newMVar gradesFile
     mDumpFile <- newMVar dumpFile
     mDagsdatoFile <- newMVar dagsdatoFile
+    mDagsdatoBackupFile <- newMVar dagsdatoBackupFile
+    mDoneshootingFile <- newMVar doneshootingFile
+
     mTranslationFile <- newMVar translationFile
 
     files <- newMVar Files{..}
@@ -100,6 +105,14 @@ runServer port env@Env{..} = do
         stopConfigDagsdato <- configDagsdato mgr mDagsdatoFile watchers hConfigDagsdato hDirDagsdato
         stopDirDagsdato <- dirDagsdato mgr mDagsdatoFile watchers hDirDagsdato
 
+        --Dagsdato backup
+        stopConfigDagsdatoBackup <- configDagsdatoBackup mgr mDagsdatoBackupFile watchers hConfigDagsdatoBackup hDirDagsdatoBackup
+        stopDirDagsdatoBackup <- dirDagsdatoBackup mgr mDagsdatoBackupFile watchers hDirDagsdatoBackup
+
+        --Doneshooting
+        stopConfigDoneshooting <- configDoneshooting mgr mDoneshootingFile watchers hConfigDoneshooting hDirDoneshooting
+        stopDirDoneshooting <- dirDoneshooting mgr mDoneshootingFile watchers hDirDoneshooting
+
         withMVar files $ \ files' -> do
             --Tabs
             stopConfigTab <- configTab mgr files' watchers hTab
@@ -116,16 +129,6 @@ runServer port env@Env{..} = do
 
             --Cameras
             stopConfigShootings <- configShootings mgr files' watchers hShootings
-
-            --Doneshooting
-            stopConfigDoneshooting <- configDoneshooting mgr files' watchers hConfigDoneshooting hDirDoneshooting
-            stopDirDoneshooting <- dirDoneshooting mgr files' watchers hDirDoneshooting
-
-
-            --Dagsdato backup
-            stopConfigDagsdatoBackup <- configDagsdatoBackup mgr files' watchers hConfigDagsdatoBackup hDirDagsdatoBackup
-            stopDirDagsdatoBackup <- dirDagsdatoBackup mgr files' watchers hDirDagsdatoBackup
-
 
             --TODO setter
             modifyMVar_ watchers $ \_ -> do
@@ -164,13 +167,22 @@ runServer port env@Env{..} = do
         bDump <- UI.stepper Dump.initalState eConfigDump
         _ <- Dump.getDump mDumpFile hConfigDump
 
-        --Dump
+        --Dagsdato
         bDagsdato <- UI.stepper Dagsdato.initialState eConfigDagsdato
         _ <- Dagsdato.getDagsdato mDagsdatoFile hConfigDagsdato
 
+        --DagsdatoBackup
+        bDagsdatoBackup <- UI.stepper DagsdatoBackup.initialState eConfigDagsdatoBackup
+        _ <- DagsdatoBackup.getDagsdatoBackup mDagsdatoBackupFile hConfigDagsdatoBackup
+
+
+        -- Doneshooting
+        bDoneshooting <- UI.stepper Doneshooting.initialState eConfigDoneshooting
+        _ <- Doneshooting.getDoneshooting mDoneshootingFile hConfigDoneshooting
+
         translations <- Translation.read mTranslationFile
         --VERY important this is here
-        Server.run port env (fromJust (rightToMaybe translations)) eGrades eLocationConfigFile eSessions eShootings eCameras bDump eDumpDir eConfigDoneshooting bDagsdato eConfigDagsdatoBackup eTabs bPhotographers
+        Server.run port env (fromJust (rightToMaybe translations)) eGrades eLocationConfigFile eSessions eShootings eCameras bDump eDumpDir bDoneshooting bDagsdato bDagsdatoBackup eTabs bPhotographers
 
 
 type WatchMap = MVar (HashMap String StopListening)
@@ -247,27 +259,29 @@ configShootings mgr Files{..} _ handler = watchDir
         (\e -> print e >> (handler =<< getShootings shootingsFile))
 
 
-configDoneshooting :: WatchManager -> Files -> WatchMap -> Handler (Either String Doneshooting) -> Handler () -> IO StopListening
-configDoneshooting mgr files@Files{..} watchMap handler handleDonshootingDir = watchDir
+configDoneshooting :: WatchManager -> MVar FilePath -> WatchMap -> Handler Doneshooting.Model -> Handler () -> IO StopListening
+configDoneshooting mgr mDoneshootingFile watchMap handler handleDonshootingDir = do
+    filepath <- readMVar mDoneshootingFile
+    watchDir
         mgr
-        (dropFileName doneshootingFile)
-        (\e -> eventPath e == doneshootingFile)
+        (dropFileName filepath)
+        (\e -> eventPath e == filepath)
         (\e -> do
             print e
-            handler =<< getDoneshooting doneshootingFile
-
+            _ <- Doneshooting.getDoneshooting mDoneshootingFile handler
             -- TODO these two are related
             modifyMVar_ watchMap $ \ h -> do
                 h HashMap.! "stopDirDoneshooting"
-                stopDirDoneshooting <- dirDoneshooting mgr files watchMap handleDonshootingDir
+                stopDirDoneshooting <- dirDoneshooting mgr mDoneshootingFile watchMap handleDonshootingDir
                 return $ HashMap.insert "stopDirDoneshooting" stopDirDoneshooting  h
         )
 
 
 
-dirDoneshooting :: WatchManager -> Files -> WatchMap -> Handler () -> IO StopListening
-dirDoneshooting mgr Files{..} _ handler = do
-    doneshootingPath <- getDoneshooting doneshootingFile
+dirDoneshooting :: WatchManager -> MVar FilePath -> WatchMap -> Handler () -> IO StopListening
+dirDoneshooting mgr mDoneshootingFile _ handler = do
+    doneshootingFile <- readMVar mDoneshootingFile
+    doneshootingPath <- getDoneshooting' doneshootingFile
     case doneshootingPath of
         Left _ -> return ( return ())
         Right path -> do
@@ -347,28 +361,28 @@ dirDagsdato mgr mDagsdatoFile _ handler = do
                     `catch` (\( _ :: SomeException ) -> return $ return () ) --TODO this sucks
 
 
-
-configDagsdatoBackup :: WatchManager -> Files -> WatchMap -> Handler (Either String DagsdatoBackup) -> Handler () -> IO StopListening
-configDagsdatoBackup mgr files@Files{..} watchMap handler handleDagsdatoBackupDir = watchDir
+configDagsdatoBackup :: WatchManager -> MVar FilePath -> WatchMap -> Handler DagsdatoBackup.Model -> Handler () -> IO StopListening
+configDagsdatoBackup mgr mDagsdatoBackupFile watchMap handler handleDagsdatoBackupDir = do
+    filepath <- readMVar mDagsdatoBackupFile
+    watchDir
         mgr
-        (dropFileName dagsdatoBackupFile)
-        (\e -> eventPath e == dagsdatoBackupFile)
+        (dropFileName filepath)
+        (\e -> eventPath e == filepath)
         (\e -> do
             print e
-            handler =<< getDagsdatoBackup dagsdatoBackupFile
-
-            -- TODO these two are related
+            _ <- DagsdatoBackup.getDagsdatoBackup mDagsdatoBackupFile handler
             modifyMVar_ watchMap $ \ h -> do
                 h HashMap.! "stopDirDagsdatoBackup"
-                stopDirDagsdatoBackup <- dirDagsdatoBackup mgr files watchMap handleDagsdatoBackupDir
+                stopDirDagsdatoBackup <- dirDagsdatoBackup mgr mDagsdatoBackupFile watchMap handleDagsdatoBackupDir
                 return $ HashMap.insert "stopDirDagsdatoBackup" stopDirDagsdatoBackup h
         )
 
 
 
-dirDagsdatoBackup :: WatchManager -> Files -> WatchMap -> Handler () -> IO StopListening
-dirDagsdatoBackup mgr Files{..} _ handler = do
-    dagsdatoBackupPath <- getDagsdatoBackup dagsdatoBackupFile
+dirDagsdatoBackup :: WatchManager -> MVar FilePath -> WatchMap -> Handler () -> IO StopListening
+dirDagsdatoBackup mgr mDagsdatoBackupFile _ handler = do
+    dagsdatoBackupFile <- readMVar mDagsdatoBackupFile
+    dagsdatoBackupPath <- getDagsdatoBackup' dagsdatoBackupFile
     case dagsdatoBackupPath of
         Left _ -> return (return ()) -- TODO this sucks
         Right path -> watchDir
