@@ -13,6 +13,7 @@ module Lib.Translation
     , dagsdatoTitle
     , doneshootingError
     , doneshootingTitle
+    , camerasError
     , filePicker
     , folderPicker
     , photographersError
@@ -31,6 +32,7 @@ data Translation = Translation { _loading :: String
                                , _filePicker :: String
                                , _folderPicker :: String
                                , _photographersError :: String
+                               , _camerasError :: String
                                , _dumpError :: String
                                , _dumpTitle :: String
                                , _dagsdatoError :: String

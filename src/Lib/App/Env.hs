@@ -11,7 +11,6 @@ data Files = Files
     { shootingsFile :: !FilePath
     , sessionsFile :: !FilePath
     , gradesFile :: !FilePath
-    , camerasFile :: !FilePath
     , tabsFile :: !FilePath
     , locationConfigFile :: !FilePath
     } deriving (Generic)
@@ -22,6 +21,7 @@ data Env = Env
     { files :: MVar Files
     , mPhotographersFile :: MVar FilePath
     , mGradesFile :: MVar FilePath
+    , mCamerasFile :: MVar FilePath
     , mDumpFile :: MVar FilePath
     , mDagsdatoFile :: MVar FilePath
     , mDagsdatoBackupFile :: MVar FilePath

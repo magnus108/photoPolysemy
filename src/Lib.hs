@@ -40,6 +40,7 @@ import qualified Lib.Dagsdato as Dagsdato
 import qualified Lib.Doneshooting as Doneshooting
 import qualified Lib.DagsdatoBackup as DagsdatoBackup
 import qualified Lib.Photographer as Photographer
+import qualified Lib.Camera as Camera
 
 import qualified Lib.Server.Server as Server
 
@@ -56,6 +57,7 @@ mkEnv _ = do
     mDagsdatoFile <- newMVar dagsdatoFile
     mDagsdatoBackupFile <- newMVar dagsdatoBackupFile
     mDoneshootingFile <- newMVar doneshootingFile
+    mCamerasFile <- newMVar camerasFile
 
     mTranslationFile <- newMVar translationFile
 
@@ -113,6 +115,9 @@ runServer port env@Env{..} = do
         stopConfigDoneshooting <- configDoneshooting mgr mDoneshootingFile watchers hConfigDoneshooting hDirDoneshooting
         stopDirDoneshooting <- dirDoneshooting mgr mDoneshootingFile watchers hDirDoneshooting
 
+        --Cameras
+        stopConfigCameras <- configCameras mgr mCamerasFile watchers hCameras
+
         withMVar files $ \ files' -> do
             --Tabs
             stopConfigTab <- configTab mgr files' watchers hTab
@@ -124,10 +129,7 @@ runServer port env@Env{..} = do
             --Sessions
             stopConfigSessions <- configSessions mgr files' watchers hSessions
 
-            --Cameras
-            stopConfigCameras <- configCameras mgr files' watchers hCameras
-
-            --Cameras
+            --Shootings
             stopConfigShootings <- configShootings mgr files' watchers hShootings
 
             --TODO setter
@@ -175,14 +177,17 @@ runServer port env@Env{..} = do
         bDagsdatoBackup <- UI.stepper DagsdatoBackup.initialState eConfigDagsdatoBackup
         _ <- DagsdatoBackup.getDagsdatoBackup mDagsdatoBackupFile hConfigDagsdatoBackup
 
-
         -- Doneshooting
         bDoneshooting <- UI.stepper Doneshooting.initialState eConfigDoneshooting
         _ <- Doneshooting.getDoneshooting mDoneshootingFile hConfigDoneshooting
 
+        -- Cameras
+        bCameras <- UI.stepper Camera.initalState eCameras
+        _ <- Camera.getCameras mCamerasFile hCameras
+
         translations <- Translation.read mTranslationFile
         --VERY important this is here
-        Server.run port env (fromJust (rightToMaybe translations)) eGrades eLocationConfigFile eSessions eShootings eCameras bDump eDumpDir bDoneshooting bDagsdato bDagsdatoBackup eTabs bPhotographers
+        Server.run port env (fromJust (rightToMaybe translations)) eGrades eLocationConfigFile eSessions eShootings bCameras bDump eDumpDir bDoneshooting bDagsdato bDagsdatoBackup eTabs bPhotographers
 
 
 type WatchMap = MVar (HashMap String StopListening)
@@ -243,12 +248,14 @@ configSessions mgr Files{..} _ handler = watchDir
         (\e -> print e >> (handler =<< getSessions sessionsFile))
 
 
-configCameras :: WatchManager -> Files -> WatchMap -> Handler (Either String Cameras) -> IO StopListening
-configCameras mgr Files{..} _ handler = watchDir
+configCameras :: WatchManager -> MVar FilePath -> WatchMap -> Handler Camera.Model -> IO StopListening
+configCameras mgr mCamerasFile _ handler = do
+    filepath <- readMVar mCamerasFile
+    watchDir
         mgr
-        (dropFileName camerasFile)
-        (\e -> eventPath e == camerasFile)
-        (\e -> print e >> (handler =<< getCameras camerasFile))
+        (dropFileName filepath)
+        (\e -> eventPath e == filepath)
+        (\e -> void $ print e >> getCameras mCamerasFile handler)
 
 
 configShootings :: WatchManager -> Files -> WatchMap -> Handler (Either String Shootings) -> IO StopListening

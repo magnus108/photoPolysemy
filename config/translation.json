@@ -1,6 +1,7 @@
 {"_starting": "Starting.."
 ,"_loading":"Loading.."
 ,"_photographersError":"Der er en fejl med fotografer"
+,"_camerasError":"Der er en fejl med camera indstillinger"
 ,"_dagsdatoError":"Der er en fejl med dagsdato"
 ,"_dagsdatoTitle":"Dagsdato"
 ,"_dagsdatoBackupError":"Der er en fejl med dagsdato backup"
