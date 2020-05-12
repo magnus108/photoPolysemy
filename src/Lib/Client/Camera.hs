@@ -58,17 +58,20 @@ mkCameras env@Env{..} translations model =
                                 , thisCamera == currentCamera
                                 , Cameras cameras''
                                 )
-                elems' <- forM elems $ mkCamera env
+                elems' <- forM elems $ mkCamera env translations
                 UI.div #. "buttons has-addons" # set children (toList elems')
 
-mkCamera :: Env -> (Camera, Bool, Cameras) -> UI Element
-mkCamera Env{..} (camera, isCenter, cameras)
+mkCamera :: Env -> Translation -> (Camera, Bool, Cameras) -> UI Element
+mkCamera Env{..} translations (camera, isCenter, cameras)
     | isCenter = do
-        let name = show camera
         mkButton "idd" name #. "button is-selected" # set (attr "disabled") "true"
     | otherwise = do
-        let name = show camera
         button <- mkButton "idd" name
         UI.on UI.click button $ \_ ->
                 writeCameras mCamerasFile cameras
         return button
+    where
+        translator = case camera of
+                CR2 -> cr2
+                CR3 -> cr3
+        name = Lens.view translator translations

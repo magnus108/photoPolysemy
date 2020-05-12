@@ -7,6 +7,8 @@ module Lib.Translation
     , loading
     , next
     , prev
+    , cr2
+    , cr3
     , dagsdatoBackupError
     , dagsdatoBackupTitle
     , dagsdatoError
@@ -43,6 +45,8 @@ data Translation = Translation { _loading :: String
                                , _doneshootingError :: String
                                , _next :: String
                                , _prev :: String
+                               , _cr3 :: String
+                               , _cr2 :: String
                                }
     deriving (Show, Ord, Eq, Generic, ToJSON, FromJSON)
 
