@@ -64,13 +64,13 @@ mkSessions env@Env{..} translations model =
                         let children'' = mkChildren env translations (Sessions sessions) xs
                         [children'']
 
-                    (TZ.TreeZipper (RT.Leaf x) (TZ.Context _ f _:_)) -> do
-                        let parent = mkParent env translations (Sessions sessions) f --kan give mening senere.
+                    (TZ.TreeZipper (RT.Leaf x) (TZ.Context _ _ _:_)) -> do
+                        let parent = mkParent env translations (Sessions sessions) --kan give mening senere.
                         let this = mkSelected env translations x
                         [parent, this]
 
-                    (TZ.TreeZipper (RT.Branch _ xs) (TZ.Context _ f _:_)) -> do
-                        let parent = mkParent env translations (Sessions sessions) f
+                    (TZ.TreeZipper (RT.Branch _ xs) (TZ.Context _ _ _:_)) -> do
+                        let parent = mkParent env translations (Sessions sessions)
                         let children'' = mkChildren env translations (Sessions sessions) xs
                         [parent, children'']
 
@@ -89,22 +89,14 @@ mkSelected Env{..} translations session = do
     mkButton "idd" name #. "button is-selected" # set (attr "disabled") "true"
 
 
---TODO: giver ikke mening b'r kun kunne tage en decision
-mkParent :: Env -> Translation -> Sessions -> Either Decisions Session -> UI Element
-mkParent env translations sessions parent = do
-    --TODO get rid of these extras by using extend
-    elems <- fromEither <$> bimapM (const $ mkParent' env translations sessions) (const $ mkParent' env translations sessions) parent
-    UI.div #. "buttons has-addons" #+ [element elems]
-
-
-mkParent' :: Env -> Translation -> Sessions -> UI Element
-mkParent' Env{..} translations (Sessions sessions) = do
+mkParent :: Env -> Translation -> Sessions -> UI Element
+mkParent Env{..} translations (Sessions sessions) = do
     let name = Lens.view up translations
     chooseButton <- mkButton "idd" name
     UI.on UI.click chooseButton $ \_ ->
             --TODO get rid of either by using extend
             forM_ (fmap Sessions (TZ.up sessions)) $ writeSessions mSessionsFile
-    return chooseButton
+    UI.div #. "buttons addons" #+ [element chooseButton]
 
 
 mkDecision :: Env -> Translation -> Sessions -> Decisions -> UI Element

@@ -14,7 +14,7 @@ import Utils.RoseTree
 
 
 --TODO should this not be Context l [RoseTree bl]?
-data Context b l = Context [RoseTree b l] (Either b l) [RoseTree b l]
+data Context b l = Context [RoseTree b l] b [RoseTree b l]
     deriving (Show, Eq, Ord, Functor)
     deriving (Generic)
     deriving (FromJSON, ToJSON)
@@ -35,7 +35,7 @@ mkTreeZipper :: RoseTree b l -> TreeZipper b l
 mkTreeZipper x = TreeZipper x []
 
 up :: TreeZipper b l -> Maybe (TreeZipper b l)
-up (TreeZipper item (Context ls (Left x) rs:bs)) =
+up (TreeZipper item (Context ls x rs:bs)) =
     Just (TreeZipper (Branch x (ls <> [item] <> rs)) bs)
 up _ = Nothing
 
@@ -46,7 +46,7 @@ down x (TreeZipper (Branch parent items) bs) =
         (ls, rs) = break (\item -> datum item == x) items
     in
         case rs of
-            y:ys -> Just (TreeZipper y (Context ls (Left parent) ys:bs))
+            y:ys -> Just (TreeZipper y (Context ls parent ys:bs))
             _ -> Nothing
 down _ _ = Nothing
 
