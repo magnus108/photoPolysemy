@@ -20,7 +20,6 @@ import qualified Lib.Dagsdato as Dagsdato
 import qualified Lib.DagsdatoBackup as DagsdatoBackup
 import qualified Lib.Doneshooting as Doneshooting
 import qualified Lib.Camera as Camera
-import Lib.Session
 import Lib.Location
 import Lib.Grade
 

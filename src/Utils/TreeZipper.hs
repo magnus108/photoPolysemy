@@ -13,6 +13,7 @@ module Utils.TreeZipper
 import Utils.RoseTree
 
 
+--TODO should this not be Context l [RoseTree bl]?
 data Context b l = Context [RoseTree b l] (Either b l) [RoseTree b l]
     deriving (Show, Eq, Ord, Functor)
     deriving (Generic)

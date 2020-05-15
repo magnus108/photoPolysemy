@@ -8,8 +8,6 @@ import Data.Bitraversable
 import Graphics.UI.Threepenny.Core
 import qualified Graphics.UI.Threepenny as UI
 
-import Utils.Comonad
-
 import qualified Control.Lens as Lens
 
 import Lib.App
@@ -58,34 +56,35 @@ mkSessions env@Env{..} translations model =
 
         Data (Sessions sessions) -> do
             let children' = case sessions of
-                    (TZ.TreeZipper _ []) -> do
-                        let children'' = mkSessions' env translations (Sessions sessions)
+                    (TZ.TreeZipper (RT.Leaf x) []) -> do
+                        let this = mkSelected env translations x
+                        [this]
+
+                    (TZ.TreeZipper (RT.Branch _ xs) []) -> do
+                        let children'' = mkChildren env translations (Sessions sessions) xs
                         [children'']
 
-                    (TZ.TreeZipper (RT.Branch x xs) (TZ.Context _ f _:_)) -> do
-                        let parent = mkParent env translations (Sessions sessions) f
-                        let children'' = mkSessions' env translations (Sessions sessions)
-                        [parent, children'']
-
                     (TZ.TreeZipper (RT.Leaf x) (TZ.Context _ f _:_)) -> do
-                        let parent = mkParent env translations (Sessions sessions) f
-                        let this = mkSelected env translations (Sessions sessions) x
+                        let parent = mkParent env translations (Sessions sessions) f --kan give mening senere.
+                        let this = mkSelected env translations x
                         [parent, this]
+
+                    (TZ.TreeZipper (RT.Branch _ xs) (TZ.Context _ f _:_)) -> do
+                        let parent = mkParent env translations (Sessions sessions) f
+                        let children'' = mkChildren env translations (Sessions sessions) xs
+                        [parent, children'']
 
             UI.div #+ children'
 
 
-mkSessions' :: Env -> Translation -> Sessions -> UI Element
-mkSessions' env translations (Sessions sessions) = do
+mkChildren :: Env -> Translation -> Sessions -> [RT.RoseTree Decisions Session] -> UI Element
+mkChildren env translations (Sessions sessions) elems = do
         sessions' <- mapM (bimapM (mkDecision env translations (Sessions sessions)) (mkSession env translations (Sessions sessions))) elems
         UI.div #. "buttons has-addons" #+ fmap (element . fromEither . RT.datum ) sessions'
-            where
-                tree = TZ.toRoseTree sessions --TODO dont call toRoseTree
-                elems = RT.children tree --BØR KUNNNE EXTENDED så det virkerligsom med zippers men fuck.
 
 
-mkSelected :: Env -> Translation -> Sessions -> Session -> UI Element
-mkSelected Env{..} translations (Sessions sessions) session = do
+mkSelected :: Env -> Translation -> Session -> UI Element
+mkSelected Env{..} translations session = do
     let name = translationSession session translations
     mkButton "idd" name #. "button is-selected" # set (attr "disabled") "true"
 
@@ -94,25 +93,16 @@ mkSelected Env{..} translations (Sessions sessions) session = do
 mkParent :: Env -> Translation -> Sessions -> Either Decisions Session -> UI Element
 mkParent env translations sessions parent = do
     --TODO get rid of these extras by using extend
-    elems <- fromEither <$> bimapM (mkDecision' env translations sessions) (mkSession' env translations sessions) parent
+    elems <- fromEither <$> bimapM (const $ mkParent' env translations sessions) (const $ mkParent' env translations sessions) parent
     UI.div #. "buttons has-addons" #+ [element elems]
 
 
-mkDecision' :: Env -> Translation -> Sessions -> Decisions -> UI Element
-mkDecision' Env{..} translations (Sessions sessions) decision = do
+mkParent' :: Env -> Translation -> Sessions -> UI Element
+mkParent' Env{..} translations (Sessions sessions) = do
     let name = Lens.view up translations
     chooseButton <- mkButton "idd" name
     UI.on UI.click chooseButton $ \_ ->
             --TODO get rid of either by using extend
-            forM_ (fmap Sessions (TZ.up sessions)) $ writeSessions mSessionsFile
-    return chooseButton
-
-
-mkSession' :: Env -> Translation -> Sessions -> Session -> UI Element
-mkSession' Env{..} translations (Sessions sessions) session = do
-    let name = translationSession session translations
-    chooseButton <- mkButton "idd" name
-    UI.on UI.click chooseButton $ \_ ->
             forM_ (fmap Sessions (TZ.up sessions)) $ writeSessions mSessionsFile
     return chooseButton
 
@@ -124,6 +114,7 @@ mkDecision Env{..} translations (Sessions sessions) decision = do
     UI.on UI.click chooseButton $ \_ ->
             forM_ (fmap Sessions (TZ.down (Left decision) sessions)) $ writeSessions mSessionsFile
     return chooseButton
+
 
 
 mkSession :: Env -> Translation -> Sessions -> Session -> UI Element

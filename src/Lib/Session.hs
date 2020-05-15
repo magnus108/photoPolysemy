@@ -45,14 +45,14 @@ data Decisions
 
 --TODO this is rediculose
 translationDecision :: Decisions -> Translation.Translation -> String
-translationDecision decision translations = Lens.view translator translations
+translationDecision decision = Lens.view translator
     where translator = case decision of
             SchoolOrKindergarten -> Translation.schoolOrKindergarten
             GroupOrSingleForKindergarten -> Translation.groupOrSingleForKindergarten
 
 
 translationSession:: Session -> Translation.Translation -> String
-translationSession session translations = Lens.view translator translations
+translationSession session = Lens.view translator
     where translator = case session of
             KindergartenGroup -> Translation.kindergartenGroup
             KindergartenSingle -> Translation.kindergartenSingle
