@@ -5,6 +5,7 @@ module Lib.Translation
     ( Translation(..)
     , starting
     , loading
+    , up
     , next
     , prev
     , reShoot
@@ -19,6 +20,7 @@ module Lib.Translation
     , doneshootingTitle
     , camerasError
     , shootingsError
+    , sessionsError
     , filePicker
     , folderPicker
     , photographersError
@@ -27,6 +29,11 @@ module Lib.Translation
     , getTranslation'
     , read
     , writeTranslation'
+    , schoolOrKindergarten
+    , groupOrSingleForKindergarten
+    , school
+    , kindergartenSingle
+    , kindergartenGroup
     ) where
 
 import Control.Lens
@@ -39,6 +46,7 @@ data Translation = Translation { _loading :: String
                                , _photographersError :: String
                                , _camerasError :: String
                                , _shootingsError :: String
+                               , _sessionsError :: String
                                , _dumpError :: String
                                , _dumpTitle :: String
                                , _dagsdatoError :: String
@@ -53,6 +61,12 @@ data Translation = Translation { _loading :: String
                                , _cr2 :: String
                                , _reShoot :: String
                                , _normal :: String
+                               , _schoolOrKindergarten :: String
+                               , _groupOrSingleForKindergarten :: String
+                               , _school :: String
+                               , _up :: String
+                               , _kindergartenSingle :: String
+                               , _kindergartenGroup :: String
                                }
     deriving (Show, Ord, Eq, Generic, ToJSON, FromJSON)
 

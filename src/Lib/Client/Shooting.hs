@@ -61,6 +61,7 @@ mkShootings env@Env{..} translations model =
                 elems' <- forM elems $ mkShooting env translations
                 UI.div #. "buttons has-addons" # set children (toList elems')
 
+
 mkShooting :: Env -> Translation -> (Shooting, Bool, Shootings) -> UI Element
 mkShooting Env{..} translations (shooting, isCenter, shootings)
     | isCenter = do

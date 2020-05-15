@@ -8,8 +8,7 @@ module Lib.App.Env
 import Lib.App.Files2
 
 data Files = Files
-    { sessionsFile :: !FilePath
-    , gradesFile :: !FilePath
+    { gradesFile :: !FilePath
     , tabsFile :: !FilePath
     , locationConfigFile :: !FilePath
     } deriving (Generic)
@@ -19,6 +18,7 @@ data Files = Files
 data Env = Env
     { files :: MVar Files
     , mPhotographersFile :: MVar FilePath
+    , mSessionsFile :: MVar FilePath
     , mGradesFile :: MVar FilePath
     , mCamerasFile :: MVar FilePath
     , mDumpFile :: MVar FilePath
