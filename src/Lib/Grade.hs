@@ -11,6 +11,7 @@ module Lib.Grade
     , getGrades
     , initialState
     , showGrade
+    , writeGrades'
     , writeGrades
     , parseGrades
     ) where
@@ -19,7 +20,7 @@ import Control.Concurrent
 
 import Utils.Comonad
 import Utils.ListZipper
-import Lib.Location
+import qualified Lib.Location as Location
 
 import Lib.Data
 
@@ -65,9 +66,9 @@ myOptionsDecode :: DecodeOptions
 myOptionsDecode = defaultDecodeOptions { decDelimiter = fromIntegral (ord ';') }
 
 --TODO move me
-parseGrades :: LocationFile -> IO (Either String Grades)
+parseGrades :: Location.LocationFile -> IO (Either String Grades)
 parseGrades locationFile = do
-    data' <-  BL.readFile (unLocationFile locationFile)
+    data' <-  BL.readFile (Location.unLocationFile locationFile)
 
     let locationData = decodeWith myOptionsDecode NoHeader $ data' :: Either String (Vector.Vector Photographee)
 
@@ -79,12 +80,25 @@ parseGrades locationFile = do
                     [] -> return (Left "fejl")
                     x:xs -> return $ Right $ Grades $ fmap Grade $ ListZipper [] x xs
 
+-------------------------------------------------------------------------------
+
 getGrades' :: (MonadIO m, MonadThrow m) => FilePath -> m (Either String Grades)
 getGrades' = readJSONFile'
 
 
-writeGrades :: (MonadIO m) => FilePath -> Grades -> m ()
-writeGrades = writeJSONFile
+writeGrades' :: (MonadIO m) => FilePath -> Grades -> m ()
+writeGrades' = writeJSONFile
+
+
+
+--TODO could do some notification on save..
+write :: (MonadIO m, MonadThrow m) => MVar FilePath -> Grades -> m ()
+write file grades = liftIO $ withMVar file $ \f -> writeGrades' f grades
+
+
+--TODO could handle error on write.
+writeGrades :: (MonadIO m) => MVar FilePath -> Grades -> m ThreadId
+writeGrades file grades = liftIO $ forkFinally (write file grades) $ \ _ -> return ()
 
 
 data Model = Model { _grades :: Data String Grades } deriving Show
@@ -95,18 +109,19 @@ makeLenses ''Model
 initialState :: Model
 initialState = Model NotAsked
 
-forker :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler (Data String Grades) -> m (Either String Grades)
+
+forker :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler Model -> m (Either String Grades)
 forker file handle = do
     liftIO $ withMVar file $ \f -> do
-        _ <- liftIO $ handle Loading
+        _ <- liftIO $ handle $ Model Loading
         getGrades' f
 
 
-getGrades :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler (Data String Grades) -> m ThreadId
+getGrades :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler Model -> m ThreadId
 getGrades file handle = do
     liftIO $ forkFinally (forker file handle) $ \res -> do
         case res of
-            Left e -> handle $ Failure (show e)
+            Left e -> handle $ Model $ Failure (show e)
             Right x -> case x of
-                    Left e' -> handle $ Failure e'
-                    Right s -> handle $ Data s
+                    Left e' -> handle $ Model $ Failure e'
+                    Right s -> handle $ Model $ Data s

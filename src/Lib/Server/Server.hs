@@ -20,8 +20,8 @@ import qualified Lib.Dagsdato as Dagsdato
 import qualified Lib.DagsdatoBackup as DagsdatoBackup
 import qualified Lib.Doneshooting as Doneshooting
 import qualified Lib.Camera as Camera
-import Lib.Location
-import Lib.Grade
+import qualified Lib.Location as Location
+import qualified Lib.Grade as Grade
 
 import Lib.Client.Location
 import Lib.Client.Session
@@ -38,8 +38,8 @@ import Lib.Client.Main
 import Utils.ListZipper (focus)
 
 
-view :: Env -> Window -> Translation -> Event (Data String Grades) -> Event (Either String LocationFile) -> UI.Behavior Session.Model -> UI.Behavior Shooting.Model -> UI.Behavior Camera.Model -> UI.Behavior Dump.DumpModel -> Event (Data String DumpDir) -> UI.Behavior Doneshooting.Model -> UI.Behavior Dagsdato.Model -> UI.Behavior DagsdatoBackup.Model -> UI.Behavior Photographer.Model -> Tabs -> UI ()
-view env win translation eGrades eLocationConfigFile bSessions bShootings bCameras eDump eDumpDir bDoneshooting bDagsdato bDagsdatoBackup bPhotographers tabs = do
+view :: Env -> Window -> Translation -> Behavior Grade.Model -> Behavior Location.Model -> UI.Behavior Session.Model -> UI.Behavior Shooting.Model -> UI.Behavior Camera.Model -> UI.Behavior Dump.DumpModel -> Event (Data String DumpDir) -> UI.Behavior Doneshooting.Model -> UI.Behavior Dagsdato.Model -> UI.Behavior DagsdatoBackup.Model -> UI.Behavior Photographer.Model -> Tabs -> UI ()
+view env win translation bGrades bLocationConfigFile bSessions bShootings bCameras eDump eDumpDir bDoneshooting bDagsdato bDagsdatoBackup bPhotographers tabs = do
     let currentTab = focus (unTabs tabs)
     case currentTab of
         DumpTab -> dumpSection env win translation tabs eDump
@@ -50,14 +50,17 @@ view env win translation eGrades eLocationConfigFile bSessions bShootings bCamer
         CamerasTab -> camerasSection env win translation tabs bCameras
         DagsdatoTab -> dagsdatoSection env win translation tabs bDagsdato
         DagsdatoBackupTab -> dagsdatoBackupSection env win translation tabs bDagsdatoBackup
-        LocationTab -> locationSection env win translation eLocationConfigFile eGrades tabs
-        MainTab -> mainSection env win translation tabs eGrades eDump eDumpDir
+        LocationTab -> locationSection env win translation tabs bLocationConfigFile bGrades
+        _ -> dagsdatoBackupSection env win translation tabs bDagsdatoBackup
+            {-
+        MainTab -> mainSection env win translation tabs bGrades eDump eDumpDir
         _ -> mainSection env win translation tabs eGrades eDump eDumpDir
+        -}
 
 
 
-run :: Int -> Env -> Translation -> UI.Event (Data String Grades) ->  UI.Event (Either String LocationFile) -> UI.Behavior Session.Model -> UI.Behavior Shooting.Model -> UI.Behavior Camera.Model -> UI.Behavior Dump.DumpModel -> UI.Event (Data String DumpDir) -> UI.Behavior Doneshooting.Model -> UI.Behavior Dagsdato.Model -> UI.Behavior DagsdatoBackup.Model -> UI.Event Tabs -> UI.Behavior (Photographer.Model) -> IO ()
-run port env@Env{..} translations eGrades eLocationConfigFile eSessions eShootings eCameras eDump eDumpDir eDoneshooting eDagsdato eDagsdatoBackup eTabs bPhotographers = do
+run :: Int -> Env -> Translation -> UI.Behavior Grade.Model ->  UI.Behavior Location.Model -> UI.Behavior Session.Model -> UI.Behavior Shooting.Model -> UI.Behavior Camera.Model -> UI.Behavior Dump.DumpModel -> UI.Event (Data String DumpDir) -> UI.Behavior Doneshooting.Model -> UI.Behavior Dagsdato.Model -> UI.Behavior DagsdatoBackup.Model -> UI.Event Tabs -> UI.Behavior (Photographer.Model) -> IO ()
+run port env@Env{..} translations eGrades bLocationConfigFile eSessions eShootings eCameras eDump eDumpDir eDoneshooting eDagsdato eDagsdatoBackup eTabs bPhotographers = do
     tabs <- withMVar files $ \ Files{..} -> getTabs tabsFile
 
     startGUI defaultConfig
@@ -70,7 +73,7 @@ run port env@Env{..} translations eGrades eLocationConfigFile eSessions eShootin
         -- behaviors
         bTabs <- stepper tabs eTabs
 
-        view env win translations eGrades eLocationConfigFile eSessions
+        view env win translations eGrades bLocationConfigFile eSessions
                                             eShootings
                                             eCameras
                                             eDump
@@ -81,7 +84,7 @@ run port env@Env{..} translations eGrades eLocationConfigFile eSessions eShootin
                                             bPhotographers
                                             tabs
 
-        UI.onChanges bTabs (view env win translations eGrades eLocationConfigFile eSessions
+        UI.onChanges bTabs (view env win translations eGrades bLocationConfigFile eSessions
                                             eShootings
                                             eCameras
                                             eDump

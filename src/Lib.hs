@@ -35,10 +35,12 @@ import Lib.Dagsdato
 import Lib.DagsdatoBackup
 import Lib.Doneshooting
 import Lib.Dump
+import qualified Lib.Grade as Grade
 import qualified Lib.Session as Session
 import qualified Lib.Shooting as Shooting
 import qualified Lib.Dump as Dump
 import qualified Lib.Dagsdato as Dagsdato
+import qualified Lib.Location as Location
 import qualified Lib.Doneshooting as Doneshooting
 import qualified Lib.DagsdatoBackup as DagsdatoBackup
 import qualified Lib.Photographer as Photographer
@@ -62,6 +64,7 @@ mkEnv _ = do
     mCamerasFile <- newMVar camerasFile
     mShootingsFile <- newMVar shootingsFile
     mSessionsFile <- newMVar sessionsFile
+    mLocationConfigFile <- newMVar sessionsFile
 
     mTranslationFile <- newMVar translationFile
 
@@ -128,12 +131,13 @@ runServer port env@Env{..} = do
         --Sessions
         stopConfigSessions <- configSessions mgr mSessionsFile watchers hSessions
 
+        --Location
+        stopConfigLocationFile <- configLocationFile mgr mLocationConfigFile mGradesFile watchers hLocationConfigFile
+
         withMVar files $ \ files' -> do
             --Tabs
             stopConfigTab <- configTab mgr files' watchers hTab
 
-            --Location
-            stopConfigLocationFile <- configLocationFile mgr files' watchers hLocationConfigFile
 
             --TODO setter
             modifyMVar_ watchers $ \_ -> do
@@ -192,14 +196,22 @@ runServer port env@Env{..} = do
         bShootings <- UI.stepper Shooting.initialState eShootings
         _ <- Shooting.getShootings mShootingsFile hShootings
 
-
         -- Sessions
         bSessions <- UI.stepper Session.initialState eSessions
         _ <- Session.getSessions mSessionsFile hSessions
 
+        -- Grades
+        bGrades <- UI.stepper Grade.initialState eGrades
+        _ <- Grade.getGrades mGradesFile hGrades
+
+        -- Location
+        bLocationConfigFile <- UI.stepper Location.initialState eLocationConfigFile
+        _ <- Location.getLocationFile mLocationConfigFile hLocationConfigFile
+
+
         translations <- Translation.read mTranslationFile
         --VERY important this is here
-        Server.run port env (fromJust (rightToMaybe translations)) eGrades eLocationConfigFile bSessions bShootings bCameras bDump eDumpDir bDoneshooting bDagsdato bDagsdatoBackup eTabs bPhotographers
+        Server.run port env (fromJust (rightToMaybe translations)) bGrades bLocationConfigFile bSessions bShootings bCameras bDump eDumpDir bDoneshooting bDagsdato bDagsdatoBackup eTabs bPhotographers
 
 
 type WatchMap = MVar (HashMap String StopListening)
@@ -213,23 +225,26 @@ configTab mgr Files{..} _ handler = watchDir
         (\e -> print e >> (handler =<< getTabs tabsFile))
 
 
-configLocationFile :: WatchManager -> Files -> WatchMap -> Handler (Either String LocationFile) -> IO StopListening
-configLocationFile mgr Files{..} _ handler = watchDir
+configLocationFile :: WatchManager -> MVar FilePath -> MVar FilePath ->  WatchMap -> Handler Location.Model -> IO StopListening
+configLocationFile mgr mLocationConfigFile mGradesFile _ handler = do
+    filepath <- readMVar mLocationConfigFile
+    watchDir
         mgr
-        (dropFileName locationConfigFile)
-        (\e -> eventPath e == locationConfigFile)
+        (dropFileName filepath)
+        (\e -> eventPath e == filepath)
         (\e -> do
+            --TODO madness of baddness
             print e
-            locationFile <- getLocationFile locationConfigFile
-            handler locationFile
+            filepath <- readMVar mLocationConfigFile
+            locationFile <- Location.getLocationFile' filepath
             grades' <- mapM parseGrades locationFile
             let grades'' = either (const (Grades (ListZipper [] (Grade "") []))) id (join grades')
-            writeGrades gradesFile grades''
+            void $ writeGrades mGradesFile grades''
         )
 
 -- der skal skydes et lag in herimellem der kan lytte på locationen
 
-grades :: WatchManager -> MVar FilePath -> WatchMap -> Handler (Data String Grades) -> IO StopListening
+grades :: WatchManager -> MVar FilePath -> WatchMap -> Handler Grade.Model -> IO StopListening
 grades mgr mFilepath _ handler = do
     filepath <- readMVar mFilepath
     watchDir
@@ -239,7 +254,7 @@ grades mgr mFilepath _ handler = do
         (\e -> void $ print e >> getGrades mFilepath handler )
 
 
-configPhotographers :: WatchManager -> MVar FilePath -> WatchMap -> Handler (Photographer.Model) -> IO StopListening
+configPhotographers :: WatchManager -> MVar FilePath -> WatchMap -> Handler Photographer.Model -> IO StopListening
 configPhotographers mgr mFilepath _ handler = do
     filepath <- readMVar mFilepath
     watchDir

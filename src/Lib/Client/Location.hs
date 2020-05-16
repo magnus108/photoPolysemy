@@ -16,9 +16,9 @@ import qualified Utils.ListZipper as ListZipper
 
 import Lib.Translation
 import Lib.Data
-import Lib.Grade
+import qualified Lib.Grade as Grade
 import Lib.Tab
-import Lib.Location
+import qualified Lib.Location as Location
 import Lib.Client.Tab
 
 import Lib.Client.Element
@@ -27,56 +27,11 @@ import Control.Concurrent.MVar (withMVar)
 
 
 
-locationFileView :: Env -> Either String LocationFile -> UI Element
-locationFileView Env{..} = \case
-    Left _ -> UI.div #+ [UI.string "FEJL"]
-    Right locationFile -> do
-        title_ <- UI.div #+ [UI.string "Lokation"]
-        content <- UI.div #+ [UI.string (unLocationFile locationFile)]
 
-        pick <- mkFilePicker "locationFilePicker" "Vælg lokations" $ \file ->
-                when (file /= "") $
-                    withMVar files $ \ Files{..} ->
-                        writeLocationFile locationConfigFile (LocationFile file)
-
-        make <- mkFileMaker "locationsPicker" "Ny CSV" $ \file ->
-                when (file /= "") $
-                    withMVar files $ \ Files{..} ->
-                        writeLocationFile locationConfigFile (LocationFile file)
-
-        pickers <- UI.div #. "buttons has-addons" #+ [element pick, element make]
-
-        open <- mkOpenFile "open" "Åben csv" (unLocationFile locationFile)
-
-        UI.div # set children [ title_, content,  pickers, open]
-
-
-inputGrade :: Model -> String -> Maybe Grades
-inputGrade model name =
-    case _grades model of
-        Data grades' -> Just $ Grades (ListZipper.mapFocus (const (Grade name)) (unGrades grades'))
-        _ -> Nothing
-
-newGrade :: Model -> Maybe Grades
-newGrade model =
-    case _grades model of
-        Data grades' -> Just $ Grades $ ListZipper.insert (unGrades grades') (Grade "")
-        _ -> Nothing
-
-selectGrade :: Model -> Int -> Maybe Grades
-selectGrade model selected =
-    case _grades model of
-        -- TODO this just wierd
-        Data grades' -> asum $ ListZipper.toNonEmpty $
-                    ListZipper.iextend (\thisIndex grades'' ->
-                            if selected == thisIndex then
-                                Just (Grades grades'')
-                            else
-                                Nothing) (unGrades grades')
-        _ -> Nothing
-
-locationSection :: Env -> Window -> Translation -> Event (Either String LocationFile) -> Event (Data String Grades) -> Tabs -> UI ()
-locationSection env@Env{..} win translation eLocationConfigFile eGrades tabs = do
+locationSection :: Env -> Window -> Translation -> Tabs -> Behavior Location.Model -> Behavior Grade.Model -> UI ()
+locationSection env@Env{..} win translation tabs bLocationConfigFile bGrades = do
+    return ()
+        {-
     (eInitial, eInitialHandle) <- liftIO newEvent
     let eSplit = splitData eGrades
 
@@ -154,12 +109,63 @@ locationSection env@Env{..} win translation eLocationConfigFile eGrades tabs = d
     void $ UI.getBody win # set children [view]
 
     UI.setFocus input -- Can only do this if element exists and should not do this if not focus
+    -}
+
+
+    {-
+locationFileView :: Env -> Either String Location.LocationFile -> UI Element
+locationFileView Env{..} = \case
+    Left _ -> UI.div #+ [UI.string "FEJL"]
+    Right locationFile -> do
+        title_ <- UI.div #+ [UI.string "Lokation"]
+        content <- UI.div #+ [UI.string (Location.unLocationFile mLocationFile)]
+
+        pick <- mkFilePicker "locationFilePicker" "Vælg lokations" $ \file ->
+                when (file /= "") $
+                    withMVar files $ \ Files{..} ->
+                        Location.writeLocationFile mLocationConfigFile (Location.LocationFile file)
+
+        make <- mkFileMaker "locationsPicker" "Ny CSV" $ \file ->
+                when (file /= "") $
+                    withMVar files $ \ Files{..} ->
+                        Location.writeLocationFile mLocationConfigFile (Location.LocationFile file)
+
+        pickers <- UI.div #. "buttons has-addons" #+ [element pick, element make]
+
+        open <- mkOpenFile "open" "Åben csv" (Location.unLocationFile locationFile)
+
+        UI.div # set children [ title_, content,  pickers, open]
+
+
+inputGrade :: Grade.Model -> String -> Maybe Grade.Grades
+inputGrade model name =
+    case Grade._grades model of
+        Data grades' -> Just $ Grade.Grades (ListZipper.mapFocus (const (Grade.Grade name)) (Grade.unGrades grades'))
+        _ -> Nothing
+
+newGrade :: Grade.Model -> Maybe Grade.Grades
+newGrade model =
+    case Grade._grades model of
+        Data grades' -> Just $ Grade.Grades $ ListZipper.insert (Grade.unGrades grades') (Grade.Grade "")
+        _ -> Nothing
+
+selectGrade :: Grade.Model -> Int -> Maybe Grade.Grades
+selectGrade model selected =
+    case Grade._grades model of
+        -- TODO this just wierd
+        Data grades' -> asum $ ListZipper.toNonEmpty $
+                    ListZipper.iextend (\thisIndex grades'' ->
+                            if selected == thisIndex then
+                                Just (Grade.Grades grades'')
+                            else
+                                Nothing) (Grade.unGrades grades')
+        _ -> Nothing
 
 
 
-mkGrades :: Env -> Grades -> UI [Element]
+mkGrades :: Env -> Grade.Grades -> UI [Element]
 mkGrades env grades' = do
-    let currentGrade = extractGrade grades'
+    let currentGrade = Grade.extractGrade grades'
     let elems = ListZipper.iextend (\index grades'' ->
             let
                 thisGrade = extract grades''
@@ -168,18 +174,19 @@ mkGrades env grades' = do
                 , thisGrade == currentGrade
                 , extract grades''
                 )
-            ) (unGrades grades')
+            ) (Grade.unGrades grades')
 
     grades'' <- mapM (mkGrade env) elems
 
     return (ListZipper.toList grades'')
 
 
-mkGrade :: Env -> (Int, Bool, Grade) -> UI Element
+mkGrade :: Env -> (Int, Bool, Grade.Grade) -> UI Element
 mkGrade Env{..} (thisIndex, isCenter, grade) = do
-    let name = unGrade grade
+    let name = Grade.unGrade grade
     let option = UI.option # set value (show thisIndex) # set text name
     if isCenter then
         option # set UI.selected True
     else
         option
+        -}

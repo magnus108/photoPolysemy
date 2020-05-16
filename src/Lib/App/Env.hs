@@ -8,15 +8,14 @@ module Lib.App.Env
 import Lib.App.Files2
 
 data Files = Files
-    { gradesFile :: !FilePath
-    , tabsFile :: !FilePath
-    , locationConfigFile :: !FilePath
+    { tabsFile :: !FilePath
     } deriving (Generic)
       deriving (FromJSON, ToJSON)
       deriving (Show)
 
 data Env = Env
     { files :: MVar Files
+    , mLocationConfigFile :: MVar FilePath
     , mPhotographersFile :: MVar FilePath
     , mSessionsFile :: MVar FilePath
     , mGradesFile :: MVar FilePath
