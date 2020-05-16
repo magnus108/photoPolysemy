@@ -27,10 +27,33 @@ import Control.Concurrent.MVar (withMVar)
 
 
 
+mkLocation :: Env -> Translation -> Location.Model -> Grade.Model -> UI Element
+mkLocation env@Env{..} translations location grades =
+    case Location.unModel location of
+        NotAsked -> UI.p #+ [Lens.views starting string translations]
+        Loading -> UI.p #+ [Lens.views loading string translations]
+        Failure e -> do
+            UI.div #+ [string "ok"]
+        Data _ -> do
+            UI.div #+ [string "lol"]
 
 locationSection :: Env -> Window -> Translation -> Tabs -> Behavior Location.Model -> Behavior Grade.Model -> UI ()
 locationSection env@Env{..} win translation tabs bLocationConfigFile bGrades = do
+    let bView = mkLocation env translation <$> bLocationConfigFile <*> bGrades
+    content <- UI.div #. "section" # sink item bView
+
+    tabs' <- mkElement "nav" #. "section" #+ [mkTabs env tabs]
+    navigation <- mkElement "footer" #. "section" #+ [mkNavigation env translation tabs]
+
+    view <- UI.div #+ fmap element [ content ]
+
+    void $ UI.getBody win # set children [tabs', view, navigation]
     return ()
+
+
+
+
+
         {-
     (eInitial, eInitialHandle) <- liftIO newEvent
     let eSplit = splitData eGrades

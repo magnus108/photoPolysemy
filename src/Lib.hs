@@ -64,7 +64,7 @@ mkEnv _ = do
     mCamerasFile <- newMVar camerasFile
     mShootingsFile <- newMVar shootingsFile
     mSessionsFile <- newMVar sessionsFile
-    mLocationConfigFile <- newMVar sessionsFile
+    mLocationConfigFile <- newMVar locationConfigFile
 
     mTranslationFile <- newMVar translationFile
 
@@ -137,7 +137,6 @@ runServer port env@Env{..} = do
         withMVar files $ \ files' -> do
             --Tabs
             stopConfigTab <- configTab mgr files' watchers hTab
-
 
             --TODO setter
             modifyMVar_ watchers $ \_ -> do
@@ -242,8 +241,8 @@ configLocationFile mgr mLocationConfigFile mGradesFile _ handler = do
             void $ writeGrades mGradesFile grades''
         )
 
--- der skal skydes et lag in herimellem der kan lytte på locationen
 
+-- der skal skydes et lag in herimellem der kan lytte på locationen
 grades :: WatchManager -> MVar FilePath -> WatchMap -> Handler Grade.Model -> IO StopListening
 grades mgr mFilepath _ handler = do
     filepath <- readMVar mFilepath
