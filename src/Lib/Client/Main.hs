@@ -23,7 +23,8 @@ import qualified Control.Lens as Lens
 
 mainSection :: Env -> Window -> Translation -> Tabs -> Event (Data String Grades) -> Behavior DumpModel -> Event (Data String DumpDir) -> UI ()
 mainSection env@Env{..} win translation tabs _ _ eDumpDir = do
-
+    return ()
+        {-
     let eSplit = splitData eDumpDir
     (eInitial, eInitialHandle) <- liftIO newEvent
 
@@ -67,3 +68,4 @@ mkDumpDir Env{..} model =
             UI.div # set children [para]
         Data (DumpDir dir) -> do
             UI.div # set text (show $ length dir)
+            -}

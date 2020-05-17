@@ -5,6 +5,7 @@ module Lib.Translation
     ( Translation(..)
     , starting
     , loading
+    , locationPageError
     , up
     , next
     , prev
@@ -40,6 +41,7 @@ import Control.Lens
 import Control.Concurrent
 
 data Translation = Translation { _loading :: String
+                               , _locationPageError :: String
                                , _starting :: String
                                , _filePicker :: String
                                , _folderPicker :: String

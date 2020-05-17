@@ -1,10 +1,8 @@
 module Lib.Data
     ( Data(..)
-    , splitData
-    , Split(..)
+    , toJust
     ) where
 
-import Graphics.UI.Threepenny.Core
 
 data Data e s
     = NotAsked
@@ -12,30 +10,20 @@ data Data e s
     | Failure e
     | Data s
         deriving Show
+        deriving Functor
 
 
-data Split e s = Split { notAsked :: Event ()
-                          , lloading :: Event ()
-                          , failure :: Event e
-                          , success :: Event s
-                          }
+instance Applicative (Data e) where
+    pure = Data
+    (Data f) <*> (Data value) = Data (f value)
+    (Failure e) <*> _ = Failure e
+    _ <*> Failure e = Failure e
+    Loading <*> _ = Loading
+    _ <*> Loading = Loading
+    NotAsked <*> _ = NotAsked
+    _ <*> NotAsked = NotAsked
 
 
-splitData :: Event (Data e s) -> Split e s
-splitData e =
-    let notAsked = filterJust $ fromNotAsked <$> e
-        lloading = filterJust $ fromLoading <$> e
-        failure = filterJust $ fromFailure <$> e
-        success = filterJust $ fromData <$> e
-    in
-        Split{..}
-    where
-        fromLoading Loading = Just ()
-        fromLoading _ = Nothing
-        fromData (Data s) = Just s
-        fromData _ = Nothing
-        fromFailure (Failure e') = Just e'
-        fromFailure _ = Nothing
-        fromNotAsked NotAsked = Just ()
-        fromNotAsked _ = Nothing
-
+toJust :: Data e s -> Maybe s
+toJust (Data s) = Just s
+toJust _ = Nothing
