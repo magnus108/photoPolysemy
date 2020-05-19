@@ -3,6 +3,7 @@
 
 module Lib.Translation
     ( Translation(..)
+    , newGrade
     , starting
     , loading
     , locationPageError
@@ -35,6 +36,10 @@ module Lib.Translation
     , school
     , kindergartenSingle
     , kindergartenGroup
+    , openLocation
+    , newLocation
+    , pickLocation
+    , locationTitle
     ) where
 
 import Control.Lens
@@ -42,6 +47,9 @@ import Control.Concurrent
 
 data Translation = Translation { _loading :: String
                                , _locationPageError :: String
+                               , _openLocation :: String
+                               , _newLocation :: String
+                               , _pickLocation :: String
                                , _starting :: String
                                , _filePicker :: String
                                , _folderPicker :: String
@@ -51,6 +59,7 @@ data Translation = Translation { _loading :: String
                                , _sessionsError :: String
                                , _dumpError :: String
                                , _dumpTitle :: String
+                               , _locationTitle :: String
                                , _dagsdatoError :: String
                                , _dagsdatoTitle :: String
                                , _dagsdatoBackupError :: String
@@ -69,6 +78,7 @@ data Translation = Translation { _loading :: String
                                , _up :: String
                                , _kindergartenSingle :: String
                                , _kindergartenGroup :: String
+                               , _newGrade :: String
                                }
     deriving (Show, Ord, Eq, Generic, ToJSON, FromJSON)
 

@@ -27,4 +27,9 @@
 ,"_school":"Skole"
 ,"_up":"Tilbage"
 ,"_locationPageError":"Der er fejl i den valgte lokationsfil"
+, "_locationTitle":"Lokation"
+, "_newLocation":"Ny lokation"
+, "_openLocation":"Åben lokation"
+, "_pickLocation":"Vælg lokation"
+, "_newGrade":"Opret ny"
 }

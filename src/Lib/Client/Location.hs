@@ -4,6 +4,7 @@ module Lib.Client.Location
     ) where
 
 
+import Control.Monad
 import Data.Maybe
 import Lib.Client.Utils
 import qualified Control.Lens as Lens
@@ -38,74 +39,95 @@ mkModel location grades = Model $ Item <$> Location.unModel location <*> Grade._
 
 
 
+    -- kun fordi ikke noget initial event.
+mkLocation :: Env -> Window -> Translation -> Element -> Element -> Element -> Model -> UI Element
+mkLocation Env{..} win translations gradeSelect gradeInput gradeInsert model = do
+    case unModel model of
+        NotAsked ->
+            UI.div #+ [Lens.views starting string translations]
+        Loading ->
+            UI.div #+ [Lens.views loading string translations]
+        Failure e -> do
+            UI.div #+ [Lens.views locationPageError string translations]
+        Data data'-> do
+            select <- UI.div #. "select" #+ [element gradeSelect]
+            inputSection <- UI.div #. "section" #+ [element gradeInput, element select]
+
+            insertSection <- UI.div #. "section" #+ [element gradeInsert]
+
+            UI.div #+ [element inputSection, element insertSection]
+
+
+apMA :: Monad m => m (a -> m b) -> a -> m b
+apMA f = join . ap f . pure
+
 locationSection :: Env -> Window -> Translation -> Tabs -> Behavior Location.Model -> Behavior Grade.Model -> UI ()
 locationSection env@Env{..} win translations tabs bLocationConfigFile bGrades = mdo
---Items
-
-    gradeInsert <- mkButton "insert" "Tilføj ny"
-
-    let selectorItems = fromMaybe [] <$> (mkGrades env . grades <<$>> toJust <$> unModel <$> bModel)
-    selector <- UI.select # sink items selectorItems
-
-    input <- UI.input # set UI.id_ "focusGrade" # set UI.type_ "text"
-
-    let eNewGrade = newGrade <$> filterJust (grades <<$>> toJust <$> unModel <$> bModel <@ UI.click gradeInsert)
-    let eValChange = filterJust $ (\m i -> fmap (inputGrade i . grades) m) <$> toJust <$> unModel <$> bModel <@> UI.valueChange input
-    let eSelChange = filterJust $ (\m i -> m >>= (selectGrade i . grades)) <$> toJust <$> unModel <$> bModel <@> (filterJust (selectionChange' selector))
-
-        {-
-    bEditingSelector <- bEditing selector
-    bEditingInput <- bEditing input
-
-    liftIOLater $ onChange bModel $ \newModel -> runUI win $ do
-        editingInput <- liftIO $ currentValue bEditingInput
-        editingSelector <- liftIO $ currentValue bEditingSelector
-
-        case unModel newModel of
-            NotAsked -> do
-                unless (editingInput || editingSelector) $ void $ do
-                    text' <- Lens.views starting string translations
-                    void $ element content # set children [text']
-            Loading -> do
-                unless (editingInput || editingSelector) $ void $ do
-                    text' <- Lens.views loading string translations
-                    void $ element content # set children [text']
-            Failure _ -> do
-                unless (editingInput || editingSelector) $ void $ do
-                    text' <- Lens.views locationPageError string translations
-                    void $ element content # set children [text']
-            Data data' -> do
-                unless (editingSelector) $ void $ do
-                    grades'' <- mkGrades env (grades data')
-                    element selector # set children grades''
-                unless (editingInput) $ void $ do
-                    element input # set value (Grade.showGrade (grades data'))
-                unless (editingInput || editingSelector) $ void $ do
-                    void $ element content # set children [gradeInsert, input, selector]
+    let bModel = liftA2 mkModel bLocationConfigFile bGrades
 
 
-    let customEvent = head <$> unions' (eNewGrade :| [eValChange, eSelChange])
+    model <- currentValue bModel
+    gradeInsert <- mkButton "insert" (Lens.view newGrade translations)
+
+    gradeInput <- UI.input # set UI.id_ "focusGrade" # set UI.type_ "text" #. "input"
+    bEditingInput <- bEditing gradeInput
+
+    gradeSelect <- UI.select
+    bEditingSelect <- bEditing gradeSelect
+
+    case (unModel model) of
+            Data data' -> void $ do
+                gradeOptions <- mkGrades env (grades data')
+                element gradeSelect # set children gradeOptions
+                element gradeInput # set value (Grade.showGrade (grades data'))
+            _ -> return ()
+
+    let eNewGrade = filterJust $ mkNewGrade <$> grades <<$>> toJust <$> unModel <$> bModel <@ UI.click gradeInsert
+
+    let inputB = inputGrade <$> grades <<$>> toJust <$> unModel <$> bModel
+    let eValChange = filterJust $ flap <$> inputB <@> UI.valueChange gradeInput
+
+    let selectB = selectGrade <$> grades <<$>> toJust <$> unModel <$> bModel
+    let eSelectChange = filterJust $ apMA <$> selectB <@> filterJust (selectionChange' gradeSelect)
+
+    let customEvent = head <$> unions' (eValChange :| [eNewGrade, eSelectChange])
 
     _ <- onEvent customEvent $ \e -> do
         liftIO $ Grade.writeGrades mGradesFile e
-        -}
 
-    let bModel = liftA2 mkModel bLocationConfigFile bGrades
 
-    let mkLocation model =
-            case unModel model of
-                NotAsked ->
-                    [Lens.views starting string translations]
-                Loading ->
-                    [Lens.views loading string translations]
-                Failure e -> do
-                    [Lens.views locationPageError string translations]
-                Data _ -> do
-                    fmap element [gradeInsert, input, selector]
+    liftIOLater $ onChange bModel $ \newModel -> runUI win $ do
+        editingInput <- liftIO $ currentValue bEditingInput
+        editingSelect <- liftIO $ currentValue bEditingSelect
+        case (unModel newModel) of
+                NotAsked -> void $ do
+                    newContent <- mkLocation env win translations gradeSelect gradeInput gradeInsert newModel
+                    element content # set children [newContent]
 
-    let bView = mkLocation <$> bModel
+                Loading -> void $ do
+                    unless (editingInput || editingSelect) $ void $ do
+                        newContent <- mkLocation env win translations gradeSelect gradeInput gradeInsert newModel
+                        element content # set children [newContent]
 
-    content <- UI.div #. "section" # sink items bView
+                Failure e -> void $ do
+                    newContent <- mkLocation env win translations gradeSelect gradeInput gradeInsert newModel
+                    element content # set children [newContent]
+
+                Data data' -> void $ do
+                    unless editingSelect $ void $ do
+                        gradeOptions <- mkGrades env (grades data')
+                        element gradeSelect # set children gradeOptions
+
+                    unless editingInput $ void $ do
+                        element gradeInput # set value (Grade.showGrade (grades data'))
+
+                    unless (editingInput || editingSelect) $ void $ do
+                        newContent <- mkLocation env win translations gradeSelect gradeInput gradeInsert newModel
+                        element content # set children [newContent]
+
+
+    val <- mkLocation env win translations gradeSelect gradeInput gradeInsert model
+    content <- UI.div # set children [val]
 
     tabs' <- mkElement "nav" #. "section" #+ [mkTabs env tabs]
     navigation <- mkElement "footer" #. "section" #+ [mkNavigation env translations tabs]
@@ -114,48 +136,43 @@ locationSection env@Env{..} win translations tabs bLocationConfigFile bGrades = 
 
     void $ UI.getBody win # set children [tabs', view, navigation]
 
-    --UI.setFocus input -- Can only do this if element exists and should not do this if not focus
+    UI.setFocus gradeInput -- Can only do this if element exists and should not do this if not focus
 
 
 
 
-    {-
-locationFileView :: Env -> Either String Location.LocationFile -> UI Element
-locationFileView Env{..} = \case
-    Left _ -> UI.div #+ [UI.string "FEJL"]
-    Right locationFile -> do
-        title_ <- UI.div #+ [UI.string "Lokation"]
-        content <- UI.div #+ [UI.string (Location.unLocationFile mLocationFile)]
 
-        pick <- mkFilePicker "locationFilePicker" "Vælg lokations" $ \file ->
+locationFileView :: Env -> Translation -> Location.LocationFile -> UI Element
+locationFileView Env{..} translations locationFile = do
+        title_ <- UI.div #+ [Lens.views locationTitle string translations]
+        content <- UI.div #+ [UI.string (Location.unLocationFile locationFile)]
+
+        pick <- mkFilePicker "locationFilePicker" (Lens.view pickLocation translations) $ \file ->
                 when (file /= "") $
-                    withMVar files $ \ Files{..} ->
-                        Location.writeLocationFile mLocationConfigFile (Location.LocationFile file)
+                        void $ Location.writeLocationFile mLocationConfigFile (Location.LocationFile file)
 
-        make <- mkFileMaker "locationsPicker" "Ny CSV" $ \file ->
+        make <- mkFileMaker "locationsPicker" (Lens.view newLocation translations) $ \file ->
                 when (file /= "") $
-                    withMVar files $ \ Files{..} ->
-                        Location.writeLocationFile mLocationConfigFile (Location.LocationFile file)
+                        void $ Location.writeLocationFile mLocationConfigFile (Location.LocationFile file)
 
         pickers <- UI.div #. "buttons has-addons" #+ [element pick, element make]
 
-        open <- mkOpenFile "open" "Åben csv" (Location.unLocationFile locationFile)
+        open <- mkOpenFile "open" (Lens.view openLocation translations) (Location.unLocationFile locationFile)
 
-        UI.div # set children [ title_, content,  pickers, open]
-
-        -}
+        UI.div #. "section" # set children [ title_, content,  pickers, open]
 
 
-inputGrade :: String -> Grade.Grades -> Grade.Grades
-inputGrade name grades = Grade.Grades (ListZipper.mapFocus (const (Grade.Grade name)) (Grade.unGrades grades))
+
+inputGrade :: Grade.Grades -> String -> Grade.Grades
+inputGrade grades name = Grade.Grades (ListZipper.mapFocus (const (Grade.Grade name)) (Grade.unGrades grades))
 
 
-newGrade :: Grade.Grades -> Grade.Grades
-newGrade grades = Grade.Grades $ ListZipper.insert (Grade.unGrades grades) (Grade.Grade "")
+mkNewGrade :: Grade.Grades -> Grade.Grades
+mkNewGrade grades = Grade.Grades $ ListZipper.insert (Grade.unGrades grades) (Grade.Grade "")
 
 
-selectGrade :: Int -> Grade.Grades -> Maybe Grade.Grades
-selectGrade selected grades =
+selectGrade :: Grade.Grades -> Int -> Maybe Grade.Grades
+selectGrade grades selected =
         -- TODO this just wierd
         asum $ ListZipper.toNonEmpty $
                     ListZipper.iextend (\thisIndex grades' ->
@@ -166,7 +183,7 @@ selectGrade selected grades =
 
 
 
-mkGrades :: Env -> Grade.Grades -> [UI Element]
+mkGrades :: Env -> Grade.Grades -> UI [Element]
 mkGrades env grades' = do
     let currentGrade = Grade.extractGrade grades'
     let elems = ListZipper.iextend (\index grades'' ->
@@ -179,7 +196,7 @@ mkGrades env grades' = do
                 )
             ) (Grade.unGrades grades')
 
-    fmap (mkGrade env) (ListZipper.toList elems)
+    mapM (mkGrade env) (ListZipper.toList elems)
 
 
 mkGrade :: Env -> (Int, Bool, Grade.Grade) -> UI Element
