@@ -209,8 +209,8 @@ runServer port env@Env{..} = do
 
 
         translations <- Translation.read mTranslationFile
-        --VERY important this is here
-        Server.run port env (fromJust (rightToMaybe translations)) bGrades bLocationConfigFile bSessions bShootings bCameras bDump eDumpDir bDoneshooting bDagsdato bDagsdatoBackup eTabs bPhotographers
+        --VERY important this is here.. BADNESS FIX AT THE END
+        Server.run port env (fromJust (rightToMaybe translations)) bGrades bLocationConfigFile bSessions bShootings bCameras bDump eDumpDir bDoneshooting bDagsdato bDagsdatoBackup eTabs bPhotographers hGrades hLocationConfigFile
 
 
 type WatchMap = MVar (HashMap String StopListening)
