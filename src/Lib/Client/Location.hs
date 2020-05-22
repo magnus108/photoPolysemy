@@ -122,6 +122,7 @@ locationSection
     :: Env -> Window -> Translation -> Tabs -> Behavior Model -> UI ()
 locationSection env@Env {..} win translations tabs bModel = mdo
 
+    {-
     ((input, select), tGradeItem) <- gradeItem env bGrade
 
     let bItem :: Behavior (Maybe Item)
@@ -129,14 +130,17 @@ locationSection env@Env {..} win translations tabs bModel = mdo
 
         bGrade :: Behavior (Maybe Grade.Grades)
         bGrade = grades <<$>> bItem
+        -}
 
 
-    let eGradeItemIn = rumors $ tGradeItem
+    {--
+    let eGradeItemIn= rumors $ tGradeItem
 
     _ <- onEvent eGradeItemIn $ \e -> do
         case e of
             Nothing -> return ()
             Just i  -> void $ liftIO $ Grade.writeGrades mGradesFile i
+            -}
 
 
 
@@ -260,15 +264,13 @@ locationSection env@Env {..} win translations tabs bModel = mdo
         -}
 
 
-    let bView = bModel <&> (\x -> case unModel x of
-            NotAsked  -> UI.div #+ [Lens.views starting string translations]
-            Loading   -> UI.div #+ [Lens.views loading string translations]
-            Failure e -> do
-                UI.div #+ [Lens.views locationPageError string translations]
-            Data data' -> do
-                UI.div #+ [element input, element select])
+    (content, tContent) <- modelViewer env win translations bModel
 
-    content <- UI.div # sink item bView
+    let eGradeItemIn = rumors $ tContent
+    _ <- onEvent eGradeItemIn $ \e -> do
+        case e of
+            Nothing -> return ()
+            Just i  -> void $ liftIO $ Grade.writeGrades mGradesFile i
 
 
     tabs'      <- mkElement "nav" #. "section" #+ [mkTabs env tabs]
@@ -282,7 +284,47 @@ locationSection env@Env {..} win translations tabs bModel = mdo
         --UI.setFocus (getElement gradeInput) -- Can only do this if element exists and should not do this if not focus
 
 
+modelViewer :: Env
+    -> Window
+    -> Translation
+    -> Behavior Model
+    -> UI (Element, Tidings (Maybe Grade.Grades))
+modelViewer env@Env{..} win translations bModel = mdo
 
+    ((input, select), tGradeItem) <- gradeItem env bGrade
+
+    let bItem :: Behavior (Maybe Item)
+        bItem = toJust <$> unModel <$> bModel
+
+        bGrade :: Behavior (Maybe Grade.Grades)
+        bGrade = grades <<$>> bItem
+
+--------------------------------------------------------------------------------
+    view <- UI.div
+
+    bEditingSelect <- bEditing select
+    bEditingInput <- bEditing input
+
+    liftIOLater $ onChange bModel $ \newModel -> runUI win $ do
+        editingInput <- liftIO $ currentValue bEditingInput
+        editingSelect <- liftIO $ currentValue bEditingSelect -- this work?
+        let editing = editingInput || editingSelect
+        when (not editing) $ void $ do
+            case unModel newModel of
+                NotAsked  -> do
+                    child <- Lens.views starting string translations
+                    element view # set children [child]
+                Loading   -> do
+                    child <- Lens.views loading string translations
+                    element view # set children [child]
+                Failure e -> do
+                    child <- Lens.views locationPageError string translations
+                    element view # set children [child]
+                Data data' -> do
+                    element view # set children [input, select]
+
+
+    return (getElement view, tGradeItem)
 
 
 locationFileView :: Env -> Translation -> Location.LocationFile -> UI Element
