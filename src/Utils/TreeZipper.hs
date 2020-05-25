@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE DeriveFoldable #-}
 
 module Utils.TreeZipper
     ( TreeZipper(..)
@@ -37,11 +38,13 @@ data Context b l = Context [RoseTree b l] b [RoseTree b l]
 data Tree l b = b :< (Trunk l b)
     deriving (Show, Eq, Ord, Functor)
     deriving (Generic)
+    deriving (Foldable)
     deriving (FromJSON, ToJSON)
 
 data Trunk l b = L l | B [Tree l b]
     deriving (Show, Eq, Ord, Functor)
     deriving (Generic)
+    deriving (Foldable)
     deriving (FromJSON, ToJSON)
 
 data ContextT l b = ContextT [Tree l b] b [Tree l b]
