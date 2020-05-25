@@ -1,5 +1,6 @@
 module Lib.Client.Main
     ( mainSection
+    , mkModel
     ) where
 
 
@@ -9,9 +10,9 @@ import qualified Graphics.UI.Threepenny as UI
 import Lib.Data
 import Lib.Translation
 import Lib.Tab
-import Lib.Grade
-import Lib.Dump (DumpModel, Dump(..), DumpDir(..), getDump', dumpDir, _dumpDir, getDumpDir)
+import qualified Lib.Grade as Grade
 import qualified Lib.Dump as Dump
+import qualified Lib.Location as Location
 import Lib.Client.Tab
 import Lib.Client.Utils
 
@@ -21,51 +22,25 @@ import Control.Concurrent.MVar
 import qualified Control.Lens as Lens
 
 
-mainSection :: Env -> Window -> Translation -> Tabs -> Event (Data String Grades) -> Behavior DumpModel -> Event (Data String DumpDir) -> UI ()
-mainSection env@Env{..} win translation tabs _ _ eDumpDir = do
-    return ()
-        {-
-    let eSplit = splitData eDumpDir
-    (eInitial, eInitialHandle) <- liftIO newEvent
+data Item = Item { location :: Location.LocationFile
+                 , grades :: Grade.Grades
+                 , dump :: Dump.Dump
+                 , dumpDir :: Dump.DumpDir --TODO this is wrong
+                 }
 
-    dump <- liftIO $ withMVar files $ \ Files{..} -> getDump' "/tmp" --dumpFile
-    let filePath = unDump <$> dump
-    -- ignore that this could be error 
-    -- FIX ME....gt
-    _ <- mapM (\x -> getDumpDir x eInitialHandle) filePath
+newtype Model = Model { unModel :: Data String Item }
 
-    bModel <- accumB Dump.initialStateTmp $ concatenate' <$> unions'
-        ((Lens.set dumpDir . Data <$> (success eSplit))
-            :| [ Lens.set dumpDir . Failure <$> (failure eSplit)
-               , Lens.set dumpDir <$> eInitial
-               , Lens.set dumpDir Loading <$ (lloading eSplit)
-               ])
-
-    input <- UI.input #. "input" # set UI.type_ "text"
-    content <- UI.div # sink item (mkDumpDir env <$> bModel)
-
-    tabs' <- mkTabs env tabs
-    navigation <- mkNavigation env translation tabs
-
-    view <- UI.div #+ fmap element
-        [ tabs'
-        , content
-        , input
-        , navigation
-        ]
-
-    void $ UI.getBody win # set children [view]
+mkModel :: Location.Model -> Grade.Model -> Dump.DumpModel -> Dump.DumpDirModel -> Model
+mkModel location grades dump dumpDir =
+    Model $ Item <$> Location.unModel location <*> Grade._grades grades <*> (Dump.unModel dump) <*> (Dump.unDumpDirModel dumpDir)
 
 
+mainSection :: Env -> Window -> Translation -> Tabs -> Behavior Model -> UI ()
+mainSection env@Env{..} win translations tabs model = do
+    view <- UI.div
 
-mkDumpDir :: Env -> Dump.Model -> UI Element
-mkDumpDir Env{..} model =
-    case _dumpDir model of
-        NotAsked -> UI.div # set text "Starting.."
-        Loading -> UI.div # set text "Loading.."
-        Failure _ -> do
-            para <- UI.p # set text "Der er en fejl med fotografer"
-            UI.div # set children [para]
-        Data (DumpDir dir) -> do
-            UI.div # set text (show $ length dir)
-            -}
+    tabs'      <- mkElement "nav" #. "section" #+ [mkTabs env tabs]
+    navigation <-
+        mkElement "footer" #. "section" #+ [mkNavigation env translations tabs]
+
+    void $ UI.getBody win # set children [tabs', view, navigation]

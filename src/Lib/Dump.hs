@@ -5,20 +5,18 @@ module Lib.Dump
     ( Dump(..)
     , DumpDir(..)
     , DumpModel(..)
-    , dump
+    , DumpDirModel(..)
     , getDump
     , writeDump
     , getDump'
-    , dumpDir
     , getDumpDir
-    , Model(..)
-    , initialStateTmp
     , initalState
+    , initalStateDir
     ) where
 
 import System.Directory
 import Control.Exception (try)
-import Control.Concurrent
+import Control.Concurrent (ThreadId, withMVar, forkFinally)
 import Graphics.UI.Threepenny.Core
 
 import Lib.Data
@@ -34,47 +32,6 @@ newtype Dump = Dump { unDump :: FilePath }
 getDump' :: (MonadIO m, MonadThrow m) => FilePath -> m (Either String Dump)
 getDump' = readJSONFile'
 
-
-newtype DumpDir = DumpDir { unDumpDir :: [FilePath] }
-    deriving (Eq, Ord, Show)
-    deriving (Generic)
-    deriving (FromJSON, ToJSON)
-
-
-getDumpDir' :: (MonadIO m, MonadThrow m) => FilePath -> m (Either String DumpDir)
-getDumpDir' filepath = do
-    dir <- liftIO $ try (listDirectory filepath) <&> first (\e -> show (e :: SomeException))
-    return $ DumpDir <$> dir
-
-
-data Model = Model { _dumpDir :: Data String DumpDir
-                   , _dump :: Data String Dump
-                   }
-
-makeLenses ''Model
-
-
-initialStateTmp :: Model
-initialStateTmp = Model NotAsked NotAsked
-
-forker :: (MonadIO m, MonadThrow m) => FilePath -> Handler (Data String DumpDir) -> m (Either String DumpDir)
-forker file handle = do
-    _ <- liftIO $ handle Loading
-    getDumpDir' file
-
-
-getDumpDir :: (MonadIO m, MonadThrow m) => FilePath -> Handler (Data String DumpDir) -> m ThreadId
-getDumpDir file handle = do
-    liftIO $ forkFinally (forker file handle) $ \res -> do
-        case res of
-            Left e -> handle $ Failure (show e)
-            Right x -> case x of
-                    Left e' -> handle $ Failure e'
-                    Right s -> handle $ Data s
-
-
--------------------------------------------------------------------------------
--------------------------------------------------------------------------------
 
 newtype DumpModel = DumpModel { unModel :: Data String Dump }
 
@@ -109,3 +66,44 @@ getDump file handle = liftIO $ forkFinally (read file handle) $ \case
     Right x -> case x of
             Left e' -> handle $ DumpModel (Failure e')
             Right s -> handle $ DumpModel (Data s)
+
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+
+
+
+newtype DumpDir = DumpDir { unDumpDir :: [FilePath] }
+    deriving (Eq, Ord, Show)
+    deriving (Generic)
+    deriving (FromJSON, ToJSON)
+
+
+getDumpDir' :: (MonadIO m, MonadThrow m) => FilePath -> m (Either String DumpDir)
+getDumpDir' filepath = do
+    dir <- liftIO $ try (listDirectory filepath) <&> first (\e -> show (e :: SomeException))
+    return $ DumpDir <$> dir
+
+
+newtype DumpDirModel = DumpDirModel { unDumpDirModel :: Data String DumpDir }
+
+
+initalStateDir :: DumpDirModel
+initalStateDir = DumpDirModel NotAsked
+
+
+readDir :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler DumpDirModel -> m (Either String DumpDir)
+readDir file handle = liftIO $ withMVar file $ \f -> do
+        _ <- liftIO $ handle (DumpDirModel Loading)
+        dumpPath <- getDump' f --TODO fix this shit
+        case dumpPath of
+            Left x -> return $ Left x
+            Right ff -> getDumpDir' (unDump ff)
+
+
+getDumpDir :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler DumpDirModel -> m ThreadId
+getDumpDir file handle = liftIO $ do
+    forkFinally (readDir file handle) $ \case
+        Left e -> handle $ DumpDirModel (Failure (show e))
+        Right x -> case x of
+                Left e' -> handle $ DumpDirModel (Failure e')
+                Right s -> handle $ DumpDirModel (Data s)

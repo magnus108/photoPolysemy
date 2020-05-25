@@ -205,10 +205,14 @@ runServer port env@Env{..} = do
         bLocationConfigFile <- UI.stepper Location.initialState eLocationConfigFile
         _ <- Location.getLocationFile mLocationConfigFile hLocationConfigFile
 
+        -- DumpDir
+        bDumpDir <- UI.stepper Dump.initalStateDir eDumpDir
+        _ <- Dump.getDumpDir mDumpFile hDumpDir
+
 
         translations <- Translation.read mTranslationFile
         --VERY important this is here.. BADNESS FIX AT THE END
-        Server.run port env (fromJust (rightToMaybe translations)) bGrades bLocationConfigFile bSessions bShootings bCameras bDump eDumpDir bDoneshooting bDagsdato bDagsdatoBackup eTabs bPhotographers hGrades hLocationConfigFile
+        Server.run port env (fromJust (rightToMaybe translations)) bGrades bLocationConfigFile bSessions bShootings bCameras bDump bDumpDir bDoneshooting bDagsdato bDagsdatoBackup eTabs bPhotographers hGrades hLocationConfigFile hConfigDump hDumpDir
 
 
 type WatchMap = MVar (HashMap String StopListening)
@@ -328,7 +332,7 @@ dirDoneshooting mgr mDoneshootingFile _ handler = do
                     `catch` (\( _ :: SomeException ) -> return $ return () ) --TODO this sucks
 
 
-configDump :: WatchManager -> MVar FilePath -> WatchMap -> Handler (Dump.DumpModel) -> Handler (Data String DumpDir) -> IO StopListening
+configDump :: WatchManager -> MVar FilePath -> WatchMap -> Handler (Dump.DumpModel) -> Handler (Dump.DumpDirModel) -> IO StopListening
 configDump mgr mDumpFile watchMap handler handleDumpDir = do
     filepath <- readMVar mDumpFile
     watchDir
@@ -348,7 +352,7 @@ configDump mgr mDumpFile watchMap handler handleDumpDir = do
         )
 
 
-dirDump :: WatchManager -> MVar FilePath -> WatchMap -> Handler (Data String DumpDir) -> IO StopListening
+dirDump :: WatchManager -> MVar FilePath -> WatchMap -> Handler Dump.DumpDirModel -> IO StopListening
 dirDump mgr mDump _ handler = do
     dumpFile <- readMVar mDump
     dumpPath <- getDump' dumpFile
@@ -359,7 +363,7 @@ dirDump mgr mDump _ handler = do
             mgr
             (unDump path)
             (const True)
-            (\e -> print e >> (void $ getDumpDir (unDump path) handler))
+            (\e -> void $ print e >> getDumpDir mDump handler)
 
 
 configDagsdato :: WatchManager -> MVar FilePath -> WatchMap -> Handler (Dagsdato.Model) -> Handler () -> IO StopListening
