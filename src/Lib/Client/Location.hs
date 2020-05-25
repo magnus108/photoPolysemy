@@ -1,7 +1,9 @@
 {-# LANGUAGE RecursiveDo #-}
 module Lib.Client.Location
     ( locationSection
+    , mkGrades
     , mkModel
+    , selectGrade
     )
 where
 

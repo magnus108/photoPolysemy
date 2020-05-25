@@ -6,6 +6,7 @@ module Lib.Translation
     , newGrade
     , starting
     , loading
+    , mainPageError
     , locationPageError
     , up
     , next
@@ -47,6 +48,7 @@ import Control.Concurrent
 
 data Translation = Translation { _loading :: String
                                , _locationPageError :: String
+                               , _mainPageError :: String
                                , _openLocation :: String
                                , _newLocation :: String
                                , _pickLocation :: String

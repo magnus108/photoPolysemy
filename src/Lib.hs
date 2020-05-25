@@ -25,7 +25,8 @@ import Utils.ListZipper
 
 import qualified Lib.Translation as Translation
 import Lib.Data
-import Lib.Grade (Grades, getGrades, writeGrades, Grade(..), Grades(..), parseGrades)
+import Lib.Grade (Grades, getGrades, writeGrades, Grade(..), Grades(..))
+import qualified Lib.Photographee as Photographee
 import Lib.Location
 import Lib.Session
 import Lib.Shooting
@@ -96,13 +97,15 @@ runServer port env@Env{..} = do
     (eGrades, hGrades) <- newEvent
     (eLocationConfigFile, hLocationConfigFile) <- newEvent
 
+    (ePhotographees, hPhotographees) <- newEvent
+
     watchers <- newMVar mempty
     withManager $ \mgr -> do
         --Photographers
         stopConfigPhotographers <- configPhotographers mgr mPhotographersFile watchers hPhotographers
 
         --Grades
-        stopGrades <- grades mgr mGradesFile watchers hGrades
+        stopGrades <- grades mgr mGradesFile mLocationConfigFile watchers hGrades hPhotographees
 
         --Dump
         stopConfigDump <- configDump mgr mDumpFile watchers hConfigDump hDumpDir
@@ -198,8 +201,11 @@ runServer port env@Env{..} = do
         _ <- Session.getSessions mSessionsFile hSessions
 
         -- Grades
+        -- Photographees
+        bPhotographees <- UI.stepper Photographee.initialState ePhotographees
         bGrades <- UI.stepper Grade.initialState eGrades
         _ <- Grade.getGrades mGradesFile hGrades
+
 
         -- Location
         bLocationConfigFile <- UI.stepper Location.initialState eLocationConfigFile
@@ -238,21 +244,25 @@ configLocationFile mgr mLocationConfigFile mGradesFile _ handler = do
             print e
             filepath <- readMVar mLocationConfigFile
             locationFile <- Location.getLocationFile' filepath
-            grades' <- mapM parseGrades locationFile
+            grades' <- mapM Photographee.parseGrades locationFile
             let grades'' = either (const (Grades (ListZipper [] (Grade "") []))) id (join grades')
             void $ writeGrades mGradesFile grades''
         )
 
 
 -- der skal skydes et lag in herimellem der kan lytte på locationen
-grades :: WatchManager -> MVar FilePath -> WatchMap -> Handler Grade.Model -> IO StopListening
-grades mgr mFilepath _ handler = do
-    filepath <- readMVar mFilepath
+grades :: WatchManager -> MVar FilePath -> MVar FilePath -> WatchMap -> Handler Grade.Model -> Handler Photographee.Model -> IO StopListening
+grades mgr mGradesFile mLocationConfigFile _ handler photographeeHandler = do
+    filepath <- readMVar mGradesFile
     watchDir
         mgr
         (dropFileName filepath)
         (\e -> eventPath e == filepath)
-        (\e -> void $ print e >> getGrades mFilepath handler )
+        (\e -> void $ do
+            print e 
+            getGrades mGradesFile handler
+            Photographee.getPhotographees mGradesFile mLocationConfigFile photographeeHandler
+        )
 
 
 configPhotographers :: WatchManager -> MVar FilePath -> WatchMap -> Handler Photographer.Model -> IO StopListening

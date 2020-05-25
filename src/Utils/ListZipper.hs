@@ -3,6 +3,7 @@
 
 module Utils.ListZipper
     ( ListZipper(..)
+    , fromList
     , toN
     , toNonEmpty
     , appendr
@@ -143,6 +144,11 @@ sorted :: Ord a => [a] -> ListZipper a -> ListZipper a
 sorted [] z = z
 sorted (y:ys) (ListZipper ls a rs) | y < a = sorted ys $ ListZipper (insert'' y ls) a rs
                                    | otherwise = sorted ys $ ListZipper ls a (insert' y rs) 
+
+
+fromList :: [a] -> Maybe (ListZipper a)
+fromList [] = Nothing
+fromList (x:xs) = Just $ ListZipper [] x xs
 
 
 instance Functor ListZipper where
