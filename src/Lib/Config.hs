@@ -1,9 +1,25 @@
+{-# LANGUAGE DeriveAnyClass #-}
 module Lib.Config
        ( Config (..)
        , loadConfig
        ) where
 
 data Config = Config
+    { dumpFile :: !FilePath
+    , doneshootingFile :: !FilePath
+    , dagsdatoFile :: !FilePath
+    , dagsdatoBackupFile :: !FilePath
+    , shootingsFile :: !FilePath
+    , sessionsFile :: !FilePath
+    , photographersFile :: !FilePath
+    , gradesFile :: !FilePath
+    , camerasFile :: !FilePath
+    , tabsFile :: !FilePath
+    , locationConfigFile :: !FilePath
+    , translationFile :: !FilePath
+    } deriving (Generic)
+      deriving (FromJSON, ToJSON)
+      deriving (Show)
 
-loadConfig :: Monad m => m Config
-loadConfig = return Config
+loadConfig :: (MonadIO m, MonadThrow m) => FilePath -> m Config
+loadConfig = readJSONFile

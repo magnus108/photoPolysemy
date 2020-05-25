@@ -16,8 +16,7 @@ import Control.Concurrent.MVar (withMVar, modifyMVar_)
 import qualified Data.HashMap.Strict as HashMap
 import System.FSNotify
 
-import Lib.App (Files(..),loadFiles, Env(..))
-import Lib.App.Files2
+import Lib.App (Files(..), Env(..))
 import Lib.Config (Config (..), loadConfig)
 import Lib.Tab (Tabs, getTabs)
 import Lib.Photographer (getPhotographers)
@@ -52,8 +51,7 @@ import Graphics.UI.Threepenny (newEvent, Handler)
 
 
 mkEnv :: Config -> IO Env
-mkEnv _ = do
-    Files2{..} <- loadFiles "config.json"
+mkEnv Config{..} = do
 
     mPhotographersFile <- newMVar photographersFile
     mGradesFile <- newMVar gradesFile
@@ -431,4 +429,4 @@ dirDagsdatoBackup mgr mDagsdatoBackupFile _ handler = do
 
 
 main :: Int -> IO ()
-main port = loadConfig >>= mkEnv >>= runServer port
+main port = loadConfig "config.json" >>= mkEnv >>= runServer port

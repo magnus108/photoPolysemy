@@ -2,10 +2,7 @@
 module Lib.App.Env
        ( Env(..)
        , Files(..)
-       , loadFiles
        ) where
-
-import Lib.App.Files2
 
 data Files = Files
     { tabsFile :: !FilePath
