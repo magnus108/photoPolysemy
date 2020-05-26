@@ -4,6 +4,8 @@
 module Lib.Photographee
     ( Photographee(..)
     , Photographees(..)
+    , name
+    , unModel
     , fromGrade
     , initialState
     , parseGrades
@@ -38,7 +40,10 @@ data Photographee = Photographee
     } deriving (Show, Eq, Generic, ToJSON, FromJSON)
 
 
-newtype Photographees = Photographees { unGrades :: ListZipper.ListZipper Photographee }
+makeLenses ''Photographee
+
+
+newtype Photographees = Photographees { unPhotographees :: ListZipper.ListZipper Photographee }
     deriving (Eq, Show)
     deriving (Generic)
     deriving (FromJSON, ToJSON)
@@ -91,7 +96,7 @@ parseGrades locationFile = do
 
 --------------------------------------------------------------------------------
 
-data Model = Model { _photographees :: Data String Photographees } deriving Show
+data Model = Model { _unModel :: Data String Photographees } deriving Show
 
 makeLenses ''Model
 

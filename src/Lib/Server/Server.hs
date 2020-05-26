@@ -12,6 +12,7 @@ import Lib.Translation
 import Lib.Data
 import Lib.Tab
 import qualified Lib.Photographer as Photographer
+import qualified Lib.Photographee as Photographee
 import qualified Lib.Dump as Dump
 import Lib.Dump
 import qualified Lib.Session as Session
@@ -38,8 +39,8 @@ import Lib.Client.Photographer
 import Utils.ListZipper (focus)
 
 
-view :: Env -> Window -> Translation -> Behavior Grade.Model -> Behavior Location.Model -> UI.Behavior Session.Model -> UI.Behavior Shooting.Model -> UI.Behavior Camera.Model -> UI.Behavior Dump.DumpModel -> UI.Behavior Dump.DumpDirModel -> UI.Behavior Doneshooting.Model -> UI.Behavior Dagsdato.Model -> UI.Behavior DagsdatoBackup.Model -> UI.Behavior Photographer.Model -> Handler (Grade.Model) -> Handler (Location.Model) -> Handler Dump.DumpModel -> Handler Dump.DumpDirModel -> Tabs -> UI ()
-view env@Env{..} win translation bGrades bLocationConfigFile bSessions bShootings bCameras bDump bDumpDir bDoneshooting bDagsdato bDagsdatoBackup bPhotographers hGrades hLocationConfigFile hDump hDumpDir tabs = do
+view :: Env -> Window -> Translation -> Behavior Grade.Model -> Behavior Location.Model -> UI.Behavior Session.Model -> UI.Behavior Shooting.Model -> UI.Behavior Camera.Model -> UI.Behavior Dump.DumpModel -> UI.Behavior Dump.DumpDirModel -> UI.Behavior Doneshooting.Model -> UI.Behavior Dagsdato.Model -> UI.Behavior DagsdatoBackup.Model -> UI.Behavior Photographer.Model -> UI.Behavior Photographee.Model -> Handler (Grade.Model) -> Handler (Location.Model) -> Handler Dump.DumpModel -> Handler Dump.DumpDirModel -> Handler Photographee.Model -> Tabs -> UI ()
+view env@Env{..} win translation bGrades bLocationConfigFile bSessions bShootings bCameras bDump bDumpDir bDoneshooting bDagsdato bDagsdatoBackup bPhotographers bPhotographees hGrades hLocationConfigFile hDump hDumpDir hPhotographees tabs = do
     let currentTab = focus (unTabs tabs)
     case currentTab of
         DumpTab -> dumpSection env win translation tabs bDump
@@ -59,13 +60,14 @@ view env@Env{..} win translation bGrades bLocationConfigFile bSessions bShooting
             return ()
 
         MainTab -> do
-            let bModel = CMain.mkModel <$> bLocationConfigFile <*> bGrades <*> bDump <*> bDumpDir
+            let bModel = CMain.mkModel <$> bLocationConfigFile <*> bGrades <*> bDump <*> bDumpDir <*> bPhotographees
             CMain.mainSection env win translation tabs bModel
             -- QUICK BADNESS
             _ <- Grade.getGrades mGradesFile hGrades
             _ <- Location.getLocationFile mLocationConfigFile hLocationConfigFile
             _ <- Dump.getDump mDumpFile hDump
             _ <- Dump.getDumpDir mDumpFile hDumpDir
+            _ <- Photographee.getPhotographees mGradesFile mLocationConfigFile hPhotographees
             return ()
 
         _ -> dagsdatoBackupSection env win translation tabs bDagsdatoBackup
@@ -75,8 +77,8 @@ view env@Env{..} win translation bGrades bLocationConfigFile bSessions bShooting
 
 
 
-run :: Int -> Env -> Translation -> UI.Behavior Grade.Model ->  UI.Behavior Location.Model -> UI.Behavior Session.Model -> UI.Behavior Shooting.Model -> UI.Behavior Camera.Model -> UI.Behavior Dump.DumpModel -> UI.Behavior Dump.DumpDirModel -> UI.Behavior Doneshooting.Model -> UI.Behavior Dagsdato.Model -> UI.Behavior DagsdatoBackup.Model -> UI.Event Tabs -> UI.Behavior (Photographer.Model) -> Handler (Grade.Model) -> Handler (Location.Model) -> Handler Dump.DumpModel -> Handler Dump.DumpDirModel -> IO ()
-run port env@Env{..} translations eGrades bLocationConfigFile eSessions eShootings eCameras eDump bDumpDir eDoneshooting eDagsdato eDagsdatoBackup eTabs bPhotographers hGrades hLocationConfigFile hDump hDumpDir = do
+run :: Int -> Env -> Translation -> UI.Behavior Grade.Model ->  UI.Behavior Location.Model -> UI.Behavior Session.Model -> UI.Behavior Shooting.Model -> UI.Behavior Camera.Model -> UI.Behavior Dump.DumpModel -> UI.Behavior Dump.DumpDirModel -> UI.Behavior Doneshooting.Model -> UI.Behavior Dagsdato.Model -> UI.Behavior DagsdatoBackup.Model -> UI.Event Tabs -> UI.Behavior (Photographer.Model) -> UI.Behavior (Photographee.Model) -> Handler (Grade.Model) -> Handler (Location.Model) -> Handler Dump.DumpModel -> Handler Dump.DumpDirModel -> Handler Photographee.Model -> IO ()
+run port env@Env{..} translations eGrades bLocationConfigFile eSessions eShootings eCameras eDump bDumpDir eDoneshooting eDagsdato eDagsdatoBackup eTabs bPhotographers bPhotographees hGrades hLocationConfigFile hDump hDumpDir hPhotographees = do
     tabs <- withMVar files $ \ Files{..} -> getTabs tabsFile
 
     startGUI defaultConfig
@@ -98,10 +100,12 @@ run port env@Env{..} translations eGrades bLocationConfigFile eSessions eShootin
                                             eDagsdato
                                             eDagsdatoBackup
                                             bPhotographers
+                                            bPhotographees
                                             hGrades
                                             hLocationConfigFile
                                             hDump
                                             hDumpDir
+                                            hPhotographees
                                             tabs
 
         UI.onChanges bTabs (view env win translations eGrades bLocationConfigFile eSessions
@@ -112,7 +116,11 @@ run port env@Env{..} translations eGrades bLocationConfigFile eSessions eShootin
                                             eDoneshooting
                                             eDagsdato
                                             eDagsdatoBackup
-                                            bPhotographers hGrades hLocationConfigFile
+                                            bPhotographers 
+                                            bPhotographees
+                                            hGrades hLocationConfigFile
                                             hDump
-                                            hDumpDir)
+                                            hDumpDir
+                                            hPhotographees
+                           )
 

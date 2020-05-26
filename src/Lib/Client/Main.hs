@@ -3,6 +3,7 @@ module Lib.Client.Main
     , mkModel
     ) where
 
+import Utils.Comonad
 
 import           Control.Monad
 import Graphics.UI.Threepenny.Core
@@ -11,6 +12,7 @@ import qualified Graphics.UI.Threepenny as UI
 import Lib.Data
 import Lib.Translation
 import Lib.Tab
+import qualified Lib.Photographee as Photographee
 import qualified Lib.Grade as Grade
 import qualified Lib.Dump as Dump
 import qualified Lib.Location as Location
@@ -24,33 +26,60 @@ import Control.Concurrent.MVar
 import qualified Control.Lens as Lens
 
 import           Reactive.Threepenny
+import Lib.Client.Utils
+import Lib.Client.Element
+
 
 data Item = Item { location :: Location.LocationFile
                  , grades :: Grade.Grades
                  , dump :: Dump.Dump
                  , dumpDir :: Dump.DumpDir --TODO this is wrong
+                 , photograhees :: Photographee.Photographees
                  }
 
 newtype Model = Model { unModel :: Data String Item }
 
-mkModel :: Location.Model -> Grade.Model -> Dump.DumpModel -> Dump.DumpDirModel -> Model
-mkModel location grades dump dumpDir =
-    Model $ Item <$> Location.unModel location <*> Grade._grades grades <*> Dump.unModel dump <*> Dump.unDumpDirModel dumpDir
+mkModel :: Location.Model -> Grade.Model -> Dump.DumpModel -> Dump.DumpDirModel -> Photographee.Model -> Model
+mkModel location grades dump dumpDir photograhees =
+    Model $ Item <$> Location.unModel location <*> Grade._grades grades <*> Dump.unModel dump <*> Dump.unDumpDirModel dumpDir <*> (Lens.view Photographee.unModel photograhees)
 
 
-photograhees :: Env -> Window -> UI Element
-photograhees env win = do
-    UI.div
+photograheesList :: Env -> Window -> Photographee.Photographees -> [UI Element]
+photograheesList env win (Photographee.Photographees photographees') = do
+        let currentPhotographee = extract photographees'
+        let elems = photographees' =>> \photographees''-> let
+                        thisPhotographee = extract photographees''
+                    in
+                        ( thisPhotographee
+                        , thisPhotographee == currentPhotographee
+                        , Photographee.Photographees photographees''
+                        )
+        (mkPhotographee env) <$> toList elems
+
+
+mkPhotographee :: Env -> (Photographee.Photographee, Bool, Photographee.Photographees) -> UI Element
+mkPhotographee Env{..} (photographee, isCenter, photographees)
+    | isCenter = do
+        let name = Lens.view Photographee.name photographee
+        UI.div #. "section" #+ [mkButton name name #. "button is-selected" # set (attr "disabled") "true"]
+    | otherwise = do
+        let name = Lens.view Photographee.name photographee
+        button <- mkButton name name
+        UI.on UI.click button $ \_ ->
+            return ()
+        UI.div #. "section" #+ [element button]
+
 
 gradeItem
     :: Env
     -> Window
     -> Translation
     -> Behavior Model
-    -> UI (Element, Tidings Model)
+    -> UI ((Element, Element), Tidings Model)
 gradeItem env win translations bModel = do
     let bItem   = toJust <$> unModel <$> bModel
         bGrades = grades <<$>> bItem
+        bPhotographees = photograhees <<$>> bItem
 
     select         <- UI.select
     bEditingSelect <- bEditing select
@@ -65,7 +94,7 @@ gradeItem env win translations bModel = do
     let allEvents = concatenate' <$> unions' (eSelect :| [])
 
 
-    photograhees' <- photograhees env win
+    photograhees' <- UI.div # sink items (maybe [] (photograheesList env win) <$> bPhotographees)
 
     let
         superTide =
@@ -77,21 +106,21 @@ gradeItem env win translations bModel = do
                             Just x ->
                                 Just
                                     (Model
-                                        (Data (Item (location x) (f (grades x)) (dump x) (dumpDir x)))
+                                        (Data (Item (location x) (f (grades x)) (dump x) (dumpDir x) (photograhees x)))
                                     )
                         )
                         bModel
                 <@> allEvents
 
 
-    return (getElement select, superTide)
+    return ((getElement select, getElement photograhees'), superTide)
 
 
 mainSection :: Env -> Window -> Translation -> Tabs -> Behavior Model -> UI ()
 mainSection env@Env{..} win translations tabs bModel = do
     view                              <- UI.div
 
-    (select, tModel) <- gradeItem env win translations bModel
+    ((select, photographees'), tModel) <- gradeItem env win translations bModel
     bEditingSelect                    <- bEditing select
 
     liftIOLater $ onChange bModel $ \newModel -> runUI win $ do
@@ -125,7 +154,7 @@ mainSection env@Env{..} win translations tabs bModel = do
                            ]
                     element view # set
                         children
-                        [content]
+                        [content, photographees']
 
 --------------------------------------------------------------------------------
 
