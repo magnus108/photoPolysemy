@@ -109,6 +109,9 @@ runServer port env@Env{..} = do
         --Grades
         stopGrades <- grades mgr mGradesFile mLocationConfigFile mPhotographeesFile watchers hGrades
 
+        --Grades
+        stopPhotographees <- photographees mgr mPhotographeesFile watchers hPhotographees
+
         --Dump
         stopConfigDump <- configDump mgr mDumpFile watchers hConfigDump hDumpDir
         stopDirDump <- dirDump mgr mDumpFile watchers hDumpDir
@@ -249,6 +252,20 @@ configLocationFile mgr mLocationConfigFile mGradesFile _ handler = do
             grades' <- mapM Photographee.parseGrades locationFile
             let grades'' = either (const (Grades (ListZipper [] (Grade "") []))) id (join grades')
             void $ writeGrades mGradesFile grades''
+        )
+
+
+-- der skal skydes et lag in herimellem der kan lytte på locationen
+photographees :: WatchManager -> MVar FilePath -> WatchMap -> Handler Photographee.Model -> IO StopListening
+photographees mgr mPhotographeesFile _ handler = do
+    filepath <- readMVar mPhotographeesFile
+    watchDir
+        mgr
+        (dropFileName filepath)
+        (\e -> eventPath e == filepath)
+        (\e -> void $ do
+            print e
+            Photographee.getPhotographees mPhotographeesFile handler
         )
 
 

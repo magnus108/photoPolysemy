@@ -152,6 +152,7 @@ reloadForker mGradeFile mLocationConfigFile = do
                         case grades of
                             Left x -> return $ Left x
                             Right grada -> do
+
                                 fromGrade locafile grada
 
 
@@ -163,9 +164,8 @@ reloadPhotographees mGradeFile mLocationConfigFile mPhotographeesFile = do
             Right x ->
                 case x of
                     Left e2 -> return ()
-                    Right y -> 
+                    Right y -> do
                         void $ writePhotographees mPhotographeesFile y
-                 
 
 
 

@@ -45,6 +45,7 @@ mkModel location grades dump dumpDir photograhees =
 
 
 photograheesList :: Env -> Window -> Photographee.Photographees -> [UI Element]
+photograheesList env win Photographee.NoPhotographees = []
 photograheesList env win (Photographee.Photographees photographees') = do
         let currentPhotographee = extract photographees'
         let elems = photographees' =>> \photographees''-> let
@@ -88,7 +89,8 @@ gradeItem env win translations bModel = do
         editing <- liftIO $ currentValue bEditingSelect
         when (not editing) $ void $ do
             let options = maybe [] (CLocation.mkGrades env) s
-            element select # set children [] #+ options
+            element select # set children []
+            element select #+ options
 
     let eSelect   = CLocation.selectGrade <$> filterJust (selectionChange' select)
 
@@ -137,7 +139,8 @@ mainSection env@Env{..} win translations tabs bModel = do
                     element view # set children [child]
                 Failure e -> do
                     child <- Lens.views mainPageError string translations
-                    element view # set children [child]
+                    err <- string e
+                    element view # set children [child, err]
                 Data data' -> do
                     select' <- UI.div #. "select" #+ [element select]
                     content <-

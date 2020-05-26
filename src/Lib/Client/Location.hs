@@ -69,7 +69,8 @@ gradeItem env win translations bModel = do
         editing <- liftIO $ currentValue bEditingSelect
         when (not editing) $ void $ do
             let options = maybe [] (mkGrades env) s
-            element select # set children [] #+ options
+            element select # set children []
+            element select #+ options
 
     button <- mkButton "insert" (Lens.view newGrade translations)
 
