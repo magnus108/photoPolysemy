@@ -56,21 +56,8 @@ gradeItem env win translations bModel = do
         bGrades = grades <<$>> bItem
 
     input          <- UI.input
-    bEditingSelect <- bEditing input
-    liftIOLater $ onChange bGrades $ \s -> runUI win $ do
-        editing <- liftIO $ currentValue bEditingSelect
-        when (not editing) $ void $ do
-            let string = maybe "" Grade.showGrade s
-            element input # set value string
 
     select         <- UI.select
-    bEditingSelect <- bEditing select
-    liftIOLater $ onChange bGrades $ \s -> runUI win $ do
-        editing <- liftIO $ currentValue bEditingSelect
-        when (not editing) $ void $ do
-            let options = maybe [] (mkGrades env) s
-            element select # set children []
-            element select #+ options
 
     button <- mkButton "insert" (Lens.view newGrade translations)
 
@@ -113,7 +100,19 @@ locationSection env@Env {..} win translations tabs bModel = mdo
 
     liftIOLater $ onChange bModel $ \newModel -> runUI win $ do
         editingInput  <- liftIO $ currentValue bEditingInput
+
+        when (not editingInput) $ void $ do
+            let grades' = fmap grades $ toJust $ unModel newModel
+            let string = maybe "" Grade.showGrade grades'
+            element input # set value string
+
         editingSelect <- liftIO $ currentValue bEditingSelect -- this work?
+
+        when (not editingSelect) $ void $ do
+            let grades' = fmap grades $ toJust $ unModel newModel
+            let options = maybe [] (mkGrades env) grades'
+            element select # set children [] #+ options
+
         let editing = editingInput || editingSelect
         when (not editing) $ void $ do
             case unModel newModel of

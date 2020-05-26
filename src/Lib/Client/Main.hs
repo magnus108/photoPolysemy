@@ -84,13 +84,6 @@ gradeItem env win translations bModel = do
         bPhotographees = photograhees <<$>> bItem
 
     select         <- UI.select
-    bEditingSelect <- bEditing select
-    liftIOLater $ onChange bGrades $ \s -> runUI win $ do
-        editing <- liftIO $ currentValue bEditingSelect
-        when (not editing) $ void $ do
-            let options = maybe [] (CLocation.mkGrades env) s
-            element select # set children []
-            element select #+ options
 
     let eSelect   = CLocation.selectGrade <$> filterJust (selectionChange' select)
 
@@ -128,6 +121,12 @@ mainSection env@Env{..} win translations tabs bModel = do
 
     liftIOLater $ onChange bModel $ \newModel -> runUI win $ do
         editingSelect <- liftIO $ currentValue bEditingSelect -- this work?
+
+        when (not editingSelect) $ void $ do
+            let grades' = fmap grades $ toJust $ unModel newModel
+            let options = maybe [] (CLocation.mkGrades env) grades'
+            element select # set children [] #+ options
+
         let editing = editingSelect
         when (not editing) $ void $ do
             case unModel newModel of

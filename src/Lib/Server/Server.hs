@@ -71,9 +71,6 @@ view env@Env{..} win translation bGrades bLocationConfigFile bSessions bShooting
             return ()
 
         _ -> dagsdatoBackupSection env win translation tabs bDagsdatoBackup
-            {-
-        _ -> mainSection env win translation tabs eGrades eDump eDumpDir
-        -}
 
 
 
