@@ -67,6 +67,8 @@ mkEnv Config{..} = do
 
     mTranslationFile <- newMVar translationFile
 
+    mPhotographeesFile <- newMVar photograheesFile
+
     files <- newMVar Files{..}
     pure Env{..}
 
@@ -105,7 +107,7 @@ runServer port env@Env{..} = do
         stopConfigPhotographers <- configPhotographers mgr mPhotographersFile watchers hPhotographers
 
         --Grades
-        stopGrades <- grades mgr mGradesFile mLocationConfigFile watchers hGrades hPhotographees
+        stopGrades <- grades mgr mGradesFile mLocationConfigFile mPhotographeesFile watchers hGrades
 
         --Dump
         stopConfigDump <- configDump mgr mDumpFile watchers hConfigDump hDumpDir
@@ -201,7 +203,7 @@ runServer port env@Env{..} = do
         _ <- Session.getSessions mSessionsFile hSessions
 
         -- Grades
-        -- Photographees
+        -- Photographees this is REAL BAD AS it does not wrk with bLocationConfigFile as expected
         bPhotographees <- UI.stepper Photographee.initialState ePhotographees
         bGrades <- UI.stepper Grade.initialState eGrades
         _ <- Grade.getGrades mGradesFile hGrades
@@ -251,8 +253,8 @@ configLocationFile mgr mLocationConfigFile mGradesFile _ handler = do
 
 
 -- der skal skydes et lag in herimellem der kan lytte på locationen
-grades :: WatchManager -> MVar FilePath -> MVar FilePath -> WatchMap -> Handler Grade.Model -> Handler Photographee.Model -> IO StopListening
-grades mgr mGradesFile mLocationConfigFile _ handler photographeeHandler = do
+grades :: WatchManager -> MVar FilePath -> MVar FilePath -> MVar FilePath -> WatchMap -> Handler Grade.Model -> IO StopListening
+grades mgr mGradesFile mLocationConfigFile mPhotographeesFile _ handler = do
     filepath <- readMVar mGradesFile
     watchDir
         mgr
@@ -261,7 +263,7 @@ grades mgr mGradesFile mLocationConfigFile _ handler photographeeHandler = do
         (\e -> void $ do
             print e 
             getGrades mGradesFile handler
-            Photographee.getPhotographees mGradesFile mLocationConfigFile photographeeHandler
+            Photographee.reloadPhotographees mGradesFile mLocationConfigFile mPhotographeesFile
         )
 
 

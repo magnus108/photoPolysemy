@@ -17,6 +17,7 @@ data Config = Config
     , tabsFile :: !FilePath
     , locationConfigFile :: !FilePath
     , translationFile :: !FilePath
+    , photograheesFile :: !FilePath
     } deriving (Generic)
       deriving (FromJSON, ToJSON)
       deriving (Show)

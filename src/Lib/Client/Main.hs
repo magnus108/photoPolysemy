@@ -66,6 +66,7 @@ mkPhotographee Env{..} (photographee, isCenter, photographees)
         let name = Lens.view Photographee.name photographee
         button <- mkButton name name
         UI.on UI.click button $ \_ ->
+        --    writePhotographees mPhotographersFile photographers
             return ()
         UI.div #. "section" #+ [element button]
 

@@ -10,6 +10,7 @@ module Lib.Photographee
     , initialState
     , parseGrades
     , Model(..)
+    , reloadPhotographees
     , getPhotographees
     ) where
 
@@ -43,10 +44,12 @@ data Photographee = Photographee
 makeLenses ''Photographee
 
 
-newtype Photographees = Photographees { unPhotographees :: ListZipper.ListZipper Photographee }
-    deriving (Eq, Show)
-    deriving (Generic)
-    deriving (FromJSON, ToJSON)
+data Photographees
+    = Photographees (ListZipper.ListZipper Photographee)
+    | NoPhotographees
+        deriving (Eq, Show)
+        deriving (Generic)
+        deriving (FromJSON, ToJSON)
 
 
 instance FromRecord Photographee
@@ -105,9 +108,40 @@ initialState :: Model
 initialState = Model NotAsked
 
 
-forker :: (MonadIO m, MonadThrow m) => MVar FilePath -> MVar FilePath -> Handler Model -> m (Either String Photographees)
-forker mGradeFile mLocationConfigFile handle = do
-    _ <- liftIO $ handle $ Model Loading
+getPhotographees' :: (MonadIO m, MonadThrow m) => FilePath -> m (Either String Photographees)
+getPhotographees' = readJSONFile'
+
+
+writePhotographees' :: (MonadIO m) => FilePath -> Photographees -> m ()
+writePhotographees' = writeJSONFile
+
+
+--TODO could do some notification on save..
+write :: (MonadIO m, MonadThrow m) => MVar FilePath -> Photographees -> m ()
+write file photographees = liftIO $ withMVar file $ \f -> writePhotographees' f photographees
+
+--TODO could handle error on write.
+writePhotographees :: (MonadIO m) => MVar FilePath -> Photographees -> m ThreadId
+writePhotographees file photographees = liftIO $ forkFinally (write file photographees) $ \ _ -> return ()
+
+
+read :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler Model -> m (Either String Photographees)
+read file handle = liftIO $ withMVar file $ \f -> do
+        _ <- liftIO $ handle (Model Loading)
+        getPhotographees' f
+
+
+getPhotographees :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler Model -> m ThreadId
+getPhotographees file handle = liftIO $ forkFinally (read file handle) $ \case
+    Left e -> handle $ Model (Failure (show e))
+    Right x -> case x of
+            Left e' -> handle $ Model (Failure e')
+            Right s -> handle $ Model (Data s)
+
+
+-------------------------------------------------------------------------------------------------------------------------
+reloadForker :: (MonadIO m, MonadThrow m) => MVar FilePath -> MVar FilePath -> m (Either String Photographees)
+reloadForker mGradeFile mLocationConfigFile = do
     liftIO $ withMVar mLocationConfigFile $ \f -> do
         locationFile <- Location.getLocationFile' f --TODO fix this shit
         case locationFile of
@@ -121,14 +155,21 @@ forker mGradeFile mLocationConfigFile handle = do
                                 fromGrade locafile grada
 
 
-getPhotographees :: (MonadIO m, MonadThrow m) => MVar FilePath -> MVar FilePath -> Handler Model -> m ThreadId
-getPhotographees mGradeFile mLocationConfigFile handle = do
-    liftIO $ forkFinally (forker mGradeFile mLocationConfigFile handle) $ \res -> do
+reloadPhotographees :: (MonadIO m, MonadThrow m) => MVar FilePath -> MVar FilePath -> MVar FilePath -> m ThreadId
+reloadPhotographees mGradeFile mLocationConfigFile mPhotographeesFile = do
+    liftIO $ forkFinally (reloadForker mGradeFile mLocationConfigFile ) $ \res -> do
         case res of
-            Left e -> handle $ Model $ Failure (show e)
-            Right x -> case x of
-                    Left e' -> handle $ Model $ Failure e'
-                    Right s -> handle $ Model $ Data s
+            Left e -> return ()
+            Right x ->
+                case x of
+                    Left e2 -> return ()
+                    Right y -> 
+                        void $ writePhotographees mPhotographeesFile y
+                 
+
+
+
+
 
     {-
 findPhotographee :: Location.Location -> Id.Id -> IO (Maybe Photographee)

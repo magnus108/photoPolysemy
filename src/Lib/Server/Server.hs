@@ -67,7 +67,7 @@ view env@Env{..} win translation bGrades bLocationConfigFile bSessions bShooting
             _ <- Location.getLocationFile mLocationConfigFile hLocationConfigFile
             _ <- Dump.getDump mDumpFile hDump
             _ <- Dump.getDumpDir mDumpFile hDumpDir
-            _ <- Photographee.getPhotographees mGradesFile mLocationConfigFile hPhotographees
+            _ <- Photographee.getPhotographees mPhotographeesFile hPhotographees
             return ()
 
         _ -> dagsdatoBackupSection env win translation tabs bDagsdatoBackup

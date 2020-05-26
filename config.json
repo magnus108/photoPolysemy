@@ -5,6 +5,7 @@
 , "shootingsFile":"/home/magnus/Documents/projects/photoPolysemy/config/shootings.json"
 , "sessionsFile":"/home/magnus/Documents/projects/photoPolysemy/config/sessions.json"
 , "photographersFile":"/home/magnus/Documents/projects/photoPolysemy/config/photographers.json"
+, "photograheesFile":"/home/magnus/Documents/projects/photoPolysemy/config/photographees.json"
 , "camerasFile":"/home/magnus/Documents/projects/photoPolysemy/config/cameras.json"
 , "tabsFile":"/home/magnus/Documents/projects/photoPolysemy/config/tabs.json"
 , "gradesFile":"/home/magnus/Documents/projects/photoPolysemy/config/grades.json"
