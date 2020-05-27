@@ -2,6 +2,7 @@ module Lib.Client.Element
     ( mkButton
     , mkFolderPicker
     , mkFilePicker
+    , mkLabel
     , control
     , mkFileMaker
     , mkOpenFile
@@ -27,6 +28,9 @@ control (position, idd, name) items action
         UI.on UI.click button $ \_ -> action items
         return (Just button)
 
+
+mkLabel :: String -> UI Element
+mkLabel s = UI.p #. "has-text-dark has-text-weight-bold" # set UI.text s
 
 
 mkButton :: String -> String -> UI Element

@@ -34,7 +34,7 @@ data Item = Item { location :: Location.LocationFile
                  , grades :: Grade.Grades
                  , dump :: Dump.Dump
                  , dumpDir :: Dump.DumpDir --TODO this is wrong
-                 , photograhees :: Photographee.Photographees
+                 , photographees :: Photographee.Photographees
                  }
 
 newtype Model = Model { unModel :: Data String Item }
@@ -44,9 +44,9 @@ mkModel location grades dump dumpDir photograhees =
     Model $ Item <$> Location.unModel location <*> Grade._grades grades <*> Dump.unModel dump <*> Dump.unDumpDirModel dumpDir <*> (Lens.view Photographee.unModel photograhees)
 
 
-photograheesList :: Env -> Window -> Photographee.Photographees -> [UI Element]
-photograheesList env win Photographee.NoPhotographees = []
-photograheesList env win (Photographee.Photographees photographees') = do
+photographeesList :: Env -> Window -> Photographee.Photographees -> [UI Element]
+photographeesList env win Photographee.NoPhotographees = []
+photographeesList env win (Photographee.Photographees photographees') = do
         let currentPhotographee = extract photographees'
         let elems = photographees' =>> \photographees''-> let
                         thisPhotographee = extract photographees''
@@ -71,6 +71,10 @@ mkPhotographee Env{..} (photographee, isCenter, photographees)
             return ()
         UI.div #. "section" #+ [element button]
 
+dumpFilesCounter :: Env -> Window -> Dump.DumpDir -> [UI Element]
+dumpFilesCounter env window (Dump.DumpDir  dumpDir) =
+    [ mkLabel "Antal billeder i dump:", UI.string (show $ length (dumpDir)) #. "is-size-1 has-text-danger has-text-weight-bold" # set (attr "id") "count"]
+
 
 gradeItem
     :: Env
@@ -81,7 +85,6 @@ gradeItem
 gradeItem env win translations bModel = do
     let bItem   = toJust <$> unModel <$> bModel
         bGrades = grades <<$>> bItem
-        bPhotographees = photograhees <<$>> bItem
 
     select         <- UI.select
 
@@ -89,8 +92,7 @@ gradeItem env win translations bModel = do
 
     let allEvents = concatenate' <$> unions' (eSelect :| [])
 
-
-    photograhees' <- UI.div # sink items (maybe [] (photograheesList env win) <$> bPhotographees)
+    photograhees' <- UI.div
 
     let
         superTide =
@@ -102,7 +104,7 @@ gradeItem env win translations bModel = do
                             Just x ->
                                 Just
                                     (Model
-                                        (Data (Item (location x) (f (grades x)) (dump x) (dumpDir x) (photograhees x)))
+                                        (Data (Item (location x) (f (grades x)) (dump x) (dumpDir x) (photographees x)))
                                     )
                         )
                         bModel
@@ -116,48 +118,56 @@ mainSection :: Env -> Window -> Translation -> Tabs -> Behavior Model -> UI ()
 mainSection env@Env{..} win translations tabs bModel = do
     view                              <- UI.div
 
+    dumpFilesCounter' <- UI.div
     ((select, photographees'), tModel) <- gradeItem env win translations bModel
+    select' <- UI.div #. "select" #+ [element select]
+
     bEditingSelect                    <- bEditing select
+
+    childStarting <- Lens.views starting string translations
+    childLoading <- Lens.views loading string translations
+    childErr <- UI.div
+
+    selectSection <-
+        UI.div
+        #. "section"
+        #+ [ UI.div
+                #. "field is-horizontal"
+                #+ [ UI.div
+                    #. "field-body"
+                    #+ [ UI.div
+                        #. "field"
+                        #+ [UI.p #. "control" #+ [element select']]
+                        ]
+                ]
+            ]
+
 
     liftIOLater $ onChange bModel $ \newModel -> runUI win $ do
         editingSelect <- liftIO $ currentValue bEditingSelect -- this work?
+
+        let dumpFiles' = fmap dumpDir $ toJust $ unModel newModel
+        element dumpFilesCounter' #. "section" # set children [] #+ maybe [] (dumpFilesCounter env win) dumpFiles'
+
+        let photographees'' = fmap photographees $ toJust $ unModel newModel
+        element photographees' # set children [] #+ maybe [] (photographeesList env win) photographees''
 
         when (not editingSelect) $ void $ do
             let grades' = fmap grades $ toJust $ unModel newModel
             let options = maybe [] (CLocation.mkGrades env) grades'
             element select # set children [] #+ options
 
-        let editing = editingSelect
-        when (not editing) $ void $ do
+        when (not editingSelect) $ void $ do
             case unModel newModel of
                 NotAsked -> do
-                    child <- Lens.views starting string translations
-                    element view # set children [child]
+                    element view # set children [childStarting]
                 Loading -> do
-                    child <- Lens.views loading string translations
-                    element view # set children [child]
+                    element view # set children [childLoading]
                 Failure e -> do
-                    child <- Lens.views mainPageError string translations
-                    err <- string e
-                    element view # set children [child, err]
+                    element childErr # set text (Lens.view mainPageError translations)
+                    element view # set children [childErr]
                 Data data' -> do
-                    select' <- UI.div #. "select" #+ [element select]
-                    content <-
-                        UI.div
-                        #. "section"
-                        #+ [ UI.div
-                             #. "field is-horizontal"
-                             #+ [ UI.div
-                                  #. "field-body"
-                                  #+ [ UI.div
-                                     #. "field"
-                                     #+ [UI.p #. "control" #+ [element select']]
-                                     ]
-                                ]
-                           ]
-                    element view # set
-                        children
-                        [content, photographees']
+                    element view # set children [dumpFilesCounter', selectSection, photographees']
 
 --------------------------------------------------------------------------------
 
