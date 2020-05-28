@@ -5,10 +5,12 @@ module Lib.Photographee
     ( Photographee(..)
     , Photographees(..)
     , name
+    , ident
     , unModel
     , fromGrade
     , initialState
     , parseGrades
+    , writePhotographees
     , Model(..)
     , reloadPhotographees
     , getPhotographees

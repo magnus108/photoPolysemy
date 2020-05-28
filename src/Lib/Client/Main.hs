@@ -5,6 +5,7 @@ module Lib.Client.Main
 
 import Utils.Comonad
 
+import           Data.Char
 import           Control.Monad
 import Graphics.UI.Threepenny.Core
 import qualified Graphics.UI.Threepenny as UI
@@ -55,7 +56,9 @@ photographeesList env win (Photographee.Photographees photographees') = do
                         , thisPhotographee == currentPhotographee
                         , Photographee.Photographees photographees''
                         )
-        (mkPhotographee env) <$> toList elems
+
+        let elems' = sortOn (\(a,b,c) -> fmap toLower (Photographee._name a)) $ toList elems
+        (mkPhotographee env) <$> elems'
 
 
 mkPhotographee :: Env -> (Photographee.Photographee, Bool, Photographee.Photographees) -> UI Element
@@ -67,8 +70,7 @@ mkPhotographee Env{..} (photographee, isCenter, photographees)
         let name = Lens.view Photographee.name photographee
         button <- mkButton name name
         UI.on UI.click button $ \_ ->
-        --    writePhotographees mPhotographersFile photographers
-            return ()
+            Photographee.writePhotographees mPhotographeesFile photographees
         UI.div #. "section" #+ [element button]
 
 dumpFilesCounter :: Env -> Window -> Dump.DumpDir -> [UI Element]
@@ -120,6 +122,24 @@ mainSection env@Env{..} win translations tabs bModel = do
     let bItem   = toJust <$> unModel <$> bModel
         bGrades = grades <<$>> bItem
         bDumpDir = maybe [] (dumpFilesCounter env win) <$> (dumpDir <<$>> bItem)
+        bPhotographees = photographees <<$>> bItem
+
+    val <- currentValue bPhotographees
+    input <- UI.input #. "input" # set value (maybe "" (\x ->
+        case x of 
+            Photographee.Photographees y -> Lens.view Photographee.ident (extract y)
+            Photographee.NoPhotographees -> ""
+        ) val)
+
+    bEditingInput                     <- bEditing input
+
+    liftIOLater $ onChange bPhotographees $ \photographees' -> runUI win $ do
+        editingInput  <- liftIO $ currentValue bEditingInput
+        let string' = maybe "" (\x -> case x of
+                    Photographee.Photographees y -> Lens.view Photographee.ident (extract y)
+                    Photographee.NoPhotographees -> "") photographees'
+        when (not editingInput && string' /= "") $ void $ do
+            element input # set value string'
 
     dumpFilesCounter' <- UI.div #. "section" # sink items bDumpDir
 
@@ -147,7 +167,8 @@ mainSection env@Env{..} win translations tabs bModel = do
     photographees' <- UI.div # sink items photographees''
 
 
-    let bView = mkView env translations dumpFilesCounter' selectSection photographees' <$> bModel
+    inputSection <- UI.div #. "section" # set children [input]
+    let bView = mkView env translations inputSection dumpFilesCounter' selectSection photographees' <$> bModel
 
     view <- UI.div # sink item bView
 
@@ -171,7 +192,7 @@ mainSection env@Env{..} win translations tabs bModel = do
     void $ UI.getBody win # set children [tabs', view, navigation]
 
 
-mkView env translations x y z model =
+mkView env translations xx x y z model =
         case unModel model of
             NotAsked -> do
                 Lens.views starting string translations
@@ -180,4 +201,4 @@ mkView env translations x y z model =
             Failure e -> do
                 Lens.views mainPageError string translations
             Data data' -> do
-                UI.div # set children [x,y,z]
+                UI.div # set children [xx,x,y,z]
