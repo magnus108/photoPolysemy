@@ -121,20 +121,18 @@ write :: (MonadIO m, MonadThrow m) => MVar FilePath -> Photographees -> m ()
 write file photographees = liftIO $ withMVar file $ \f -> writePhotographees' f photographees
 
 --TODO could handle error on write.
-writePhotographees :: (MonadIO m) => MVar FilePath -> Photographees -> m ThreadId
-writePhotographees file photographees = liftIO $ forkFinally (write file photographees) $ \ _ -> return ()
+writePhotographees :: (MonadIO m) => MVar FilePath -> Photographees -> m ()
+writePhotographees file photographees = liftIO $ (write file photographees)
 
 
 read :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler Model -> m (Either String Photographees)
 read file handle = liftIO $ withMVar file $ \f -> do
-        _ <- liftIO $ handle (Model Loading)
+--        _ <- liftIO $ handle (Model Loading)
         getPhotographees' f
 
 
-getPhotographees :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler Model -> m ThreadId
-getPhotographees file handle = liftIO $ forkFinally (read file handle) $ \case
-    Left e -> handle $ Model (Failure (show e))
-    Right x -> case x of
+getPhotographees :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler Model -> m ()
+getPhotographees file handle = liftIO $ (read file handle) >>= \case
             Left e' -> handle $ Model (Failure e')
             Right s -> handle $ Model (Data s)
 
@@ -156,13 +154,9 @@ reloadForker mGradeFile mLocationConfigFile = do
                                 fromGrade locafile grada
 
 
-reloadPhotographees :: (MonadIO m, MonadThrow m) => MVar FilePath -> MVar FilePath -> MVar FilePath -> m ThreadId
+reloadPhotographees :: (MonadIO m, MonadThrow m) => MVar FilePath -> MVar FilePath -> MVar FilePath -> m ()
 reloadPhotographees mGradeFile mLocationConfigFile mPhotographeesFile = do
-    liftIO $ forkFinally (reloadForker mGradeFile mLocationConfigFile ) $ \res -> do
-        case res of
-            Left e -> return ()
-            Right x ->
-                case x of
+    liftIO $ (reloadForker mGradeFile mLocationConfigFile ) >>= \case
                     Left e2 -> return ()
                     Right y -> do
                         void $ writePhotographees mPhotographeesFile y

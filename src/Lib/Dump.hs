@@ -93,17 +93,14 @@ initalStateDir = DumpDirModel NotAsked
 
 readDir :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler DumpDirModel -> m (Either String DumpDir)
 readDir file handle = liftIO $ withMVar file $ \f -> do
-        _ <- liftIO $ handle (DumpDirModel Loading)
+--        _ <- liftIO $ handle (DumpDirModel Loading)
         dumpPath <- getDump' f --TODO fix this shit
         case dumpPath of
             Left x -> return $ Left x
             Right ff -> getDumpDir' (unDump ff)
 
 
-getDumpDir :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler DumpDirModel -> m ThreadId
-getDumpDir file handle = liftIO $ do
-    forkFinally (readDir file handle) $ \case
-        Left e -> handle $ DumpDirModel (Failure (show e))
-        Right x -> case x of
+getDumpDir :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler DumpDirModel -> m ()
+getDumpDir file handle = liftIO $ (readDir file handle) >>= \case
                 Left e' -> handle $ DumpDirModel (Failure e')
                 Right s -> handle $ DumpDirModel (Data s)

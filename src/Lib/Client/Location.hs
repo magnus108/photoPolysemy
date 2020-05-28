@@ -55,9 +55,18 @@ gradeItem env win translations bModel = do
     let bItem   = toJust <$> unModel <$> bModel
         bGrades = grades <<$>> bItem
 
-    input          <- UI.input
+    val <- currentValue bGrades
+    input          <- UI.input # set value (maybe "" Grade.showGrade val)
+    bEditingInput                     <- bEditing input
+    liftIOLater $ onChange bGrades $ \grades' -> runUI win $ do
+        editingInput  <- liftIO $ currentValue bEditingInput
+        when (not editingInput) $ void $ do
+            let string = maybe "" Grade.showGrade grades'
+            element input # set value string
 
-    select         <- UI.select
+
+    let bOptions = maybe [] (mkGrades env) <$> bGrades
+    select         <- UI.select # sink items bOptions
 
     button <- mkButton "insert" (Lens.view newGrade translations)
 
@@ -93,66 +102,41 @@ locationSection
 locationSection env@Env {..} win translations tabs bModel = mdo
     ((input, select, button), tModel) <- gradeItem env win translations bModel
 
-    view                              <- UI.div
 
-    bEditingSelect                    <- bEditing select
-    bEditingInput                     <- bEditing input
+    select' <- UI.div #. "select" #+ [element select]
+    content <-
+        UI.div
+        #. "section"
+        #+ [ UI.div
+                #. "field is-horizontal"
+                #+ [ UI.div
+                    #. "field-body"
+                    #+ [ UI.div
+                        #. "field"
+                        #+ [ UI.p
+                            #. "control"
+                            #+ [element input #. "input"]
+                        ]
+                        , UI.div
+                        #. "field"
+                        #+ [UI.p #. "control" #+ [element select']]
+                        ]
+                ]
+            ]
 
-    liftIOLater $ onChange bModel $ \newModel -> runUI win $ do
-        editingInput  <- liftIO $ currentValue bEditingInput
 
-        when (not editingInput) $ void $ do
-            let grades' = fmap grades $ toJust $ unModel newModel
-            let string = maybe "" Grade.showGrade grades'
-            element input # set value string
+    let bItem   = toJust <$> unModel <$> bModel
+    
+    let bLocationFileView = fmap concat $ locationFileView env translations . location <<$>> bItem
 
-        editingSelect <- liftIO $ currentValue bEditingSelect -- this work?
+    locationFileSection <- UI.div #. "section" # sink items bLocationFileView
+                                            
+    insertSection <- UI.div #. "section" #+ [element button]
 
-        when (not editingSelect) $ void $ do
-            let grades' = fmap grades $ toJust $ unModel newModel
-            let options = maybe [] (mkGrades env) grades'
-            element select # set children [] #+ options
+    let bView = mkView env translations locationFileSection content insertSection <$> bModel
 
-        let editing = editingInput || editingSelect
-        when (not editing) $ void $ do
-            case unModel newModel of
-                NotAsked -> do
-                    child <- Lens.views starting string translations
-                    element view # set children [child]
-                Loading -> do
-                    child <- Lens.views loading string translations
-                    element view # set children [child]
-                Failure e -> do
-                    child <- Lens.views locationPageError string translations
-                    element view # set children [child]
-                Data data' -> do
-                    select' <- UI.div #. "select" #+ [element select]
-                    content <-
-                        UI.div
-                        #. "section"
-                        #+ [ UI.div
-                             #. "field is-horizontal"
-                             #+ [ UI.div
-                                  #. "field-body"
-                                  #+ [ UI.div
-                                     #. "field"
-                                     #+ [ UI.p
-                                          #. "control"
-                                          #+ [element input #. "input"]
-                                        ]
-                                     , UI.div
-                                     #. "field"
-                                     #+ [UI.p #. "control" #+ [element select']]
-                                     ]
-                                ]
-                           ]
-                    locationFileSection <- locationFileView env
-                                                            translations
-                                                            (location data')
-                    insertSection <- UI.div #. "section" #+ [element button]
-                    element view # set
-                        children
-                        [locationFileSection, content, insertSection]
+    -- can kun være fordi vi forker og opdatere samme ting
+    view <- UI.div # set children [locationFileSection, content, insertSection]
 
 --------------------------------------------------------------------------------
 
@@ -175,31 +159,38 @@ locationSection env@Env {..} win translations tabs bModel = mdo
     UI.setFocus (getElement input) -- Can only do this if element exists and should not do this if not focus
 
 
+---udskift med monoid instance..
+mkView env translations x y z model =
+        case unModel model of
+            NotAsked -> do
+                Lens.views starting string translations
+            Loading -> do
+                Lens.views loading string translations
+            Failure e -> do
+                Lens.views locationPageError string translations
+            Data data' -> do
+                UI.div # set children [x,y,z]
 
-locationFileView :: Env -> Translation -> Location.LocationFile -> UI Element
+
+locationFileView :: Env -> Translation -> Location.LocationFile -> [UI Element]
 locationFileView Env {..} translations locationFile = do
-    title_  <- UI.div #+ [Lens.views locationTitle string translations]
-    content <- UI.div #+ [UI.string (Location.unLocationFile locationFile)]
+    let title_  = UI.div #+ [Lens.views locationTitle string translations]
+    let content = UI.div #+ [UI.string (Location.unLocationFile locationFile)]
 
-    pick    <-
-        mkFilePicker "locationFilePicker" (Lens.view pickLocation translations)
-            $ \file -> when (file /= "") $ void $ Location.writeLocationFile
-                  mLocationConfigFile
-                  (Location.LocationFile file)
 
-    make <-
-        mkFileMaker "locationsPicker" (Lens.view newLocation translations)
-            $ \file -> when (file /= "") $ void $ Location.writeLocationFile
-                  mLocationConfigFile
-                  (Location.LocationFile file)
+    let make = mkFileMaker "locationsPicker" (Lens.view newLocation translations)
+            $ \file -> when (file /= "") $ void $ Location.writeLocationFile mLocationConfigFile (Location.LocationFile file)
 
-    pickers <- UI.div #. "buttons has-addons" #+ [element pick, element make]
+    let pick = mkFilePicker "locationFilePicker" (Lens.view pickLocation translations)
+                    $ \file -> when (file /= "") $ void $ Location.writeLocationFile  mLocationConfigFile (Location.LocationFile file)
 
-    open    <- mkOpenFile "open"
+    let pickers = UI.div #. "buttons has-addons" #+ [pick, make]
+
+    let open = mkOpenFile "open"
                           (Lens.view openLocation translations)
                           (Location.unLocationFile locationFile)
 
-    UI.div #. "section" # set children [title_, content, pickers, open]
+    [title_, content, pickers, open]
 
 
 

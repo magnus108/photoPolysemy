@@ -81,18 +81,18 @@ gradeItem
     -> Window
     -> Translation
     -> Behavior Model
-    -> UI ((Element, Element), Tidings Model)
+    -> UI (Element, Tidings Model)
 gradeItem env win translations bModel = do
     let bItem   = toJust <$> unModel <$> bModel
         bGrades = grades <<$>> bItem
 
-    select         <- UI.select
+    let options = maybe [] (CLocation.mkGrades env) <$> bGrades
+    select         <- UI.select # sink items options
 
     let eSelect   = CLocation.selectGrade <$> filterJust (selectionChange' select)
 
     let allEvents = concatenate' <$> unions' (eSelect :| [])
 
-    photograhees' <- UI.div
 
     let
         superTide =
@@ -111,21 +111,22 @@ gradeItem env win translations bModel = do
                 <@> allEvents
 
 
-    return ((getElement select, getElement photograhees'), superTide)
+    return ((getElement select), superTide)
 
 
 mainSection :: Env -> Window -> Translation -> Tabs -> Behavior Model -> UI ()
 mainSection env@Env{..} win translations tabs bModel = do
-    view                              <- UI.div
 
-    dumpFilesCounter' <- UI.div
-    ((select, photographees'), tModel) <- gradeItem env win translations bModel
+    let bItem   = toJust <$> unModel <$> bModel
+        bGrades = grades <<$>> bItem
+        bDumpDir = maybe [] (dumpFilesCounter env win) <$> (dumpDir <<$>> bItem)
+
+    dumpFilesCounter' <- UI.div #. "section" # sink items bDumpDir
+
+    (select, tModel) <- gradeItem env win translations bModel
     select' <- UI.div #. "select" #+ [element select]
 
     bEditingSelect                    <- bEditing select
-
-    childStarting <- Lens.views starting string translations
-    childLoading <- Lens.views loading string translations
     childErr <- UI.div
 
     selectSection <-
@@ -142,32 +143,13 @@ mainSection env@Env{..} win translations tabs bModel = do
                 ]
             ]
 
+    let photographees'' =  fmap concat $ (photographeesList env win) . photographees <<$>> bItem
+    photographees' <- UI.div # sink items photographees''
 
-    liftIOLater $ onChange bModel $ \newModel -> runUI win $ do
-        editingSelect <- liftIO $ currentValue bEditingSelect -- this work?
 
-        let dumpFiles' = fmap dumpDir $ toJust $ unModel newModel
-        element dumpFilesCounter' #. "section" # set children [] #+ maybe [] (dumpFilesCounter env win) dumpFiles'
+    let bView = mkView env translations dumpFilesCounter' selectSection photographees' <$> bModel
 
-        let photographees'' = fmap photographees $ toJust $ unModel newModel
-        element photographees' # set children [] #+ maybe [] (photographeesList env win) photographees''
-
-        when (not editingSelect) $ void $ do
-            let grades' = fmap grades $ toJust $ unModel newModel
-            let options = maybe [] (CLocation.mkGrades env) grades'
-            element select # set children [] #+ options
-
-        when (not editingSelect) $ void $ do
-            case unModel newModel of
-                NotAsked -> do
-                    element view # set children [childStarting]
-                Loading -> do
-                    element view # set children [childLoading]
-                Failure e -> do
-                    element childErr # set text (Lens.view mainPageError translations)
-                    element view # set children [childErr]
-                Data data' -> do
-                    element view # set children [dumpFilesCounter', selectSection, photographees']
+    view <- UI.div # sink item bView
 
 --------------------------------------------------------------------------------
 
@@ -187,3 +169,15 @@ mainSection env@Env{..} win translations tabs bModel = do
         mkElement "footer" #. "section" #+ [mkNavigation env translations tabs]
 
     void $ UI.getBody win # set children [tabs', view, navigation]
+
+
+mkView env translations x y z model =
+        case unModel model of
+            NotAsked -> do
+                Lens.views starting string translations
+            Loading -> do
+                Lens.views loading string translations
+            Failure e -> do
+                Lens.views mainPageError string translations
+            Data data' -> do
+                UI.div # set children [x,y,z]

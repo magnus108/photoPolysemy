@@ -65,13 +65,11 @@ writeShootings file shootings = liftIO $ forkFinally (write file shootings) $ \ 
 
 read :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler Model -> m (Either String Shootings)
 read file handle = liftIO $ withMVar file $ \f -> do
-        _ <- liftIO $ handle (Model Loading)
+        --_ <- liftIO $ handle (Model Loading)
         getShootings' f
 
 
-getShootings :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler Model -> m ThreadId
-getShootings file handle = liftIO $ forkFinally (read file handle) $ \case
-    Left e -> handle $ Model (Failure (show e))
-    Right x -> case x of
+getShootings :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler Model -> m ()
+getShootings file handle = liftIO $ (read file handle) >>= \case
             Left e' -> handle $ Model (Failure e')
             Right s -> handle $ Model (Data s)
