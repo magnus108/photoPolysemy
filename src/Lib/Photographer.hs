@@ -58,7 +58,7 @@ writePhotographers file photographers = liftIO $ forkFinally (write file photogr
 
 
 read :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler Model -> m (Either String Photographers)
-read file handle = liftIO $ withMVar file $ \f -> do
+read file _ = liftIO $ withMVar file $ \f -> do
 --        _ <- liftIO $ handle (Model Loading)
         getPhotographers' f
 

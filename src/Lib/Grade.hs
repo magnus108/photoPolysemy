@@ -20,15 +20,10 @@ import Control.Concurrent
 
 import Utils.Comonad
 import Utils.ListZipper
-import qualified Lib.Location as Location
 
 import Lib.Data
 
 import Control.Lens
-import Data.List (nub)
-import Data.Csv
-import qualified Data.Vector as Vector
-import qualified Data.ByteString.Lazy as BL
 import Graphics.UI.Threepenny.Core
 
 newtype Grade = Grade { unGrade :: String }
@@ -79,7 +74,7 @@ initialState = Model NotAsked
 
 
 forker :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler Model -> m (Either String Grades)
-forker file handle = do
+forker file _ = do
     liftIO $ withMVar file $ \f -> do
         ---_ <- liftIO $ handle $ Model Loading
         getGrades' f

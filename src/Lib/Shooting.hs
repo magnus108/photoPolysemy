@@ -64,7 +64,7 @@ writeShootings file shootings = liftIO $ forkFinally (write file shootings) $ \ 
 
 
 read :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler Model -> m (Either String Shootings)
-read file handle = liftIO $ withMVar file $ \f -> do
+read file _ = liftIO $ withMVar file $ \f -> do
         --_ <- liftIO $ handle (Model Loading)
         getShootings' f
 

@@ -49,7 +49,7 @@ writeDagsdatoBackup file dagsdatoBackup' = liftIO $ forkFinally (write file dags
 
 
 read :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler Model -> m (Either String DagsdatoBackup)
-read file handle = liftIO $ withMVar file $ \f -> do
+read file _ = liftIO $ withMVar file $ \f -> do
         --_ <- liftIO $ handle (Model Loading)
         getDagsdatoBackup' f
 

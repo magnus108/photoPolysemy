@@ -21,7 +21,6 @@ import Graphics.UI.Threepenny.Core
 
 import Lib.Data
 
-import Control.Lens
 
 newtype Dump = Dump { unDump :: FilePath }
     deriving (Eq, Ord, Show)
@@ -55,7 +54,7 @@ writeDump file dump' = liftIO $ forkFinally (write file dump') $ \ _ -> return (
 
 
 read :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler DumpModel -> m (Either String Dump)
-read file handle = liftIO $ withMVar file $ \f -> do
+read file _ = liftIO $ withMVar file $ \f -> do
         getDump' f
 
 
@@ -89,7 +88,7 @@ initalStateDir = DumpDirModel NotAsked
 
 
 readDir :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler DumpDirModel -> m (Either String DumpDir)
-readDir file handle = liftIO $ withMVar file $ \f -> do
+readDir file _ = liftIO $ withMVar file $ \f -> do
 --        _ <- liftIO $ handle (DumpDirModel Loading)
         dumpPath <- getDump' f --TODO fix this shit
         case dumpPath of

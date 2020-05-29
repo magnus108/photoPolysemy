@@ -24,10 +24,7 @@ import Lib.Photographer (getPhotographers)
 import Utils.ListZipper
 
 import qualified Lib.Translation as Translation
-import Lib.Data
-import Lib.Grade (Grades, getGrades, writeGrades, Grade(..), Grades(..))
 import qualified Lib.Photographee as Photographee
-import Lib.Location
 import Lib.Session
 import Lib.Shooting
 import Lib.Camera
@@ -171,6 +168,7 @@ runServer port env@Env{..} = do
 
                     ,("stopConfigDump", stopConfigDump)
                     ,("stopDirDump", stopDirDump)
+                    ,("stopPhotographees", stopPhotographees)
                     ]
 
         --Photographers
@@ -241,7 +239,7 @@ configTab mgr Files{..} _ handler = watchDir
 
 
 configLocationFile :: WatchManager -> MVar FilePath -> MVar FilePath ->  WatchMap -> Handler Location.Model -> IO StopListening
-configLocationFile mgr mLocationConfigFile mGradesFile _ handler = do
+configLocationFile mgr mLocationConfigFile mGradesFile _ _ = do
     filepath <- readMVar mLocationConfigFile
     watchDir
         mgr
@@ -250,11 +248,11 @@ configLocationFile mgr mLocationConfigFile mGradesFile _ handler = do
         (\e -> do
             --TODO madness of baddness
             print e
-            filepath <- readMVar mLocationConfigFile
-            locationFile <- Location.getLocationFile' filepath
+            filepath' <- readMVar mLocationConfigFile
+            locationFile <- Location.getLocationFile' filepath'
             grades' <- mapM Photographee.parseGrades locationFile
-            let grades'' = either (const (Grades (ListZipper [] (Grade "") []))) id (join grades')
-            void $ writeGrades mGradesFile grades''
+            let grades'' = either (const (Grade.Grades (ListZipper [] (Grade.Grade "") []))) id (join grades')
+            void $ Grade.writeGrades mGradesFile grades''
         )
 
 
@@ -282,7 +280,7 @@ grades mgr mGradesFile mLocationConfigFile mPhotographeesFile _ handler = do
         (\e -> eventPath e == filepath)
         (\e -> void $ do
             print e 
-            getGrades mGradesFile handler
+            Grade.getGrades mGradesFile handler
             Photographee.reloadPhotographees mGradesFile mLocationConfigFile mPhotographeesFile
         )
 

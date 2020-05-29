@@ -7,9 +7,6 @@ module Lib.Client.Location
     )
 where
 
-import           Lib.Client.Widget
-import           Control.Monad
-import           Data.Maybe
 import           Lib.Client.Utils
 import qualified Control.Lens                  as Lens
 
@@ -29,9 +26,7 @@ import           Lib.Client.Tab
 
 import           Lib.Client.Element
 import           Lib.App                        ( Env(..)
-                                                , Files(..)
                                                 )
-import           Control.Concurrent.MVar        ( withMVar )
 
 
 data Item = Item { location :: Location.LocationFile
@@ -61,8 +56,8 @@ gradeItem env win translations bModel = do
     liftIOLater $ onChange bGrades $ \grades' -> runUI win $ do
         editingInput  <- liftIO $ currentValue bEditingInput
         when (not editingInput) $ void $ do
-            let string = maybe "" Grade.showGrade grades'
-            element input # set value string
+            let string' = maybe "" Grade.showGrade grades'
+            element input # set value string'
 
 
     let bOptions = maybe [] (mkGrades env) <$> bGrades
@@ -133,7 +128,6 @@ locationSection env@Env {..} win translations tabs bModel = mdo
                                             
     insertSection <- UI.div #. "section" #+ [element button]
 
-    let bView = mkView env translations locationFileSection content insertSection <$> bModel
 
     -- can kun være fordi vi forker og opdatere samme ting
     view <- UI.div # set children [locationFileSection, content, insertSection]
@@ -147,7 +141,7 @@ locationSection env@Env {..} win translations tabs bModel = mdo
                 Nothing -> return ()
                 Just i  -> do
                     --Location.writeLocationFile mLocationConfigFile (location i)
-                    Grade.writeGrades mGradesFile (grades i)
+                    _ <- Grade.writeGrades mGradesFile (grades i)
                     return ()
 
     tabs'      <- mkElement "nav" #. "section" #+ [mkTabs env tabs]
@@ -158,18 +152,6 @@ locationSection env@Env {..} win translations tabs bModel = mdo
 
     UI.setFocus (getElement input) -- Can only do this if element exists and should not do this if not focus
 
-
----udskift med monoid instance..
-mkView env translations x y z model =
-        case unModel model of
-            NotAsked -> do
-                Lens.views starting string translations
-            Loading -> do
-                Lens.views loading string translations
-            Failure e -> do
-                Lens.views locationPageError string translations
-            Data data' -> do
-                UI.div # set children [x,y,z]
 
 
 locationFileView :: Env -> Translation -> Location.LocationFile -> [UI Element]

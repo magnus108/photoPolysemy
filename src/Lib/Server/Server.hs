@@ -9,12 +9,10 @@ import Control.Concurrent.MVar (withMVar)
 import Lib.App (Env(..), Files(..))
 
 import Lib.Translation
-import Lib.Data
 import Lib.Tab
 import qualified Lib.Photographer as Photographer
 import qualified Lib.Photographee as Photographee
 import qualified Lib.Dump as Dump
-import Lib.Dump
 import qualified Lib.Session as Session
 import qualified Lib.Shooting as Shooting
 import qualified Lib.Dagsdato as Dagsdato
@@ -40,7 +38,7 @@ import Utils.ListZipper (focus)
 
 
 view :: Env -> Window -> Translation -> Behavior Grade.Model -> Behavior Location.Model -> UI.Behavior Session.Model -> UI.Behavior Shooting.Model -> UI.Behavior Camera.Model -> UI.Behavior Dump.DumpModel -> UI.Behavior Dump.DumpDirModel -> UI.Behavior Doneshooting.Model -> UI.Behavior Dagsdato.Model -> UI.Behavior DagsdatoBackup.Model -> UI.Behavior Photographer.Model -> UI.Behavior Photographee.Model -> Handler (Grade.Model) -> Handler (Location.Model) -> Handler Dump.DumpModel -> Handler Dump.DumpDirModel -> Handler Photographee.Model -> Tabs -> UI ()
-view env@Env{..} win translation bGrades bLocationConfigFile bSessions bShootings bCameras bDump bDumpDir bDoneshooting bDagsdato bDagsdatoBackup bPhotographers bPhotographees hGrades hLocationConfigFile hDump hDumpDir hPhotographees tabs = do
+view env@Env{..} win translation bGrades bLocationConfigFile bSessions bShootings bCameras bDump bDumpDir bDoneshooting bDagsdato bDagsdatoBackup bPhotographers bPhotographees _ _ _ _ _ tabs = do
     let currentTab = focus (unTabs tabs)
     case currentTab of
         DumpTab -> dumpSection env win translation tabs bDump

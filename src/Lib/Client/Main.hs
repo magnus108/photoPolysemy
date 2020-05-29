@@ -6,7 +6,6 @@ module Lib.Client.Main
 import Utils.Comonad
 
 import           Data.Char
-import           Control.Monad
 import Graphics.UI.Threepenny.Core
 import qualified Graphics.UI.Threepenny as UI
 
@@ -21,13 +20,11 @@ import Lib.Client.Tab
 import qualified Lib.Client.Location as CLocation
 import Lib.Client.Utils
 
-import Lib.App (Env(..), Files(..))
-import Control.Concurrent.MVar
+import Lib.App (Env(..))
 
 import qualified Control.Lens as Lens
 
 import           Reactive.Threepenny
-import Lib.Client.Utils
 import Lib.Client.Element
 
 
@@ -46,8 +43,8 @@ mkModel location grades dump dumpDir photograhees =
 
 
 photographeesList :: Env -> Window -> Photographee.Photographees -> [UI Element]
-photographeesList env win Photographee.NoPhotographees = []
-photographeesList env win (Photographee.Photographees photographees') = do
+photographeesList _ _ Photographee.NoPhotographees = []
+photographeesList env _ (Photographee.Photographees photographees') = do
         let currentPhotographee = extract photographees'
         let elems = photographees' =>> \photographees''-> let
                         thisPhotographee = extract photographees''
@@ -57,7 +54,7 @@ photographeesList env win (Photographee.Photographees photographees') = do
                         , Photographee.Photographees photographees''
                         )
 
-        let elems' = sortOn (\(a,b,c) -> fmap toLower (Photographee._name a)) $ toList elems
+        let elems' = sortOn (\(a,_,_) -> fmap toLower (Photographee._name a)) $ toList elems
         (mkPhotographee env) <$> elems'
 
 
@@ -74,7 +71,7 @@ mkPhotographee Env{..} (photographee, isCenter, photographees)
         UI.div #. "section" #+ [element button]
 
 dumpFilesCounter :: Env -> Window -> Dump.DumpDir -> [UI Element]
-dumpFilesCounter env window (Dump.DumpDir  dumpDir) =
+dumpFilesCounter _ _ (Dump.DumpDir  dumpDir) =
     [ mkLabel "Antal billeder i dump:", UI.string (show $ length (dumpDir)) #. "is-size-1 has-text-danger has-text-weight-bold" # set (attr "id") "count"]
 
 
@@ -84,7 +81,7 @@ gradeItem
     -> Translation
     -> Behavior Model
     -> UI ((Element, Element), Tidings Model)
-gradeItem env win translations bModel = do
+gradeItem env win _ bModel = do
     let bItem   = toJust <$> unModel <$> bModel
         bGrades = grades <<$>> bItem
 
@@ -102,7 +99,7 @@ gradeItem env win translations bModel = do
 
     input <- UI.input #. "input"
     val <- currentValue $ fromMaybe "" <$> (fromMaybe (Just "") <$> bPhotographeeIdent)
-    element input # set value val
+    _ <- element input # set value val
 
 
     bEditingInput              <- bEditing input
@@ -136,11 +133,9 @@ mainSection :: Env -> Window -> Translation -> Tabs -> Behavior Model -> UI ()
 mainSection env@Env{..} win translations tabs bModel = do
 
     let bItem   = toJust <$> unModel <$> bModel
-        bGrades = grades <<$>> bItem
         bDumpDir = maybe [] (dumpFilesCounter env win) <$> (dumpDir <<$>> bItem)
         bPhotographees = photographees <<$>> bItem
         bPhotographee = Photographee.toName <<$>> bPhotographees
-        bPhotographeeIdent = Photographee.toIdent <<$>> bPhotographees
 
 
     dumpFilesCounter' <- UI.div #. "section" # sink items bDumpDir
@@ -148,8 +143,6 @@ mainSection env@Env{..} win translations tabs bModel = do
     ((select, input), tModel) <- gradeItem env win translations bModel
     select' <- UI.div #. "select" #+ [element select]
 
-    bEditingSelect                    <- bEditing select
-    childErr <- UI.div
 
     selectSection <-
         UI.div
@@ -186,7 +179,7 @@ mainSection env@Env{..} win translations tabs bModel = do
                 Nothing -> return ()
                 Just i  -> do
                     --Location.writeLocationFile mLocationConfigFile (location i)
-                    Grade.writeGrades mGradesFile (grades i)
+                    _ <- Grade.writeGrades mGradesFile (grades i)
                     return ()
 
 
@@ -197,13 +190,20 @@ mainSection env@Env{..} win translations tabs bModel = do
     void $ UI.getBody win # set children [tabs', view, navigation]
 
 
-mkView env translations xx x y z model =
+mkView :: Env -> Translation
+                                    -> Element
+                                    -> Element
+                                    -> Element
+                                    -> Element
+                                    -> Model
+                                    -> UI Element
+mkView _ translations xx x y z model =
         case unModel model of
             NotAsked -> do
                 Lens.views starting string translations
             Loading -> do
                 Lens.views loading string translations
-            Failure e -> do
+            Failure _ -> do
                 Lens.views mainPageError string translations
-            Data data' -> do
+            Data _ -> do
                 UI.div # set children [xx,x,y,z]

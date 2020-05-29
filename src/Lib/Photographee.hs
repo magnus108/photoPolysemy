@@ -7,8 +7,11 @@ module Lib.Photographee
     , name
     , toName
     , toIdent
+    , photographee
     , ident
     , unModel
+    , grade
+    , tea
     , fromGrade
     , initialState
     , parseGrades
@@ -29,7 +32,6 @@ import Control.Lens
 
 import Utils.Comonad
 import qualified Utils.ListZipper as ListZipper
-import Control.Lens
 
 import qualified Data.Vector as Vector
 import qualified Data.ByteString.Lazy as BL
@@ -75,8 +77,8 @@ photographee = Photographee
 myOptionsDecode :: DecodeOptions
 myOptionsDecode = defaultDecodeOptions { decDelimiter = fromIntegral (ord ';') }
 
-myOptionsEncode :: EncodeOptions
-myOptionsEncode = defaultEncodeOptions { encDelimiter = fromIntegral (ord ';') }
+--myOptionsEncode :: EncodeOptions
+--myOptionsEncode = defaultEncodeOptions { encDelimiter = fromIntegral (ord ';') }
 
 
 fromGrade :: Location.LocationFile -> Grade.Grades -> IO (Either String Photographees)
@@ -139,7 +141,7 @@ writePhotographees file photographees = liftIO $ (write file photographees)
 
 
 read :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler Model -> m (Either String Photographees)
-read file handle = liftIO $ withMVar file $ \f -> do
+read file _ = liftIO $ withMVar file $ \f -> do
 --        _ <- liftIO $ handle (Model Loading)
         getPhotographees' f
 
@@ -170,7 +172,7 @@ reloadForker mGradeFile mLocationConfigFile = do
 reloadPhotographees :: (MonadIO m, MonadThrow m) => MVar FilePath -> MVar FilePath -> MVar FilePath -> m ()
 reloadPhotographees mGradeFile mLocationConfigFile mPhotographeesFile = do
     liftIO $ (reloadForker mGradeFile mLocationConfigFile ) >>= \case
-                    Left e2 -> return ()
+                    Left _ -> return ()
                     Right y -> do
                         void $ writePhotographees mPhotographeesFile y
 

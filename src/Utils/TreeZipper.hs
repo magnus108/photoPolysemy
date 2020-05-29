@@ -10,16 +10,18 @@ module Utils.TreeZipper
     , up
     , down
 
+    {-
     , TreeZipperS(..)
     , Tree(..)
     , ContextT(..)
     , Trunk(..)
     , getCONTEXT
     , upS
+    -}
     ) where
 
 import Utils.RoseTree
-import Utils.Comonad
+--import Utils.Comonad
 
 
 --TODO should this not be Context l [RoseTree bl]?
@@ -34,6 +36,7 @@ data Context b l = Context [RoseTree b l] b [RoseTree b l]
 
 
 
+    {-
 
 data Tree l b = b :< (Trunk l b)
     deriving (Show, Eq, Ord, Functor)
@@ -92,7 +95,7 @@ upS :: TreeZipperS b l -> Maybe (TreeZipperS b l)
 upS (TreeZipperS item (ContextT ls x rs:bs)) =
     Just (TreeZipperS (x :< B (ls <> [item] <> rs)) bs)
 upS _ = Nothing
-
+-}
 
 
 data TreeZipper b l = TreeZipper (RoseTree b l) [Context b l]

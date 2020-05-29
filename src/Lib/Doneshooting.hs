@@ -50,7 +50,7 @@ writeDoneshooting file dagsdato' = liftIO $ forkFinally (write file dagsdato') $
 
 
 read :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler Model -> m (Either String Doneshooting)
-read file handle = liftIO $ withMVar file $ \f -> do
+read file _ = liftIO $ withMVar file $ \f -> do
         getDoneshooting' f
 
 

@@ -92,7 +92,7 @@ writeSessions file sessions = liftIO $ forkFinally (write file sessions) $ \ _ -
 
 
 read :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler Model -> m (Either String Sessions)
-read file handle = liftIO $ withMVar file $ \f -> do
+read file _ = liftIO $ withMVar file $ \f -> do
         --_ <- liftIO $ handle (Model Loading)
         getSessions' f
 

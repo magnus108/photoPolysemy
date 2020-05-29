@@ -12,7 +12,6 @@ module Lib.Location
     , Model(..)
     ) where
 
-import qualified Control.Lens as Lens
 
 import Control.Concurrent
 import Graphics.UI.Threepenny.Core
@@ -54,7 +53,7 @@ writeLocationFile file sessions = liftIO $ forkFinally (write file sessions) $ \
 
 
 read :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler Model -> m (Either String LocationFile)
-read file handle = do
+read file _ = do
     liftIO $ withMVar file $ \f -> do
         getLocationFile' f
 
