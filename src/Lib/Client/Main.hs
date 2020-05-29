@@ -103,7 +103,8 @@ gradeItem env win translations bModel = do
     input <- UI.input #. "input"
     val <- currentValue $ fromMaybe "" <$> (fromMaybe (Just "") <$> bPhotographeeIdent)
     element input # set value val
-    
+
+
     bEditingInput              <- bEditing input
     liftIOLater $ onChange bPhotographeeIdent $ \ident' -> runUI win $ do
         editingInput  <- liftIO $ currentValue bEditingInput
