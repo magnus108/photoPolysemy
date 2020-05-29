@@ -206,10 +206,13 @@ runServer port env@Env{..} = do
         _ <- Session.getSessions mSessionsFile hSessions
 
         -- Grades
-        -- Photographees this is REAL BAD AS it does not wrk with bLocationConfigFile as expected
-        bPhotographees <- UI.stepper Photographee.initialState ePhotographees
+
         bGrades <- UI.stepper Grade.initialState eGrades
         _ <- Grade.getGrades mGradesFile hGrades
+
+        -- Photographees this is REAL BAD AS it does not wrk with bLocationConfigFile as expected
+        bPhotographees <- UI.stepper Photographee.initialState ePhotographees
+        _ <- Photographee.getPhotographees mPhotographeesFile hPhotographees
 
 
         -- Location

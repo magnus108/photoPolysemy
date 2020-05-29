@@ -5,6 +5,8 @@ module Lib.Photographee
     ( Photographee(..)
     , Photographees(..)
     , name
+    , toName
+    , toIdent
     , ident
     , unModel
     , fromGrade
@@ -52,6 +54,15 @@ data Photographees
         deriving (Eq, Show)
         deriving (Generic)
         deriving (FromJSON, ToJSON)
+
+
+toName :: Photographees -> Maybe String
+toName NoPhotographees = Nothing
+toName (Photographees x) = Just ( _name ( extract x))
+
+toIdent :: Photographees -> Maybe String
+toIdent NoPhotographees = Nothing
+toIdent (Photographees x) = Just ( _ident ( extract x))
 
 
 instance FromRecord Photographee

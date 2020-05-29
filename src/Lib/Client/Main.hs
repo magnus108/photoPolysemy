@@ -83,7 +83,7 @@ gradeItem
     -> Window
     -> Translation
     -> Behavior Model
-    -> UI (Element, Tidings Model)
+    -> UI ((Element, Element), Tidings Model)
 gradeItem env win translations bModel = do
     let bItem   = toJust <$> unModel <$> bModel
         bGrades = grades <<$>> bItem
@@ -94,6 +94,21 @@ gradeItem env win translations bModel = do
     let eSelect   = CLocation.selectGrade <$> filterJust (selectionChange' select)
 
     let allEvents = concatenate' <$> unions' (eSelect :| [])
+
+
+
+    let bPhotographees = photographees <<$>> bItem
+        bPhotographeeIdent = Photographee.toIdent <<$>> bPhotographees
+
+    input <- UI.input #. "input"
+    val <- currentValue $ fromMaybe "" <$> (fromMaybe (Just "") <$> bPhotographeeIdent)
+    element input # set value val
+    
+    bEditingInput              <- bEditing input
+    liftIOLater $ onChange bPhotographeeIdent $ \ident' -> runUI win $ do
+        editingInput  <- liftIO $ currentValue bEditingInput
+        when (not editingInput) $ void $ do
+            element input # set value (fromMaybe "" (fromMaybe (Just "") ident'))
 
 
     let
@@ -113,7 +128,7 @@ gradeItem env win translations bModel = do
                 <@> allEvents
 
 
-    return ((getElement select), superTide)
+    return ((getElement select, getElement input), superTide)
 
 
 mainSection :: Env -> Window -> Translation -> Tabs -> Behavior Model -> UI ()
@@ -123,27 +138,13 @@ mainSection env@Env{..} win translations tabs bModel = do
         bGrades = grades <<$>> bItem
         bDumpDir = maybe [] (dumpFilesCounter env win) <$> (dumpDir <<$>> bItem)
         bPhotographees = photographees <<$>> bItem
+        bPhotographee = Photographee.toName <<$>> bPhotographees
+        bPhotographeeIdent = Photographee.toIdent <<$>> bPhotographees
 
-    val <- currentValue bPhotographees
-    input <- UI.input #. "input" # set value (maybe "" (\x ->
-        case x of 
-            Photographee.Photographees y -> Lens.view Photographee.ident (extract y)
-            Photographee.NoPhotographees -> ""
-        ) val)
-
-    bEditingInput                     <- bEditing input
-
-    liftIOLater $ onChange bPhotographees $ \photographees' -> runUI win $ do
-        editingInput  <- liftIO $ currentValue bEditingInput
-        let string' = maybe "" (\x -> case x of
-                    Photographee.Photographees y -> Lens.view Photographee.ident (extract y)
-                    Photographee.NoPhotographees -> "") photographees'
-        when (not editingInput && string' /= "") $ void $ do
-            element input # set value string'
 
     dumpFilesCounter' <- UI.div #. "section" # sink items bDumpDir
 
-    (select, tModel) <- gradeItem env win translations bModel
+    ((select, input), tModel) <- gradeItem env win translations bModel
     select' <- UI.div #. "select" #+ [element select]
 
     bEditingSelect                    <- bEditing select
@@ -167,7 +168,10 @@ mainSection env@Env{..} win translations tabs bModel = do
     photographees' <- UI.div # sink items photographees''
 
 
-    inputSection <- UI.div #. "section" # set children [input]
+    currentPhotographee <- UI.h1 #. "is-size-4" # sink text (fromMaybe "" <$> (fromMaybe (Just "") <$> bPhotographee))
+
+
+    inputSection <- UI.div #. "section" # set children [input, currentPhotographee]
     let bView = mkView env translations inputSection dumpFilesCounter' selectSection photographees' <$> bModel
 
     view <- UI.div # sink item bView

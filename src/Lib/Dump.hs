@@ -56,14 +56,11 @@ writeDump file dump' = liftIO $ forkFinally (write file dump') $ \ _ -> return (
 
 read :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler DumpModel -> m (Either String Dump)
 read file handle = liftIO $ withMVar file $ \f -> do
-        _ <- liftIO $ handle (DumpModel Loading)
         getDump' f
 
 
-getDump :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler DumpModel -> m ThreadId
-getDump file handle = liftIO $ forkFinally (read file handle) $ \case
-    Left e -> handle $ DumpModel (Failure (show e))
-    Right x -> case x of
+getDump :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler DumpModel -> m ()
+getDump file handle = liftIO $ (read file handle) >>= \case
             Left e' -> handle $ DumpModel (Failure e')
             Right s -> handle $ DumpModel (Data s)
 

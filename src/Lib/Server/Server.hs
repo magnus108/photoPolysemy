@@ -55,19 +55,12 @@ view env@Env{..} win translation bGrades bLocationConfigFile bSessions bShooting
             let bModel = liftA2 CLocation.mkModel bLocationConfigFile bGrades
             CLocation.locationSection env win translation tabs bModel
             -- QUICK BADNESS
-            _ <- Grade.getGrades mGradesFile hGrades
-            _ <- Location.getLocationFile mLocationConfigFile hLocationConfigFile
             return ()
 
         MainTab -> do
             let bModel = CMain.mkModel <$> bLocationConfigFile <*> bGrades <*> bDump <*> bDumpDir <*> bPhotographees
             CMain.mainSection env win translation tabs bModel
             -- QUICK BADNESS
-            _ <- Grade.getGrades mGradesFile hGrades
-            _ <- Location.getLocationFile mLocationConfigFile hLocationConfigFile
-            _ <- Dump.getDump mDumpFile hDump
-            _ <- Dump.getDumpDir mDumpFile hDumpDir
-            _ <- Photographee.getPhotographees mPhotographeesFile hPhotographees
             return ()
 
         _ -> dagsdatoBackupSection env win translation tabs bDagsdatoBackup
