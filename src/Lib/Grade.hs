@@ -6,7 +6,11 @@ module Lib.Grade
     ( Grades(..)
     , Grade(..)
     , Model(..)
+    , inputGrade
+    , mkNewGrade
     , grades
+    , unGrades
+    , unGrade
     , extractGrade
     , getGrades
     , getGrades'
@@ -26,23 +30,36 @@ import Lib.Data
 import Control.Lens
 import Graphics.UI.Threepenny.Core
 
-newtype Grade = Grade { unGrade :: String }
+newtype Grade = Grade { _unGrade :: String }
     deriving (Eq, Ord, Show)
     deriving (Generic)
     deriving (FromJSON, ToJSON)
 
+makeLenses ''Grade
 
-newtype Grades = Grades { unGrades :: ListZipper Grade }
+newtype Grades = Grades { _unGrades :: ListZipper Grade }
     deriving (Eq, Ord, Show)
     deriving (Generic)
     deriving (FromJSON, ToJSON)
+
+makeLenses ''Grades
 
 
 extractGrade :: Grades -> Grade
-extractGrade = extract . unGrades
+extractGrade = extract . (view unGrades)
 
 showGrade :: Grades -> String
-showGrade = unGrade . extract . unGrades
+showGrade = view unGrade . extract . view unGrades
+
+mkNewGrade :: Grades -> Grades
+mkNewGrade grades' =
+    grades' & unGrades %~ (\x -> insert x newGrade)
+        where
+            newGrade = Grade ""
+
+inputGrade :: String -> Grades -> Grades
+inputGrade name grades' =
+    grades' & unGrades %~ mapFocus (const (Grade name))
 
 
 getGrades' :: (MonadIO m, MonadThrow m) => FilePath -> m (Either String Grades)

@@ -40,65 +40,17 @@ mkModel location grades =
     Model $ Item <$> Location.unModel location <*> Grade._grades grades
 
 
-gradeItem
-    :: Env
-    -> Window
-    -> Translation
-    -> Behavior Model
-    -> UI ((Element, Element, Element), Tidings Model)
-gradeItem env win translations bModel = do
-    let bItem   = toJust <$> unModel <$> bModel
-        bGrades = grades <<$>> bItem
-
-    val <- currentValue bGrades
-    input          <- UI.input # set value (maybe "" Grade.showGrade val)
-    bEditingInput                     <- bEditing input
-    liftIOLater $ onChange bGrades $ \grades' -> runUI win $ do
-        editingInput  <- liftIO $ currentValue bEditingInput
-        when (not editingInput) $ void $ do
-            let string' = maybe "" Grade.showGrade grades'
-            element input # set value string'
-
-
-    let bOptions = maybe [] (mkGrades env) <$> bGrades
-    select         <- UI.select # sink items bOptions
-
+insertButton :: Env -> Window -> Translation -> UI (Element, Element)
+insertButton _ _ translations = do
     button <- mkButton "insert" (Lens.view newGrade translations)
-
-    let eClick    = mkNewGrade <$ UI.click button
-    let eInput    = inputGrade <$> UI.valueChange input
-    let eSelect   = selectGrade <$> filterJust (selectionChange' select)
-
-    let allEvents = concatenate' <$> unions' (eSelect :| [eInput, eClick])
+    content <- UI.div #. "section" #+ [element button]
+    return (button, content)
 
 
-    let
-        superTide =
-            tidings bModel
-                $   filterJust
-                $   fmap
-                        (\m f -> case toJust (unModel m) of
-                            Nothing -> Nothing
-                            Just x ->
-                                Just
-                                    (Model
-                                        (Data (Item (location x) (f (grades x))))
-                                    )
-                        )
-                        bModel
-                <@> allEvents
-
-
-    return ((getElement input, getElement select, getElement button), superTide)
-
-
-locationSection
-    :: Env -> Window -> Translation -> Tabs -> Behavior Model -> UI ()
-locationSection env@Env {..} win translations tabs bModel = mdo
-    ((input, select, button), tModel) <- gradeItem env win translations bModel
-
-
-    select' <- UI.div #. "select" #+ [element select]
+selectSection :: Env -> Window -> Translation -> Element -> Element -> Grade.Grades -> UI Element
+selectSection env _ _ input select grades = do
+    _ <- element input # set value (Grade.showGrade grades)
+    _ <- element select # set children [] #+ (mkGrades env grades)
     content <-
         UI.div
         #. "section"
@@ -114,45 +66,127 @@ locationSection env@Env {..} win translations tabs bModel = mdo
                         ]
                         , UI.div
                         #. "field"
-                        #+ [UI.p #. "control" #+ [element select']]
+                        #+ [UI.p #. "control" #+ [UI.div #. "select" #+ [element select]]]
                         ]
                 ]
             ]
 
-
-    let bItem   = toJust <$> unModel <$> bModel
-    
-    let bLocationFileView = fmap concat $ locationFileView env translations . location <<$>> bItem
-
-    locationFileSection <- UI.div #. "section" # sink items bLocationFileView
-                                            
-    insertSection <- UI.div #. "section" #+ [element button]
+    return content
 
 
-    -- can kun være fordi vi forker og opdatere samme ting
-    view <- UI.div # set children [locationFileSection, content, insertSection]
+sinkModel :: Env -> Window -> Translation -> Behavior Model -> UI (Element, Element)
+sinkModel env@Env{..} win translations bModel = do
+    input   <- UI.input
+    select  <- UI.select
+    (button, buttonContent) <- insertButton env win translations
 
---------------------------------------------------------------------------------
+    bEditingInput                     <- bEditing input
+    bEditingSelect  <- bEditing select
 
-    let eModel = rumors $ tModel
-    _ <- onEvent eModel $ \m -> do
-        void $ liftIO $ do
-            case toJust (unModel m) of
-                Nothing -> return ()
-                Just i  -> do
-                    --Location.writeLocationFile mLocationConfigFile (location i)
-                    _ <- Grade.writeGrades mGradesFile (grades i)
+    content <- UI.div
+
+    liftIOLater $ do
+        model <- currentValue bModel
+        runUI win $ void $ do
+            case unModel model of
+                NotAsked -> do
+                    return ()
+                Loading -> do
+                    return ()
+                Failure e -> do
+                    return ()
+                Data (Item locfile grades) -> do
+                    locationFileView <- UI.div #. "section" #+ (locationFileView env translations locfile)
+                    selectInputSection <- selectSection env win translations input select grades
+                    element content # set children [locationFileView, selectInputSection, buttonContent]
                     return ()
 
-    tabs'      <- mkElement "nav" #. "section" #+ [mkTabs env tabs]
-    navigation <-
-        mkElement "footer" #. "section" #+ [mkNavigation env translations tabs]
+    liftIOLater $ onChange bModel $ \model -> runUI win $ do
+        case unModel model of
+            NotAsked -> do
+                return ()
+            Loading -> do
+                return ()
+            Failure _ -> do
+                return ()
+            Data (Item locfile grades) -> do
+                editingInput <- liftIO $ currentValue bEditingInput
+                editingSelect <- liftIO $ currentValue bEditingSelect
+
+                when (not editingInput ) $ void $
+                    element input # set value (Grade.showGrade grades)
+
+                when (not editingSelect) $ void $
+                    element select # set children [] #+ (mkGrades env grades)
+
+                when (not (editingInput || editingSelect)) $ void $ do
+                    locationFileView' <- UI.div #. "section" #+ (locationFileView env translations locfile)
+                    selectInputSection <- selectSection env win translations input select grades
+                    element content # set children [locationFileView', selectInputSection, buttonContent ]
+                    return ()
+
+    let eClick    = Grade.mkNewGrade <$ UI.click button
+    let eInput    = Grade.inputGrade <$> UI.valueChange input
+    let eSelect   = selectGrade <$> filterJust (selectionChange' select)
+    let allEvents = concatenate' <$> unions' (eSelect :| [eInput, eClick])
+    let ee  = filterJust
+                $   fmap
+                        (\m f -> case toJust (unModel m) of
+                            Nothing -> Nothing
+                            Just x ->
+                                Just
+                                    (Model
+                                        (Data (Item (location x) (f (grades x))))
+                                    )
+                        )
+                        bModel
+                <@> allEvents
+
+    _ <- onEvent ee $ \model -> do
+        void $ liftIO $ do
+            case toJust (unModel model) of
+                Nothing -> return ()
+                Just item'  -> do
+                    --Location.writeLocationFile mLocationConfigFile (location i)
+                    _ <- Grade.writeGrades mGradesFile (grades item')
+                    return ()
+
+    return (input, content)
+
+
+locationSection :: Env -> Window -> Translation -> Tabs -> Behavior Model -> UI ()
+locationSection env@Env {..} win translations tabs bModel = mdo
+
+    (input, view) <- sinkModel env win translations bModel
+
+    tabs' <- mkElement "nav" #. "section" #+ [mkTabs env tabs]
+    navigation <- mkElement "footer" #. "section" #+ [mkNavigation env translations tabs]
 
     void $ UI.getBody win # set children [tabs', view, navigation]
 
     UI.setFocus (getElement input) -- Can only do this if element exists and should not do this if not focus
 
+--TODO a little flawed
+mkGrades :: Env -> Grade.Grades -> [UI Element]
+mkGrades env (Grade.Grades grades') = do
+    let elems = ListZipper.iextend (\index grades'' -> (index, grades' == grades'', extract grades'')) grades'
+    map (mkGrade env) (ListZipper.toList elems)
 
+
+mkGrade :: Env -> (Int, Bool, Grade.Grade) -> UI Element
+mkGrade Env {..} (thisIndex, isCenter, grade) = do
+    let name   = Lens.view Grade.unGrade grade
+    let option = UI.option # set value (show thisIndex) # set text name
+    if isCenter then option # set UI.selected True else option
+
+selectGrade :: Int -> Grade.Grades -> Grade.Grades
+selectGrade selected (Grade.Grades grades') =
+        -- TODO this just wierd
+    fromMaybe (Grade.Grades grades') $ asum $ ListZipper.toNonEmpty $ ListZipper.iextend
+        (\thisIndex grades'' -> if selected == thisIndex
+            then Just (Grade.Grades grades'')
+            else Nothing
+        ) grades'
 
 locationFileView :: Env -> Translation -> Location.LocationFile -> [UI Element]
 locationFileView Env {..} translations locationFile = do
@@ -173,43 +207,3 @@ locationFileView Env {..} translations locationFile = do
                           (Location.unLocationFile locationFile)
 
     [title_, content, pickers, open]
-
-
-
-inputGrade :: String -> Grade.Grades -> Grade.Grades
-inputGrade name grades = Grade.Grades
-    (ListZipper.mapFocus (const (Grade.Grade name)) (Grade.unGrades grades))
-
-
-mkNewGrade :: Grade.Grades -> Grade.Grades
-mkNewGrade grades =
-    Grade.Grades $ ListZipper.insert (Grade.unGrades grades) (Grade.Grade "")
-
-
-selectGrade :: Int -> Grade.Grades -> Grade.Grades
-selectGrade selected grades =
-        -- TODO this just wierd
-    fromMaybe grades $ asum $ ListZipper.toNonEmpty $ ListZipper.iextend
-        (\thisIndex grades' -> if selected == thisIndex
-            then Just (Grade.Grades grades')
-            else Nothing
-        )
-        (Grade.unGrades grades)
-
-
-
-mkGrades :: Env -> Grade.Grades -> [UI Element]
-mkGrades env (Grade.Grades grades') = do
-    let elems = ListZipper.iextend
-            (\index grades'' -> (index, grades' == grades'', extract grades''))
-            grades'
-
-    map (mkGrade env) (ListZipper.toList elems)
-
-
-
-mkGrade :: Env -> (Int, Bool, Grade.Grade) -> UI Element
-mkGrade Env {..} (thisIndex, isCenter, grade) = do
-    let name   = Grade.unGrade grade
-    let option = UI.option # set value (show thisIndex) # set text name
-    if isCenter then option # set UI.selected True else option

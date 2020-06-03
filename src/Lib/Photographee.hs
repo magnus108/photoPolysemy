@@ -90,7 +90,7 @@ fromGrade locationFile grades = do
     case locationData of
             Left _ -> return (Left "fejl")
             Right locData -> do
-                let photographees = Vector.filter (((Grade.unGrade (extract (Grade.unGrades grades))) ==) . _grade) locData
+                let photographees = Vector.filter (((view Grade.unGrade (extract (view Grade.unGrades grades))) ==) . _grade) locData
                 let zipper = ListZipper.fromList $ Vector.toList photographees
                 case zipper of
                     Nothing -> return (Left "fejl")

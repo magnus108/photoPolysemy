@@ -203,7 +203,8 @@ mkView _ translations xx x y z model =
                 Lens.views starting string translations
             Loading -> do
                 Lens.views loading string translations
-            Failure _ -> do
-                Lens.views mainPageError string translations
+            Failure e -> do
+                
+                UI.div #+ [string e, Lens.views mainPageError string translations]
             Data _ -> do
                 UI.div # set children [xx,x,y,z]
