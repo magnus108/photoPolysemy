@@ -5,6 +5,8 @@ module Utils.ListZipper
     ( ListZipper(..)
     , fromList
     , toN
+    , findFirst
+    , find
     , toNonEmpty
     , appendr
     , focus
@@ -149,6 +151,22 @@ sorted (y:ys) (ListZipper ls a rs) | y < a = sorted ys $ ListZipper (insert'' y 
 fromList :: [a] -> Maybe (ListZipper a)
 fromList [] = Nothing
 fromList (x:xs) = Just $ ListZipper [] x xs
+
+
+findFirst :: (a -> Bool) -> ListZipper a -> Maybe (ListZipper a)
+findFirst predicate = find predicate . first
+
+
+find :: (a -> Bool) -> ListZipper a -> Maybe (ListZipper a)
+find predicate zipper@(ListZipper ls x rs) =
+    if predicate x then
+        Just zipper
+    else
+        case forward' zipper of
+            Just nextZipper ->
+                find predicate nextZipper
+            Nothing ->
+                Nothing
 
 
 instance Functor ListZipper where

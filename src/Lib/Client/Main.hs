@@ -186,8 +186,9 @@ sinkModel env@Env{..} win translations bModel = do
 
 
     let eSelect   = CLocation.selectGrade <$> filterJust (selectionChange' select)
-    let eFind = filterJust $ Photographee.findById <$> UI.valueChange input
-    let allEvents = concatenate' <$> unions' (eSelect :| [])
+    let eFind = Photographee.tryFindById <$> UI.valueChange input
+    let gradeEvent = concatenate' <$> unions' (eSelect :| [])
+    let findEvent = concatenate' <$> unions' (eFind :| [])
     let ee  = filterJust
                 $   fmap
                         (\m f -> case toJust (unModel m) of
@@ -199,7 +200,29 @@ sinkModel env@Env{..} win translations bModel = do
                                     )
                         )
                         bModel
-                <@> allEvents
+                <@> gradeEvent
+
+    let ee2 = filterJust
+                $   fmap
+                        (\m f -> case toJust (unModel m) of
+                            Nothing -> Nothing
+                            Just x ->
+                                Just
+                                    (Model
+                                        (Data (Item (location x) (grades x) (dump x) (dumpDir x) (f (photographees x))))
+                                    )
+                        )
+                        bModel
+                <@> findEvent
+
+    _ <- onEvent ee2 $ \model -> do
+        void $ liftIO $ do
+            case toJust (unModel model) of
+                Nothing -> return ()
+                Just item'  -> do
+                    --Location.writeLocationFile mLocationConfigFile (location i)
+                    _ <- Photographee.writePhotographees mPhotographeesFile (photographees item')
+                    return ()
 
     _ <- onEvent ee $ \model -> do
         void $ liftIO $ do

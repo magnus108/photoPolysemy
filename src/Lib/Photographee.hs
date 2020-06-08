@@ -4,7 +4,6 @@
 module Lib.Photographee
     ( Photographee(..)
     , Photographees(..)
-    , findById
     , name
     , toName
     , toIdent
@@ -20,6 +19,7 @@ module Lib.Photographee
     , Model(..)
     , reloadPhotographees
     , getPhotographees
+    , tryFindById
     ) where
 
 import Control.Concurrent
@@ -52,23 +52,30 @@ makeLenses ''Photographee
 
 
 data Photographees
-    = PhotographeesWithFocus (ListZipper.ListZipper Photographee)
-    | Photographees [Photographee]
+    = Photographees (ListZipper.ListZipper Photographee)
     | NoPhotographees
         deriving (Eq, Show)
         deriving (Generic)
         deriving (FromJSON, ToJSON)
 
 
+tryFindById :: String -> Photographees -> Photographees
+tryFindById _ NoPhotographees = NoPhotographees
+tryFindById s (Photographees x) = 
+    let 
+        found = ListZipper.findFirst (\y -> (_ident y) == s) x
+    in 
+        case found of
+            Nothing -> Photographees x
+            Just xs -> Photographees xs
+
 toName :: Photographees -> Maybe String
 toName NoPhotographees = Nothing
-toName (Photographees _) = Nothing
-toName (PhotographeesWithFocus x) = Just ( _name ( extract x))
+toName (Photographees x) = Just ( _name ( extract x))
 
 toIdent :: Photographees -> Maybe String
 toIdent NoPhotographees = Nothing
-toIdent (Photographees _) = Nothing
-toIdent (PhotographeesWithFocus x) = Just ( _ident ( extract x))
+toIdent (Photographees x) = Just ( _ident ( extract x))
 
 
 instance FromRecord Photographee
@@ -85,7 +92,6 @@ myOptionsDecode = defaultDecodeOptions { decDelimiter = fromIntegral (ord ';') }
 --myOptionsEncode = defaultEncodeOptions { encDelimiter = fromIntegral (ord ';') }
 
 
-
 fromGrade :: Location.LocationFile -> Grade.Grades -> IO (Either String Photographees)
 fromGrade locationFile grades = do
     data' <- BL.readFile (Location.unLocationFile locationFile)
@@ -96,7 +102,10 @@ fromGrade locationFile grades = do
             Left _ -> return (Left "fejl")
             Right locData -> do
                 let photographees = Vector.filter (((view Grade.unGrade (extract (view Grade.unGrades grades))) ==) . _grade) locData
-                return $ Right $ Photographees $ Vector.toList photographees
+                let zipper = ListZipper.fromList $ Vector.toList photographees
+                case zipper of
+                    Nothing -> return (Left "fejl")
+                    Just zs -> return (Right (Photographees zs))
 
 
 parseGrades :: Location.LocationFile -> IO (Either String Grade.Grades)
