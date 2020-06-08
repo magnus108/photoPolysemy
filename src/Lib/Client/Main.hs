@@ -35,7 +35,9 @@ data Item = Item { location :: Location.LocationFile
                  , photographees :: Photographee.Photographees
                  }
 
+
 newtype Model = Model { unModel :: Data String Item }
+
 
 mkModel :: Location.Model -> Grade.Model -> Dump.DumpModel -> Dump.DumpDirModel -> Photographee.Model -> Model
 mkModel location grades dump dumpDir photograhees =
@@ -70,80 +72,33 @@ mkPhotographee Env{..} (photographee, isCenter, photographees)
             Photographee.writePhotographees mPhotographeesFile photographees
         UI.div #. "section" #+ [element button]
 
-dumpFilesCounter :: Env -> Window -> Dump.DumpDir -> [UI Element]
-dumpFilesCounter _ _ (Dump.DumpDir  dumpDir) =
-    [ mkLabel "Antal billeder i dump:", UI.string (show $ length (dumpDir)) #. "is-size-1 has-text-danger has-text-weight-bold" # set (attr "id") "count"]
 
 
-gradeItem
-    :: Env
-    -> Window
-    -> Translation
-    -> Behavior Model
-    -> UI ((Element, Element), Tidings Model)
-gradeItem env win _ bModel = do
-    let bItem   = toJust <$> unModel <$> bModel
-        bGrades = grades <<$>> bItem
-
-    let options = maybe [] (CLocation.mkGrades env) <$> bGrades
-    select         <- UI.select # sink items options
-
-    let eSelect   = CLocation.selectGrade <$> filterJust (selectionChange' select)
-
-    let allEvents = concatenate' <$> unions' (eSelect :| [])
+dumpFilesCounter :: Env -> Window -> Translation -> Dump.DumpDir -> UI Element
+dumpFilesCounter _ _ translations (Dump.DumpDir dumpDir) =
+    UI.div #. "section" #+
+        [ mkLabel (Lens.view dumpDirCounter translations)
+        , UI.string (show $ length (dumpDir))
+                #. "is-size-1 has-text-danger has-text-weight-bold" # set (attr "id") "count"]
 
 
 
-    let bPhotographees = photographees <<$>> bItem
-        bPhotographeeIdent = Photographee.toIdent <<$>> bPhotographees
-
-    input <- UI.input #. "input"
-    val <- currentValue $ fromMaybe "" <$> (fromMaybe (Just "") <$> bPhotographeeIdent)
-    _ <- element input # set value val
-
-
-    bEditingInput              <- bEditing input
-    liftIOLater $ onChange bPhotographeeIdent $ \ident' -> runUI win $ do
-        editingInput  <- liftIO $ currentValue bEditingInput
-        when (not editingInput) $ void $ do
-            element input # set value (fromMaybe "" (fromMaybe (Just "") ident'))
-
-
-    let
-        superTide =
-            tidings bModel
-                $   filterJust
-                $   fmap
-                        (\m f -> case toJust (unModel m) of
-                            Nothing -> Nothing
-                            Just x ->
-                                Just
-                                    (Model
-                                        (Data (Item (location x) (f (grades x)) (dump x) (dumpDir x) (photographees x)))
-                                    )
-                        )
-                        bModel
-                <@> allEvents
-
-
-    return ((getElement select, getElement input), superTide)
-
-
+---------------------------------------------------------------------------------
 mainSection :: Env -> Window -> Translation -> Tabs -> Behavior Model -> UI ()
 mainSection env@Env{..} win translations tabs bModel = do
+    view <- sinkModel env win translations bModel
 
-    let bItem   = toJust <$> unModel <$> bModel
-        bDumpDir = maybe [] (dumpFilesCounter env win) <$> (dumpDir <<$>> bItem)
-        bPhotographees = photographees <<$>> bItem
-        bPhotographee = Photographee.toName <<$>> bPhotographees
+    tabs' <- mkElement "nav" #. "section" #+ [mkTabs env tabs]
+    navigation <- mkElement "footer" #. "section" #+ [mkNavigation env translations tabs]
+
+    void $ UI.getBody win # set children [tabs', view, navigation]
 
 
-    dumpFilesCounter' <- UI.div #. "section" # sink items bDumpDir
 
-    ((select, input), tModel) <- gradeItem env win translations bModel
+mkSelect env grades' select = do
+    let options = CLocation.mkGrades env grades'
+    _ <- element select # set children [] #+ options
     select' <- UI.div #. "select" #+ [element select]
-
-
     selectSection <-
         UI.div
         #. "section"
@@ -157,54 +112,101 @@ mainSection env@Env{..} win translations tabs bModel = do
                         ]
                 ]
             ]
-
-    let photographees'' =  fmap concat $ (photographeesList env win) . photographees <<$>> bItem
-    photographees' <- UI.div # sink items photographees''
+    return selectSection
 
 
-    currentPhotographee <- UI.h1 #. "is-size-4" # sink text (fromMaybe "" <$> (fromMaybe (Just "") <$> bPhotographee))
-
-
+mkInput env photographees' input = do
+    let ident = Photographee.toIdent photographees'
+    let name = Photographee.toName photographees'
+    _ <- element input # set value (fromMaybe "" ident) --- eh
+    currentPhotographee <- UI.h1 #. "is-size-4" # set text (fromMaybe "" name)
     inputSection <- UI.div #. "section" # set children [input, currentPhotographee]
-    let bView = mkView env translations inputSection dumpFilesCounter' selectSection photographees' <$> bModel
+    return inputSection
 
-    view <- UI.div # sink item bView
 
---------------------------------------------------------------------------------
+sinkModel :: Env -> Window -> Translation -> Behavior Model -> UI Element
+sinkModel env@Env{..} win translations bModel = do
 
-    let eModel = rumors $ tModel
-    _ <- onEvent eModel $ \m -> do
-        void $ liftIO $ do
-            case toJust (unModel m) of
-                Nothing -> return ()
-                Just i  -> do
-                    --Location.writeLocationFile mLocationConfigFile (location i)
-                    _ <- Grade.writeGrades mGradesFile (grades i)
+    content <- UI.div
+    select <- UI.select
+    input <- UI.input #. "input"
+    bEditingInput <- bEditing input
+
+    liftIOLater $ do
+        model <- currentValue bModel
+        runUI win $ void $ do
+            case unModel model of
+                NotAsked -> do
+                    msg <- Lens.views starting string translations
+                    element content # set children [msg]
+                    return ()
+                Loading -> do
+                    msg <- Lens.views loading string translations
+                    element content # set children [msg]
+                    return ()
+                Failure _ -> do
+                    msg <- Lens.views mainPageError string translations
+                    element content # set children [msg]
+                    return ()
+
+                Data item -> do
+                    dumpFilesCounter' <- dumpFilesCounter env win translations (dumpDir item)
+                    selectSection <- mkSelect env (grades item) select
+                    inputSection <- mkInput env (photographees item) input
+                    let photographees'' =  photographeesList env win (photographees item)
+                    photographees' <- UI.div #+ photographees''
+                    element content # set children [dumpFilesCounter', inputSection, selectSection, photographees']
+                    return () 
+
+
+    liftIOLater $ onChange bModel $ \model -> runUI win $ do
+        case unModel model of
+            NotAsked -> do
+                msg <- Lens.views starting string translations
+                element content # set children [msg]
+                return ()
+            Loading -> do
+                msg <- Lens.views loading string translations
+                element content # set children [msg]
+                return ()
+            Failure _ -> do
+                msg <- Lens.views mainPageError string translations
+                element content # set children [msg]
+                return ()
+            Data item -> do
+                editing <- liftIO $ currentValue bEditingInput
+                when (not editing) $ void $ do
+                    dumpFilesCounter' <- dumpFilesCounter env win translations (dumpDir item)
+                    selectSection <- mkSelect env (grades item) select
+                    inputSection <- mkInput env (photographees item) input
+                    let photographees'' =  photographeesList env win (photographees item)
+                    photographees' <- UI.div #+ photographees''
+                    element content # set children [dumpFilesCounter', inputSection, selectSection, photographees']
                     return ()
 
 
-    tabs'      <- mkElement "nav" #. "section" #+ [mkTabs env tabs]
-    navigation <-
-        mkElement "footer" #. "section" #+ [mkNavigation env translations tabs]
+    let eSelect   = CLocation.selectGrade <$> filterJust (selectionChange' select)
+    let allEvents = concatenate' <$> unions' (eSelect :| [])
+    let ee  = filterJust
+                $   fmap
+                        (\m f -> case toJust (unModel m) of
+                            Nothing -> Nothing
+                            Just x ->
+                                Just
+                                    (Model
+                                        (Data (Item (location x) (f (grades x)) (dump x) (dumpDir x) (photographees x)))
+                                    )
+                        )
+                        bModel
+                <@> allEvents
 
-    void $ UI.getBody win # set children [tabs', view, navigation]
+    _ <- onEvent ee $ \model -> do
+        void $ liftIO $ do
+            case toJust (unModel model) of
+                Nothing -> return ()
+                Just item'  -> do
+                    --Location.writeLocationFile mLocationConfigFile (location i)
+                    _ <- Grade.writeGrades mGradesFile (grades item')
+                    return ()
 
-
-mkView :: Env -> Translation
-                                    -> Element
-                                    -> Element
-                                    -> Element
-                                    -> Element
-                                    -> Model
-                                    -> UI Element
-mkView _ translations xx x y z model =
-        case unModel model of
-            NotAsked -> do
-                Lens.views starting string translations
-            Loading -> do
-                Lens.views loading string translations
-            Failure e -> do
-                
-                UI.div #+ [string e, Lens.views mainPageError string translations]
-            Data _ -> do
-                UI.div # set children [xx,x,y,z]
+    return content

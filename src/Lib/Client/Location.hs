@@ -98,7 +98,7 @@ sinkModel env@Env{..} win translations bModel = do
                     element content # set children [msg]
                     return ()
                 Failure _ -> do
-                    msg <- Lens.views mainPageError string translations
+                    msg <- Lens.views locationPageError string translations
                     element content # set children [msg]
                     return ()
 
@@ -119,7 +119,7 @@ sinkModel env@Env{..} win translations bModel = do
                 element content # set children [msg]
                 return ()
             Failure _ -> do
-                msg <- Lens.views mainPageError string translations
+                msg <- Lens.views locationPageError string translations
                 element content # set children [msg]
                 return ()
             Data (Item locfile grades) -> do
