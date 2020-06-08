@@ -90,11 +90,18 @@ sinkModel env@Env{..} win translations bModel = do
         runUI win $ void $ do
             case unModel model of
                 NotAsked -> do
+                    msg <- Lens.views starting string translations
+                    element content # set children [msg]
                     return ()
                 Loading -> do
+                    msg <- Lens.views loading string translations
+                    element content # set children [msg]
                     return ()
-                Failure e -> do
+                Failure _ -> do
+                    msg <- Lens.views mainPageError string translations
+                    element content # set children [msg]
                     return ()
+
                 Data (Item locfile grades) -> do
                     locationFileView <- UI.div #. "section" #+ (locationFileView env translations locfile)
                     selectInputSection <- selectSection env win translations input select grades
@@ -104,10 +111,16 @@ sinkModel env@Env{..} win translations bModel = do
     liftIOLater $ onChange bModel $ \model -> runUI win $ do
         case unModel model of
             NotAsked -> do
+                msg <- Lens.views starting string translations
+                element content # set children [msg]
                 return ()
             Loading -> do
+                msg <- Lens.views loading string translations
+                element content # set children [msg]
                 return ()
             Failure _ -> do
+                msg <- Lens.views mainPageError string translations
+                element content # set children [msg]
                 return ()
             Data (Item locfile grades) -> do
                 editingInput <- liftIO $ currentValue bEditingInput
@@ -166,6 +179,7 @@ locationSection env@Env {..} win translations tabs bModel = mdo
 
     UI.setFocus (getElement input) -- Can only do this if element exists and should not do this if not focus
 
+
 --TODO a little flawed
 mkGrades :: Env -> Grade.Grades -> [UI Element]
 mkGrades env (Grade.Grades grades') = do
@@ -179,6 +193,7 @@ mkGrade Env {..} (thisIndex, isCenter, grade) = do
     let option = UI.option # set value (show thisIndex) # set text name
     if isCenter then option # set UI.selected True else option
 
+
 selectGrade :: Int -> Grade.Grades -> Grade.Grades
 selectGrade selected (Grade.Grades grades') =
         -- TODO this just wierd
@@ -187,6 +202,7 @@ selectGrade selected (Grade.Grades grades') =
             then Just (Grade.Grades grades'')
             else Nothing
         ) grades'
+
 
 locationFileView :: Env -> Translation -> Location.LocationFile -> [UI Element]
 locationFileView Env {..} translations locationFile = do
