@@ -156,7 +156,7 @@ sinkModel env@Env{..} win translations bModel = do
                     let photographees'' =  photographeesList env win (photographees item)
                     photographees' <- UI.div #+ photographees''
                     element content # set children [dumpFilesCounter', inputSection, selectSection, photographees']
-                    return () 
+                    return ()
 
 
     liftIOLater $ onChange bModel $ \model -> runUI win $ do
@@ -186,6 +186,7 @@ sinkModel env@Env{..} win translations bModel = do
 
 
     let eSelect   = CLocation.selectGrade <$> filterJust (selectionChange' select)
+    let eFind = filterJust $ Photographee.findById <$> UI.valueChange input
     let allEvents = concatenate' <$> unions' (eSelect :| [])
     let ee  = filterJust
                 $   fmap

@@ -4,6 +4,7 @@
 module Lib.Photographee
     ( Photographee(..)
     , Photographees(..)
+    , findById
     , name
     , toName
     , toIdent
@@ -51,7 +52,8 @@ makeLenses ''Photographee
 
 
 data Photographees
-    = Photographees (ListZipper.ListZipper Photographee)
+    = PhotographeesWithFocus (ListZipper.ListZipper Photographee)
+    | Photographees [Photographee]
     | NoPhotographees
         deriving (Eq, Show)
         deriving (Generic)
@@ -60,11 +62,13 @@ data Photographees
 
 toName :: Photographees -> Maybe String
 toName NoPhotographees = Nothing
-toName (Photographees x) = Just ( _name ( extract x))
+toName (Photographees _) = Nothing
+toName (PhotographeesWithFocus x) = Just ( _name ( extract x))
 
 toIdent :: Photographees -> Maybe String
 toIdent NoPhotographees = Nothing
-toIdent (Photographees x) = Just ( _ident ( extract x))
+toIdent (Photographees _) = Nothing
+toIdent (PhotographeesWithFocus x) = Just ( _ident ( extract x))
 
 
 instance FromRecord Photographee
@@ -81,6 +85,7 @@ myOptionsDecode = defaultDecodeOptions { decDelimiter = fromIntegral (ord ';') }
 --myOptionsEncode = defaultEncodeOptions { encDelimiter = fromIntegral (ord ';') }
 
 
+
 fromGrade :: Location.LocationFile -> Grade.Grades -> IO (Either String Photographees)
 fromGrade locationFile grades = do
     data' <- BL.readFile (Location.unLocationFile locationFile)
@@ -91,10 +96,7 @@ fromGrade locationFile grades = do
             Left _ -> return (Left "fejl")
             Right locData -> do
                 let photographees = Vector.filter (((view Grade.unGrade (extract (view Grade.unGrades grades))) ==) . _grade) locData
-                let zipper = ListZipper.fromList $ Vector.toList photographees
-                case zipper of
-                    Nothing -> return (Left "fejl")
-                    Just zs -> return (Right (Photographees zs))
+                return $ Right $ Photographees $ Vector.toList photographees
 
 
 parseGrades :: Location.LocationFile -> IO (Either String Grade.Grades)
