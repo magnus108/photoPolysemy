@@ -3,6 +3,7 @@
 
 module Lib.Translation
     ( Translation(..)
+    , createPhotographee
     , dumpDirCounter
     , newGrade
     , starting
@@ -83,6 +84,7 @@ data Translation = Translation { _loading :: String
                                , _kindergartenGroup :: String
                                , _newGrade :: String
                                , _dumpDirCounter :: String
+                               , _createPhotographee :: String
                                }
     deriving (Show, Ord, Eq, Generic, ToJSON, FromJSON)
 

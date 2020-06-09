@@ -96,7 +96,7 @@ mainSection env@Env{..} win translations tabs bModel = do
 
 mkCreate :: Env -> Window -> Translation -> UI Element
 mkCreate env win translations = do
-    button <- mkButton "mover" "Opret ny elev"
+    button <- mkButton "mover" (Lens.view createPhotographee translations)
     return button
 
 
@@ -249,6 +249,7 @@ sinkModel env@Env{..} win translations bModel = do
 
     _ <- onEvent ee3 $ \model -> do
         void $ liftIO $ do
+            traceShowM "lol"
             case toJust (unModel model) of
                 Nothing -> return ()
                 Just item'  -> do
