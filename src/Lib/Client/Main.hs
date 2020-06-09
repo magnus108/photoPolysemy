@@ -95,10 +95,16 @@ mainSection env@Env{..} win translations tabs bModel = do
 
 
 
-mkSelect env grades' select = do
-    let options = CLocation.mkGrades env grades'
-    _ <- element select # set children [] #+ options
-    select' <- UI.div #. "select" #+ [element select]
+
+sinkModel :: Env -> Window -> Translation -> Behavior Model -> UI Element
+sinkModel env@Env{..} win translations bModel = do
+
+    content <- UI.div
+    select <- UI.select
+    input <- UI.input #. "input"
+    currentPhotographee <- UI.h1 #. "is-size-4"
+    inputSection <- UI.div #. "section" # set children [input, currentPhotographee]
+
     selectSection <-
         UI.div
         #. "section"
@@ -108,29 +114,14 @@ mkSelect env grades' select = do
                     #. "field-body"
                     #+ [ UI.div
                         #. "field"
-                        #+ [UI.p #. "control" #+ [element select']]
+                        #+ [UI.p #. "control" #+ [UI.div #. "select" #+ [element select]]]
                         ]
                 ]
             ]
-    return selectSection
 
-
-mkInput env photographees' input = do
-    let ident = Photographee.toIdent photographees'
-    let name = Photographee.toName photographees'
-    _ <- element input # set value (fromMaybe "" ident) --- eh
-    currentPhotographee <- UI.h1 #. "is-size-4" # set text (fromMaybe "" name)
-    inputSection <- UI.div #. "section" # set children [input, currentPhotographee]
-    return inputSection
-
-
-sinkModel :: Env -> Window -> Translation -> Behavior Model -> UI Element
-sinkModel env@Env{..} win translations bModel = do
-
-    content <- UI.div
-    select <- UI.select
-    input <- UI.input #. "input"
     bEditingInput <- bEditing input
+    bEditingSelect  <- bEditing select
+
 
     liftIOLater $ do
         model <- currentValue bModel
@@ -150,11 +141,16 @@ sinkModel env@Env{..} win translations bModel = do
                     return ()
 
                 Data item -> do
+                    editing <- liftIO $ currentValue bEditingInput
                     dumpFilesCounter' <- dumpFilesCounter env win translations (dumpDir item)
-                    selectSection <- mkSelect env (grades item) select
-                    inputSection <- mkInput env (photographees item) input
+                    let options = CLocation.mkGrades env (grades item)
+                    _ <- element select # set children [] #+ options
                     let photographees'' =  photographeesList env win (photographees item)
                     photographees' <- UI.div #+ photographees''
+                    let ident = Photographee.toIdent (photographees item)
+                    let name = Photographee.toName (photographees item)
+                    element currentPhotographee # set text (fromMaybe "" name)
+                    _ <- element input # set value (fromMaybe "" ident) --- eh
                     element content # set children [dumpFilesCounter', inputSection, selectSection, photographees']
                     return ()
 
@@ -174,13 +170,24 @@ sinkModel env@Env{..} win translations bModel = do
                 element content # set children [msg]
                 return ()
             Data item -> do
-                editing <- liftIO $ currentValue bEditingInput
-                when (not editing) $ void $ do
-                    dumpFilesCounter' <- dumpFilesCounter env win translations (dumpDir item)
-                    selectSection <- mkSelect env (grades item) select
-                    inputSection <- mkInput env (photographees item) input
-                    let photographees'' =  photographeesList env win (photographees item)
-                    photographees' <- UI.div #+ photographees''
+                editingInput <- liftIO $ currentValue bEditingInput
+                editingSelect <- liftIO $ currentValue bEditingSelect
+
+                dumpFilesCounter' <- dumpFilesCounter env win translations (dumpDir item)
+                let photographees'' =  photographeesList env win (photographees item)
+                photographees' <- UI.div #+ photographees''
+                let ident = Photographee.toIdent (photographees item)
+                let name = Photographee.toName (photographees item)
+                element currentPhotographee # set text (fromMaybe "" name)
+
+                when (not editingSelect) $ void $ do
+                    let options = CLocation.mkGrades env (grades item)
+                    element select # set children [] #+ options
+
+                when (not editingInput) $ void $
+                    element input # set value (fromMaybe "" ident) --- eh
+
+                when (not (editingInput || editingSelect)) $ void $ do
                     element content # set children [dumpFilesCounter', inputSection, selectSection, photographees']
                     return ()
 
