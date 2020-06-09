@@ -94,6 +94,12 @@ mainSection env@Env{..} win translations tabs bModel = do
     void $ UI.getBody win # set children [tabs', view, navigation]
 
 
+mkCreate :: Env -> Window -> Translation -> UI Element
+mkCreate env win translations = do
+    button <- mkButton "mover" "Opret ny elev"
+    return button
+
+
 
 
 sinkModel :: Env -> Window -> Translation -> Behavior Model -> UI Element
@@ -118,6 +124,10 @@ sinkModel env@Env{..} win translations bModel = do
                         ]
                 ]
             ]
+
+    newPhotographee <- mkCreate env win translations
+
+    newPhotographeeSection <- UI.div #. "section" # set children [newPhotographee]
 
     bEditingInput <- bEditing input
     bEditingSelect  <- bEditing select
@@ -151,7 +161,7 @@ sinkModel env@Env{..} win translations bModel = do
                     let name = Photographee.toName (photographees item)
                     element currentPhotographee # set text (fromMaybe "" name)
                     _ <- element input # set value (fromMaybe "" ident) --- eh
-                    element content # set children [dumpFilesCounter', inputSection, selectSection, photographees']
+                    element content # set children [dumpFilesCounter', inputSection, newPhotographeeSection, selectSection, photographees']
                     return ()
 
 
@@ -188,12 +198,13 @@ sinkModel env@Env{..} win translations bModel = do
                     element input # set value (fromMaybe "" ident) --- eh
 
                 when (not (editingInput || editingSelect)) $ void $ do
-                    element content # set children [dumpFilesCounter', inputSection, selectSection, photographees']
+                    element content # set children [dumpFilesCounter', inputSection, newPhotographeeSection, selectSection, photographees']
                     return ()
 
 
     let eSelect   = CLocation.selectGrade <$> filterJust (selectionChange' select)
     let eFind = Photographee.tryFindById <$> UI.valueChange input
+    let eNewPhotographee = Photographee.insert Photographee.empty <$ UI.click newPhotographee
     let gradeEvent = concatenate' <$> unions' (eSelect :| [])
     let findEvent = concatenate' <$> unions' (eFind :| [])
     let ee  = filterJust
@@ -209,6 +220,7 @@ sinkModel env@Env{..} win translations bModel = do
                         bModel
                 <@> gradeEvent
 
+
     let ee2 = filterJust
                 $   fmap
                         (\m f -> case toJust (unModel m) of
@@ -221,6 +233,28 @@ sinkModel env@Env{..} win translations bModel = do
                         )
                         bModel
                 <@> findEvent
+
+    let ee3 = filterJust
+                $   fmap
+                        (\m f -> case toJust (unModel m) of
+                            Nothing -> Nothing
+                            Just x ->
+                                Just
+                                    (Model
+                                        (Data (Item (location x) (grades x) (dump x) (dumpDir x) (f (photographees x))))
+                                    )
+                        )
+                        bModel
+                <@> findEvent
+
+    _ <- onEvent ee3 $ \model -> do
+        void $ liftIO $ do
+            case toJust (unModel model) of
+                Nothing -> return ()
+                Just item'  -> do
+                    --Location.writeLocationFile mLocationConfigFile (location i)
+                    _ <- Photographee.writePhotographees mPhotographeesFile (photographees item')
+                    return ()
 
     _ <- onEvent ee2 $ \model -> do
         void $ liftIO $ do

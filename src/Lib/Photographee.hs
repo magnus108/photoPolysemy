@@ -4,6 +4,8 @@
 module Lib.Photographee
     ( Photographee(..)
     , Photographees(..)
+    , empty
+    , insert
     , name
     , toName
     , toIdent
@@ -26,7 +28,8 @@ import Control.Concurrent
 import Data.Csv
 import Data.List (nub)
 
-import Graphics.UI.Threepenny.Core
+import Prelude hiding (empty)
+import Graphics.UI.Threepenny.Core hiding (empty)
 
 import Lib.Data
 import Control.Lens
@@ -78,11 +81,21 @@ toIdent NoPhotographees = Nothing
 toIdent (Photographees x) = Just ( _ident ( extract x))
 
 
+
 instance FromRecord Photographee
 instance ToRecord Photographee
 
 photographee :: String -> String -> String -> String -> Photographee
 photographee = Photographee
+
+
+empty :: Photographee
+empty = photographee "" "" "" ""
+
+
+insert :: Photographee -> Photographees -> Photographees
+insert x NoPhotographees = Photographees $ ListZipper.ListZipper [] x []
+insert x (Photographees xs) = Photographees $ ListZipper.insert xs x
 
 
 myOptionsDecode :: DecodeOptions
