@@ -158,7 +158,7 @@ findFirst predicate = find predicate . first
 
 
 find :: (a -> Bool) -> ListZipper a -> Maybe (ListZipper a)
-find predicate zipper@(ListZipper ls x rs) =
+find predicate zipper@(ListZipper _ x _) =
     if predicate x then
         Just zipper
     else

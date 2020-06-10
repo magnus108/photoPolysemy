@@ -91,36 +91,36 @@ sinkModel env@Env{..} win translations bModel = do
             case unModel model of
                 NotAsked -> do
                     msg <- Lens.views starting string translations
-                    element content # set children [msg]
+                    _ <- element content # set children [msg]
                     return ()
                 Loading -> do
                     msg <- Lens.views loading string translations
-                    element content # set children [msg]
+                    _ <- element content # set children [msg]
                     return ()
                 Failure _ -> do
                     msg <- Lens.views locationPageError string translations
-                    element content # set children [msg]
+                    _ <- element content # set children [msg]
                     return ()
 
                 Data (Item locfile grades) -> do
-                    locationFileView <- UI.div #. "section" #+ (locationFileView env translations locfile)
+                    locationFileView' <- UI.div #. "section" #+ (locationFileView env translations locfile)
                     selectInputSection <- selectSection env win translations input select grades
-                    element content # set children [locationFileView, selectInputSection, buttonContent]
+                    _ <- element content # set children [locationFileView', selectInputSection, buttonContent]
                     return ()
 
     liftIOLater $ onChange bModel $ \model -> runUI win $ do
         case unModel model of
             NotAsked -> do
                 msg <- Lens.views starting string translations
-                element content # set children [msg]
+                _ <- element content # set children [msg]
                 return ()
             Loading -> do
                 msg <- Lens.views loading string translations
-                element content # set children [msg]
+                _ <- element content # set children [msg]
                 return ()
             Failure _ -> do
                 msg <- Lens.views locationPageError string translations
-                element content # set children [msg]
+                _ <- element content # set children [msg]
                 return ()
             Data (Item locfile grades) -> do
                 editingInput <- liftIO $ currentValue bEditingInput
@@ -135,7 +135,7 @@ sinkModel env@Env{..} win translations bModel = do
                 when (not (editingInput || editingSelect)) $ void $ do
                     locationFileView' <- UI.div #. "section" #+ (locationFileView env translations locfile)
                     selectInputSection <- selectSection env win translations input select grades
-                    element content # set children [locationFileView', selectInputSection, buttonContent ]
+                    _ <- element content # set children [locationFileView', selectInputSection, buttonContent ]
                     return ()
 
     let eClick    = Grade.mkNewGrade <$ UI.click button

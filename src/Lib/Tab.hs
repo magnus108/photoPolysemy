@@ -44,6 +44,7 @@ getTabs = readJSONFile
 writeTabs :: (MonadIO m) => FilePath -> Tabs -> m ()
 writeTabs = writeJSONFile
 
+toTranslation :: Functor f => Tab -> (String -> f String) -> Translation -> f Translation
 toTranslation DumpTab = dumpTab
 toTranslation DagsdatoTab = dagsdatoTab
 toTranslation DagsdatoBackupTab = dagsdatoBackupTab
