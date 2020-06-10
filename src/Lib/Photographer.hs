@@ -1,3 +1,4 @@
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE DeriveAnyClass #-}
 
 module Lib.Photographer
@@ -7,6 +8,7 @@ module Lib.Photographer
     , getPhotographers'
     , writePhotographers
     , initalState
+    , tid
     , Model(..)
     ) where
 
@@ -15,6 +17,7 @@ import Graphics.UI.Threepenny.Core
 
 import Control.Concurrent
 import Utils.ListZipper
+import Control.Lens
 
 import Lib.Data
 
@@ -25,6 +28,9 @@ data Photographer = Photographer
     { _name :: Name
     , _tid :: Tid
     } deriving (Show, Ord, Eq, Generic, ToJSON, FromJSON)
+
+
+makeLenses ''Photographer
 
 
 newtype Photographers = Photographers { unPhotographers :: ListZipper Photographer }

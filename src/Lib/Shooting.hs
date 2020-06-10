@@ -5,6 +5,7 @@
 module Lib.Shooting
     ( Shootings(..)
     , Shooting(..)
+    , toInteger
     , getShootings
     , writeShootings
     , getShootings'
@@ -12,6 +13,8 @@ module Lib.Shooting
     , Model(..)
     , initialState
     ) where
+
+import Prelude hiding (toInteger)
 
 import Control.Concurrent
 import Graphics.UI.Threepenny.Core
@@ -29,6 +32,10 @@ data Shooting
     deriving (Generic)
     deriving (FromJSON, ToJSON)
 
+toInteger :: Shooting -> Integer
+toInteger = \case
+    Normal -> 1
+    ReShoot -> 2
 
 newtype Shootings = Shootings { unShootings :: ListZipper Shooting }
     deriving (Eq, Ord, Show)

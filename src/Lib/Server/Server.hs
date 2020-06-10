@@ -38,6 +38,7 @@ import qualified Utils.RoseTree as RT
 import qualified Utils.TreeZipper as TZ
 
 import Utils.ListZipper (focus)
+import Utils.Comonad
 
 
 view :: Env -> Window -> Translation -> Behavior Grade.Model -> Behavior Location.Model -> UI.Behavior Session.Model -> UI.Behavior Shooting.Model -> UI.Behavior Camera.Model -> UI.Behavior Dump.DumpModel -> UI.Behavior Dump.DumpDirModel -> UI.Behavior Doneshooting.Model -> UI.Behavior Dagsdato.Model -> UI.Behavior DagsdatoBackup.Model -> UI.Behavior Photographer.Model -> UI.Behavior Photographee.Model -> Handler (Grade.Model) -> Handler (Location.Model) -> Handler Dump.DumpModel -> Handler Dump.DumpDirModel -> Handler Photographee.Model -> Tabs -> UI ()
@@ -68,7 +69,14 @@ view env@Env{..} win translation bGrades bLocationConfigFile bSessions bShooting
                                 Failure "Session"
                                 ) =<< (Session.unModel x) ) bSessions
 
-            let bModel = CMain.mkModel <$> bLocationConfigFile <*> bGrades <*> bDump <*> bDumpDir <*> bPhotographees <*> bSession
+
+            let bCamera = (\camerasData -> fmap (\(Camera.Cameras x) -> extract x) (Camera.unModel camerasData)) <$> bCameras
+            let bDagsdato' = Dagsdato.unModel <$> bDagsdato
+            let bShooting = fmap (\(Shooting.Shootings x) -> extract x) <$> Shooting.unModel <$> bShootings
+            let bPhotographer = fmap (\(Photographer.Photographers x) -> extract x) <$> Photographer.unModel <$> bPhotographers
+            let bDoneshooting' = Doneshooting.unModel <$> bDoneshooting
+            let bDagsdatoBackup' = DagsdatoBackup.unModel <$> bDagsdatoBackup
+            let bModel = CMain.mkModel <$> bLocationConfigFile <*> bGrades <*> bDump <*> bDumpDir <*> bPhotographees <*> bSession <*> bCamera <*> bDagsdato' <*> bShooting <*> bDoneshooting' <*> bPhotographer <*> bDagsdatoBackup'
             CMain.mainSection env win translation tabs bModel
             -- QUICK BADNESS
             return ()

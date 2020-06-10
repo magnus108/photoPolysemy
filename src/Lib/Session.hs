@@ -15,8 +15,10 @@ module Lib.Session
     , initialState
     , Model(..)
     , writeSessions'
+    , toInteger
     ) where
 
+import Prelude hiding (toInteger)
 import qualified Control.Lens as Lens
 import Utils.TreeZipper
 
@@ -36,6 +38,11 @@ data Session
     deriving (FromJSON, ToJSON)
 
 
+toInteger :: Session -> Int
+toInteger KindergartenSingle = 9
+toInteger KindergartenGroup = 9
+toInteger School = 10
+
 
 data Decisions
     = SchoolOrKindergarten
@@ -43,6 +50,7 @@ data Decisions
     deriving (Eq, Ord, Show)
     deriving (Generic)
     deriving (FromJSON, ToJSON)
+
 
 
 --TODO this is rediculose

@@ -3,6 +3,9 @@ module Lib.Client.Main
     , mkModel
     ) where
 
+import Lib.Data
+import qualified Lib.Main as Main
+import qualified Lib.Build as Build
 import qualified Utils.RoseTree as RT
 import qualified Utils.TreeZipper as TZ
 
@@ -13,14 +16,20 @@ import           Data.Char
 import Graphics.UI.Threepenny.Core
 import qualified Graphics.UI.Threepenny as UI
 
-import Lib.Data
 import Lib.Translation
 import Lib.Tab
+import qualified Lib.Photographer as Photographer
+import qualified Lib.DagsdatoBackup as DagsdatoBackup
+import qualified Lib.Doneshooting as Doneshooting
+import qualified Lib.Shooting as Shooting
 import qualified Lib.Photographee as Photographee
 import qualified Lib.Grade as Grade
 import qualified Lib.Dump as Dump
 import qualified Lib.Session as Session
 import qualified Lib.Location as Location
+import qualified Lib.Camera as Camera
+import qualified Lib.Dagsdato as Dagsdato
+
 import Lib.Client.Tab
 import qualified Lib.Client.Location as CLocation
 import Lib.Client.Utils
@@ -33,21 +42,20 @@ import           Reactive.Threepenny
 import Lib.Client.Element
 
 
-data Item = Item { location :: Location.LocationFile
-                 , grades :: Grade.Grades
-                 , dump :: Dump.Dump
-                 , dumpDir :: Dump.DumpDir --TODO this is wrong
-                 , photographees :: Photographee.Photographees
-                 , session :: Session.Session
-                 }
-
-
-newtype Model = Model { unModel :: Data String Item }
-
-
-mkModel :: Location.Model -> Grade.Model -> Dump.DumpModel -> Dump.DumpDirModel -> Photographee.Model -> Data String Session.Session -> Model
-mkModel location grades dump dumpDir photograhees sessions =
-    Model $ Item <$> Location.unModel location <*> Grade._grades grades <*> Dump.unModel dump <*> Dump.unDumpDirModel dumpDir <*> (Lens.view Photographee.unModel photograhees) <*> sessions
+mkModel :: Location.Model -> Grade.Model -> Dump.DumpModel -> Dump.DumpDirModel -> Photographee.Model -> Data String Session.Session -> Data String Camera.Camera -> Data String Dagsdato.Dagsdato -> Data String Shooting.Shooting -> Data String Doneshooting.Doneshooting -> Data String Photographer.Photographer -> Data String DagsdatoBackup.DagsdatoBackup -> Main.Model
+mkModel location grades dump dumpDir photograhees session camera dagsdato shooting doneshooting photographer dagsdatoBackup =
+    Main.Model $ Main.Item <$>
+        Location.unModel location <*> Grade._grades grades <*>
+            Dump.unModel dump <*>
+                Dump.unDumpDirModel dumpDir <*>
+                    (Lens.view Photographee.unModel photograhees)
+                    <*> session
+                    <*> camera
+                    <*> dagsdato
+                    <*> shooting
+                    <*> doneshooting
+                    <*> photographer
+                    <*> dagsdatoBackup
 
 
 photographeesList :: Env -> Window -> Photographee.Photographees -> UI [Element]
@@ -90,7 +98,7 @@ dumpFilesCounter _ _ translations (Dump.DumpDir dumpDir) =
 
 
 ---------------------------------------------------------------------------------
-mainSection :: Env -> Window -> Translation -> Tabs -> Behavior Model -> UI ()
+mainSection :: Env -> Window -> Translation -> Tabs -> Behavior Main.Model -> UI ()
 mainSection env@Env{..} win translations tabs bModel = do
     view <- sinkModel env win translations bModel
 
@@ -201,7 +209,7 @@ setBuild _ translations button session = do
 
 
 
-sinkModel :: Env -> Window -> Translation -> Behavior Model -> UI Element
+sinkModel :: Env -> Window -> Translation -> Behavior Main.Model -> UI Element
 sinkModel env@Env{..} win translations bModel = do
 
     mkBuild' <- mkButton "mkBuild" ""
@@ -245,7 +253,7 @@ sinkModel env@Env{..} win translations bModel = do
     liftIOLater $ do
         model <- currentValue bModel
         runUI win $ void $ do
-            case unModel model of
+            case Main._unModel model of
                 NotAsked -> do
                     msg <- Lens.views starting string translations
                     _ <- element content # set children [msg]
@@ -262,18 +270,18 @@ sinkModel env@Env{..} win translations bModel = do
                     return ()
 
                 Data item' -> do
-                    _ <- setBuild env translations mkBuild' (session item')
-                    selectInputPhotographeeSection <- selectPhotographeeSection env win translations inputPhotographee inputPhotographeeIdent selectPhotographee newPhotographee (photographees item')
+                    _ <- setBuild env translations mkBuild' (Main._session item')
+                    selectInputPhotographeeSection <- selectPhotographeeSection env win translations inputPhotographee inputPhotographeeIdent selectPhotographee newPhotographee (Main._photographees item')
                     
-                    dumpFilesCounter' <- dumpFilesCounter env win translations (dumpDir item')
-                    let options = CLocation.mkGrades env (grades item')
+                    dumpFilesCounter' <- dumpFilesCounter env win translations (Main._dumpDir item')
+                    let options = CLocation.mkGrades env (Main._grades item')
                     _ <- element select # set children [] #+ options
 
-                    photographeesList' <- photographeesList env win (photographees item')
+                    photographeesList' <- photographeesList env win (Main._photographees item')
                     _ <- element photographees' # set children photographeesList'
 
-                    let ident = Photographee.toIdent (photographees item')
-                    let name = Photographee.toName (photographees item')
+                    let ident = Photographee.toIdent (Main._photographees item')
+                    let name = Photographee.toName (Main._photographees item')
                     _ <- element currentPhotographee # set text (fromMaybe "" name)
                     _ <- element input # set value (fromMaybe "" ident) --- eh
                     _ <- element content # set children [mkBuild, dumpFilesCounter', inputSection, selectInputPhotographeeSection, selectSection, photographees']
@@ -281,7 +289,7 @@ sinkModel env@Env{..} win translations bModel = do
 
 
     liftIOLater $ onChange bModel $ \model -> runUI win $ do
-        case unModel model of
+        case Main._unModel model of
             NotAsked -> do
                 msg <- Lens.views starting string translations
                 _ <- element content # set children [msg]
@@ -303,34 +311,36 @@ sinkModel env@Env{..} win translations bModel = do
 
 
                 when (not editingInputPhotographee ) $ void $
-                    element inputPhotographee # set value (fromMaybe "" (Photographee.toName (photographees item')))
+                    element inputPhotographee # set value (fromMaybe "" (Photographee.toName (Main._photographees item')))
 
                 when (not editingSelectPhotographee) $ void $
-                    element selectPhotographee # set children [] #+ (mkPhotographees env (photographees item'))
+                    element selectPhotographee # set children [] #+ (mkPhotographees env (Main._photographees item'))
 
                 when (not editingInputPhotographeeIdent) $ void $
-                    element inputPhotographeeIdent # set value (fromMaybe "" (Photographee.toIdent (photographees item')))
+                    element inputPhotographeeIdent # set value (fromMaybe "" (Photographee.toIdent (Main._photographees item')))
 
                 editingInput <- liftIO $ currentValue bEditingInput
                 editingSelect <- liftIO $ currentValue bEditingSelect
 
-                dumpFilesCounter' <- dumpFilesCounter env win translations (dumpDir item')
-                photographeesList' <- photographeesList env win (photographees item')
+                dumpFilesCounter' <- dumpFilesCounter env win translations (Main._dumpDir item')
+                photographeesList' <- photographeesList env win (Main._photographees item')
                 _ <- element photographees' # set children photographeesList'
 
-                let ident = Photographee.toIdent (photographees item')
-                let name = Photographee.toName (photographees item')
+                let ident = Photographee.toIdent (Main._photographees item')
+                let name = Photographee.toName (Main._photographees item')
                 _ <- element currentPhotographee # set text (fromMaybe "" name)
 
+                _ <- setBuild env translations mkBuild' (Main._session item')
+
                 when (not editingSelect) $ void $ do
-                    let options = CLocation.mkGrades env (grades item')
+                    let options = CLocation.mkGrades env (Main._grades item')
                     element select # set children [] #+ options
 
                 when (not editingInput) $ void $
                     element input # set value (fromMaybe "" ident) --- eh
 
                 when (not (editingInput || editingSelectPhotographee || editingSelect || editingInputPhotographee || editingInputPhotographeeIdent )) $ void $ do
-                    selectInputPhotographeeSection <- selectPhotographeeSection env win translations inputPhotographee inputPhotographeeIdent selectPhotographee newPhotographee (photographees item')
+                    selectInputPhotographeeSection <- selectPhotographeeSection env win translations inputPhotographee inputPhotographeeIdent selectPhotographee newPhotographee (Main._photographees item')
                     _ <- element content # set children [mkBuild, dumpFilesCounter', inputSection, selectInputPhotographeeSection, selectSection, photographees']
                     return ()
 
@@ -350,13 +360,9 @@ sinkModel env@Env{..} win translations bModel = do
     let findEvent = concatenate' <$> unions' (eFind :| [])
     let ee  = filterJust
                 $   fmap
-                        (\m f -> case toJust (unModel m) of
+                        (\m f -> case toJust (Main._unModel m) of
                             Nothing -> Nothing
-                            Just x ->
-                                Just
-                                    (Model
-                                        (Data (Item (location x) (f (grades x)) (dump x) (dumpDir x) (photographees x)( session x)))
-                                    )
+                            Just x -> Just $ Main.Model $ Data $ Lens.over Main.grades f x
                         )
                         bModel
                 <@> gradeEvent
@@ -364,55 +370,66 @@ sinkModel env@Env{..} win translations bModel = do
 
     let ee2 = filterJust
                 $   fmap
-                        (\m f -> case toJust (unModel m) of
+                        (\m f -> case toJust (Main._unModel m) of
                             Nothing -> Nothing
-                            Just x ->
-                                Just
-                                    (Model
-                                        (Data (Item (location x) (grades x) (dump x) (dumpDir x) (f (photographees x)) (session x)))
-                                    )
+                            Just x -> Just $ Main.Model $ Data $ Lens.over Main.photographees f x
                         )
                         bModel
                 <@> findEvent
 
     let ee3 = filterJust
                 $   fmap
-                        (\m f -> case toJust (unModel m) of
+                        (\m f -> case toJust (Main._unModel m) of
                             Nothing -> Nothing
-                            Just x ->
-                                Just
-                                    (Model
-                                        (Data (Item (location x) (grades x) (dump x) (dumpDir x) (f (photographees x)) (session x)))
-                                    )
+                            Just x -> Just $ Main.Model $ Data $ Lens.over Main.photographees f x
                         )
                         bModel
                 <@> allEventsPhotographee
 
+    let ee4 = filterJust
+                $   fmap
+                        (\m -> case toJust (Main._unModel m) of
+                            Nothing -> Nothing
+                            Just x -> Just (Main.Model (Data x))
+                        )
+                        bModel
+                <@ UI.click mkBuild'
+
+    _ <- onEvent ee4 $ \model -> do
+        void $ liftIO $ do
+            case toJust (Main._unModel model) of
+                Nothing -> return ()
+                Just item'  -> do
+                    --BUILD MODEL
+                    traceShowM "lol"
+                    return ()
+
+
     _ <- onEvent ee3 $ \model -> do
         void $ liftIO $ do
-            case toJust (unModel model) of
+            case toJust (Main._unModel model) of
                 Nothing -> return ()
                 Just item'  -> do
                     --Location.writeLocationFile mLocationConfigFile (location i)
-                    _ <- Photographee.writePhotographees mPhotographeesFile (photographees item')
+                    _ <- Photographee.writePhotographees mPhotographeesFile (Main._photographees item')
                     return ()
 
     _ <- onEvent ee2 $ \model -> do
         void $ liftIO $ do
-            case toJust (unModel model) of
+            case toJust (Main._unModel model) of
                 Nothing -> return ()
                 Just item'  -> do
                     --Location.writeLocationFile mLocationConfigFile (location i)
-                    _ <- Photographee.writePhotographees mPhotographeesFile (photographees item')
+                    _ <- Photographee.writePhotographees mPhotographeesFile (Main._photographees item')
                     return ()
 
     _ <- onEvent ee $ \model -> do
         void $ liftIO $ do
-            case toJust (unModel model) of
+            case toJust (Main._unModel model) of
                 Nothing -> return ()
                 Just item'  -> do
                     --Location.writeLocationFile mLocationConfigFile (location i)
-                    _ <- Grade.writeGrades mGradesFile (grades item')
+                    _ <- Grade.writeGrades mGradesFile (Main._grades item')
                     return ()
 
     return content
