@@ -3,6 +3,9 @@ module Lib.Client.Main
     , mkModel
     ) where
 
+import qualified Utils.RoseTree as RT
+import qualified Utils.TreeZipper as TZ
+
 import qualified Utils.ListZipper as ListZipper
 import Utils.Comonad
 
@@ -16,6 +19,7 @@ import Lib.Tab
 import qualified Lib.Photographee as Photographee
 import qualified Lib.Grade as Grade
 import qualified Lib.Dump as Dump
+import qualified Lib.Session as Session
 import qualified Lib.Location as Location
 import Lib.Client.Tab
 import qualified Lib.Client.Location as CLocation
@@ -34,15 +38,16 @@ data Item = Item { location :: Location.LocationFile
                  , dump :: Dump.Dump
                  , dumpDir :: Dump.DumpDir --TODO this is wrong
                  , photographees :: Photographee.Photographees
+                 , session :: Session.Session
                  }
 
 
 newtype Model = Model { unModel :: Data String Item }
 
 
-mkModel :: Location.Model -> Grade.Model -> Dump.DumpModel -> Dump.DumpDirModel -> Photographee.Model -> Model
-mkModel location grades dump dumpDir photograhees =
-    Model $ Item <$> Location.unModel location <*> Grade._grades grades <*> Dump.unModel dump <*> Dump.unDumpDirModel dumpDir <*> (Lens.view Photographee.unModel photograhees)
+mkModel :: Location.Model -> Grade.Model -> Dump.DumpModel -> Dump.DumpDirModel -> Photographee.Model -> Data String Session.Session -> Model
+mkModel location grades dump dumpDir photograhees sessions =
+    Model $ Item <$> Location.unModel location <*> Grade._grades grades <*> Dump.unModel dump <*> Dump.unDumpDirModel dumpDir <*> (Lens.view Photographee.unModel photograhees) <*> sessions
 
 
 photographeesList :: Env -> Window -> Photographee.Photographees -> UI [Element]
@@ -189,9 +194,18 @@ selectPhotographeeF selected (Photographee.Photographees photographees') =
         ) photographees'
 
 
+setBuild :: Env -> Translation -> Element -> Session.Session -> UI ()
+setBuild _ translations button session = do
+    let name = Session.translationSessionButton session translations
+    void $ element button # set text name
+
+
 
 sinkModel :: Env -> Window -> Translation -> Behavior Model -> UI Element
 sinkModel env@Env{..} win translations bModel = do
+
+    mkBuild' <- mkButton "mkBuild" ""
+    mkBuild <- UI.div #. "section" # set children [mkBuild']
 
     content <- UI.div
     select <- UI.select
@@ -248,6 +262,7 @@ sinkModel env@Env{..} win translations bModel = do
                     return ()
 
                 Data item' -> do
+                    _ <- setBuild env translations mkBuild' (session item')
                     selectInputPhotographeeSection <- selectPhotographeeSection env win translations inputPhotographee inputPhotographeeIdent selectPhotographee newPhotographee (photographees item')
                     
                     dumpFilesCounter' <- dumpFilesCounter env win translations (dumpDir item')
@@ -261,7 +276,7 @@ sinkModel env@Env{..} win translations bModel = do
                     let name = Photographee.toName (photographees item')
                     _ <- element currentPhotographee # set text (fromMaybe "" name)
                     _ <- element input # set value (fromMaybe "" ident) --- eh
-                    _ <- element content # set children [dumpFilesCounter', inputSection, selectInputPhotographeeSection, selectSection, photographees']
+                    _ <- element content # set children [mkBuild, dumpFilesCounter', inputSection, selectInputPhotographeeSection, selectSection, photographees']
                     return ()
 
 
@@ -316,7 +331,7 @@ sinkModel env@Env{..} win translations bModel = do
 
                 when (not (editingInput || editingSelectPhotographee || editingSelect || editingInputPhotographee || editingInputPhotographeeIdent )) $ void $ do
                     selectInputPhotographeeSection <- selectPhotographeeSection env win translations inputPhotographee inputPhotographeeIdent selectPhotographee newPhotographee (photographees item')
-                    _ <- element content # set children [dumpFilesCounter', inputSection, selectInputPhotographeeSection, selectSection, photographees']
+                    _ <- element content # set children [mkBuild, dumpFilesCounter', inputSection, selectInputPhotographeeSection, selectSection, photographees']
                     return ()
 
 
@@ -340,7 +355,7 @@ sinkModel env@Env{..} win translations bModel = do
                             Just x ->
                                 Just
                                     (Model
-                                        (Data (Item (location x) (f (grades x)) (dump x) (dumpDir x) (photographees x)))
+                                        (Data (Item (location x) (f (grades x)) (dump x) (dumpDir x) (photographees x)( session x)))
                                     )
                         )
                         bModel
@@ -354,7 +369,7 @@ sinkModel env@Env{..} win translations bModel = do
                             Just x ->
                                 Just
                                     (Model
-                                        (Data (Item (location x) (grades x) (dump x) (dumpDir x) (f (photographees x))))
+                                        (Data (Item (location x) (grades x) (dump x) (dumpDir x) (f (photographees x)) (session x)))
                                     )
                         )
                         bModel
@@ -367,7 +382,7 @@ sinkModel env@Env{..} win translations bModel = do
                             Just x ->
                                 Just
                                     (Model
-                                        (Data (Item (location x) (grades x) (dump x) (dumpDir x) (f (photographees x))))
+                                        (Data (Item (location x) (grades x) (dump x) (dumpDir x) (f (photographees x)) (session x)))
                                     )
                         )
                         bModel

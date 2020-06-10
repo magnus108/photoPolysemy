@@ -6,6 +6,7 @@ module Lib.Session
     ( Sessions(..)
     , Session(..)
     , Decisions(..)
+    , translationSessionButton
     , translationSession
     , translationDecision
     , getSessions
@@ -35,6 +36,7 @@ data Session
     deriving (FromJSON, ToJSON)
 
 
+
 data Decisions
     = SchoolOrKindergarten
     | GroupOrSingleForKindergarten
@@ -50,6 +52,13 @@ translationDecision decision = Lens.view translator
             SchoolOrKindergarten -> Translation.schoolOrKindergarten
             GroupOrSingleForKindergarten -> Translation.groupOrSingleForKindergarten
 
+
+translationSessionButton :: Session -> Translation.Translation -> String
+translationSessionButton session = Lens.view translator
+    where translator = case session of
+            KindergartenGroup -> Translation.buildGroup
+            KindergartenSingle -> Translation.buildSingle
+            School -> Translation.build
 
 translationSession:: Session -> Translation.Translation -> String
 translationSession session = Lens.view translator

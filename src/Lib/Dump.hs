@@ -99,7 +99,7 @@ getDumpFiles dump camera = do
     if and validateDump then
         return $ Right $ DumpDir crs
     else 
-        return $ Left "Dumpfolder"
+        return $ Left "Der er fejl med filer i dump"
 
 
 getDumpDir' :: (MonadIO m, MonadThrow m) => Dump -> Camera.Camera -> m (Either String DumpDir)

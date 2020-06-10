@@ -3,6 +3,9 @@
 
 module Lib.Translation
     ( Translation(..)
+    , build
+    , buildSingle
+    , buildGroup
     , createPhotographee
     , dumpTab
     , dagsdatoTab
@@ -64,6 +67,9 @@ import Control.Lens
 import Control.Concurrent
 
 data Translation = Translation { _loading :: String
+                               , _build :: String
+                               , _buildSingle :: String
+                               , _buildGroup :: String
                                , _locationPageError :: String
                                , _mainPageError :: String
                                , _openLocation :: String

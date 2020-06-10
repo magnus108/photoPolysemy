@@ -309,7 +309,7 @@ configSessions mgr mSessionsFile _ handler = do
 
 
 configCameras :: WatchManager -> MVar FilePath -> MVar FilePath -> WatchMap -> Handler Camera.Model -> Handler (Dump.DumpDirModel) -> IO StopListening
-configCameras mgr mCamerasFile mDumpFile watchMap handler handleDumpDir = do
+configCameras mgr mCamerasFile mDumpFile _ handler handleDumpDir = do
     filepath <- readMVar mCamerasFile
     watchDir
         mgr

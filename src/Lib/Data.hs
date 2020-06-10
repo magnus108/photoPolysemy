@@ -12,6 +12,12 @@ data Data e s
         deriving Show
         deriving Functor
 
+instance Monad (Data e) where
+    return = Data
+    (Data x) >>= f = f x
+    Failure e >>= _ = Failure e
+    Loading >>= _ = Loading
+    NotAsked >>= _ = NotAsked
 
 instance Applicative (Data e) where
     pure = Data

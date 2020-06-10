@@ -34,6 +34,9 @@ import Lib.Client.Doneshooting
 import Lib.Client.Photographer
 
 
+import qualified Utils.RoseTree as RT
+import qualified Utils.TreeZipper as TZ
+
 import Utils.ListZipper (focus)
 
 
@@ -56,7 +59,16 @@ view env@Env{..} win translation bGrades bLocationConfigFile bSessions bShooting
             return ()
 
         MainTab -> do
-            let bModel = CMain.mkModel <$> bLocationConfigFile <*> bGrades <*> bDump <*> bDumpDir <*> bPhotographees
+            let bSession =
+                    fmap (\x -> (\(Session.Sessions sessions) ->
+                    case sessions of
+                            (TZ.TreeZipper (RT.Leaf x) _) -> do
+                                Data x
+                            (TZ.TreeZipper (RT.Branch _ _) _) -> do
+                                Failure "Session"
+                                ) =<< (Session.unModel x) ) bSessions
+
+            let bModel = CMain.mkModel <$> bLocationConfigFile <*> bGrades <*> bDump <*> bDumpDir <*> bPhotographees <*> bSession
             CMain.mainSection env win translation tabs bModel
             -- QUICK BADNESS
             return ()
