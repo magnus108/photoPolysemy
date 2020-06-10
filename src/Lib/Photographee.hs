@@ -14,7 +14,6 @@ module Lib.Photographee
     , photographee
     , ident
     , unModel
-    , grade
     , tea
     , fromGrade
     , initialState
@@ -47,25 +46,29 @@ import qualified Lib.Grade as Grade
 
 data Photographee = Photographee
     { _tea :: String
-    , _grade :: String --should be of type grade no?
     , _name :: String
     , _ident :: String
+    } deriving (Show, Eq, Generic, ToJSON, FromJSON)
+
+
+data PhotographeeData = ParsePhotographeeData
+    { teaData :: String
+    , gradeData :: String
+    , nameData :: String
+    , identData :: String
     } deriving (Show, Eq, Generic, ToJSON, FromJSON)
 
 
 makeLenses ''Photographee
 
 
-data Photographees
-    = Photographees (ListZipper.ListZipper Photographee)
-    | NoPhotographees
+newtype Photographees = Photographees { unPhotographees :: ListZipper.ListZipper Photographee}
         deriving (Eq, Show)
         deriving (Generic)
         deriving (FromJSON, ToJSON)
 
 
 tryFindById :: String -> Photographees -> Photographees
-tryFindById _ NoPhotographees = NoPhotographees
 tryFindById s (Photographees x) = 
     let 
         found = ListZipper.findFirst (\y -> (_ident y) == s) x
@@ -76,39 +79,34 @@ tryFindById s (Photographees x) =
 
 
 setName :: String -> Photographees -> Photographees
-setName _ NoPhotographees = NoPhotographees
 setName name' (Photographees xs) = Photographees $ 
-    ListZipper.mapFocus (\x -> photographee (_tea x) (_grade x) name' (_ident x)) xs
+    ListZipper.mapFocus (\x -> photographee (_tea x) name' (_ident x)) xs
 
 setIdent :: String -> Photographees -> Photographees
-setIdent _ NoPhotographees = NoPhotographees
 setIdent ident' (Photographees xs) = Photographees $
-    ListZipper.mapFocus (\x -> photographee (_tea x) (_grade x) (_name x) ident') xs
+    ListZipper.mapFocus (\x -> photographee (_tea x) (_name x) ident') xs
 
 
-toName :: Photographees -> Maybe String
-toName NoPhotographees = Nothing
-toName (Photographees x) = Just ( _name ( extract x))
+toName :: Photographees -> String
+toName (Photographees x) = _name ( extract x)
 
-toIdent :: Photographees -> Maybe String
-toIdent NoPhotographees = Nothing
-toIdent (Photographees x) = Just ( _ident ( extract x))
+toIdent :: Photographees -> String
+toIdent (Photographees x) =  _ident ( extract x)
 
 
 
-instance FromRecord Photographee
-instance ToRecord Photographee
+instance FromRecord PhotographeeData
+instance ToRecord PhotographeeData
 
-photographee :: String -> String -> String -> String -> Photographee
+photographee :: String -> String -> String -> Photographee
 photographee = Photographee
 
 
 empty :: Photographee
-empty = photographee "" "" "" ""
+empty = photographee "" "" "" 
 
 
 insert :: Photographee -> Photographees -> Photographees
-insert x NoPhotographees = Photographees $ ListZipper.ListZipper [] x []
 insert x (Photographees xs) = Photographees $ ListZipper.insert xs x
 
 
@@ -123,13 +121,13 @@ fromGrade :: Location.LocationFile -> Grade.Grades -> IO (Either String Photogra
 fromGrade locationFile grades = do
     data' <- BL.readFile (Location.unLocationFile locationFile)
 
-    let locationData = decodeWith myOptionsDecode NoHeader $ data' :: Either String (Vector.Vector Photographee)
+    let locationData = decodeWith myOptionsDecode NoHeader $ data' :: Either String (Vector.Vector PhotographeeData)
 
     case locationData of
             Left _ -> return (Left "fejl")
             Right locData -> do
-                let photographees = Vector.filter (((view Grade.unGrade (extract (view Grade.unGrades grades))) ==) . _grade) locData
-                let zipper = ListZipper.fromList $ Vector.toList photographees
+                let photographees = Vector.filter (((view Grade.unGrade (extract (view Grade.unGrades grades))) ==) . gradeData) locData
+                let zipper = ListZipper.fromList $ fmap (\x -> photographee (teaData x) (nameData x) (identData x)) $ Vector.toList photographees
                 case zipper of
                     Nothing -> return (Left "fejl")
                     Just zs -> return (Right (Photographees zs))
@@ -139,12 +137,12 @@ parseGrades :: Location.LocationFile -> IO (Either String Grade.Grades)
 parseGrades locationFile = do
     data' <-  BL.readFile (Location.unLocationFile locationFile)
 
-    let locationData = decodeWith myOptionsDecode NoHeader $ data' :: Either String (Vector.Vector Photographee)
+    let locationData = decodeWith myOptionsDecode NoHeader $ data' :: Either String (Vector.Vector PhotographeeData)
 
     case locationData of
             Left _ -> return (Left "fejl")
             Right locData -> do
-                let grades = nub $ Vector.toList $ fmap _grade locData
+                let grades = nub $ Vector.toList $ fmap gradeData locData
                 case grades of
                     [] -> return (Left "fejl")
                     x:xs -> return $ Right $ Grade.Grades $ fmap Grade.Grade $ ListZipper.ListZipper [] x xs

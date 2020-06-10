@@ -62,8 +62,8 @@ mkDoneshootingPath index file item =
             shootingId = show $ Shooting.toInteger shooting
             grade = Grade.showGrade (Lens.view Main.grades item)
             photographees = Lens.view Main.photographees item
-            photographee = "gg" --extract (Photographee.unPhotographees photographees)
-            tea = "dd"--_tea photographee
+            photographee = extract (Photographee.unPhotographees photographees)
+            tea = Lens.view Photographee.tea photographee
             pad x = strPadLeft '0' 3 (show x)
             no = pad index
                 
@@ -94,11 +94,13 @@ mkDagsdatoPath xxx photographee location filename time =
             date = getDate time
             -}
 
+
 entry :: Main.Item -> IO ()
 entry item = do
     time <- getCurrentTime
     let date = getDate time
     myShake opts date item
+
 
 myShake :: ShakeOptions -> String -> Main.Item -> IO ()
 myShake opts time item = shake opts $ do

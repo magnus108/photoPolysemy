@@ -59,7 +59,6 @@ mkModel location grades dump dumpDir photograhees session camera dagsdato shooti
 
 
 photographeesList :: Env -> Window -> Photographee.Photographees -> UI [Element]
-photographeesList _ _ Photographee.NoPhotographees = return []
 photographeesList env _ (Photographee.Photographees photographees') = do
         let currentPhotographee = extract photographees'
         let elems = photographees' =>> \photographees''-> let
@@ -115,7 +114,6 @@ mkCreate _ _ translations = do
 
 
 mkPhotographees :: Env -> Photographee.Photographees -> [UI Element]
-mkPhotographees _ (Photographee.NoPhotographees) = []
 mkPhotographees env (Photographee.Photographees photographees') = do
     let elems = ListZipper.iextend (\index photographees'' -> (index, photographees' == photographees'', extract photographees'')) photographees'
     map (mkPhotographeeListItem env) (ListZipper.toList elems)
@@ -131,9 +129,9 @@ mkPhotographeeListItem Env {..} (thisIndex, isCenter, photographee) = do
 
 selectPhotographeeSection :: Env -> Window -> Translation -> Element -> Element -> Element -> Element -> Photographee.Photographees -> UI Element
 selectPhotographeeSection env _ translations input inputIdent select button photographees = do
-    _ <- element input # set value (fromMaybe "" (Photographee.toName photographees))
+    _ <- element input # set value (Photographee.toName photographees)
     _ <- element select # set children [] #+ (mkPhotographees env photographees)
-    _ <- element inputIdent # set value (fromMaybe "" (Photographee.toIdent photographees))
+    _ <- element inputIdent # set value (Photographee.toIdent photographees)
     content <-
         UI.div
         #. "section"
@@ -192,7 +190,6 @@ selectPhotographeeSection env _ translations input inputIdent select button phot
     return content
 
 selectPhotographeeF :: Int -> Photographee.Photographees -> Photographee.Photographees
-selectPhotographeeF _ (Photographee.NoPhotographees) = Photographee.NoPhotographees
 selectPhotographeeF selected (Photographee.Photographees photographees') =
         -- TODO this just wierd
     fromMaybe (Photographee.Photographees photographees') $ asum $ ListZipper.toNonEmpty $ ListZipper.iextend
@@ -282,8 +279,8 @@ sinkModel env@Env{..} win translations bModel = do
 
                     let ident = Photographee.toIdent (Main._photographees item')
                     let name = Photographee.toName (Main._photographees item')
-                    _ <- element currentPhotographee # set text (fromMaybe "" name)
-                    _ <- element input # set value (fromMaybe "" ident) --- eh
+                    _ <- element currentPhotographee # set text name
+                    _ <- element input # set value ident
                     _ <- element content # set children [mkBuild, dumpFilesCounter', inputSection, selectInputPhotographeeSection, selectSection, photographees']
                     return ()
 
@@ -311,13 +308,13 @@ sinkModel env@Env{..} win translations bModel = do
 
 
                 when (not editingInputPhotographee ) $ void $
-                    element inputPhotographee # set value (fromMaybe "" (Photographee.toName (Main._photographees item')))
+                    element inputPhotographee # set value (Photographee.toName (Main._photographees item'))
 
                 when (not editingSelectPhotographee) $ void $
                     element selectPhotographee # set children [] #+ (mkPhotographees env (Main._photographees item'))
 
                 when (not editingInputPhotographeeIdent) $ void $
-                    element inputPhotographeeIdent # set value (fromMaybe "" (Photographee.toIdent (Main._photographees item')))
+                    element inputPhotographeeIdent # set value (Photographee.toIdent (Main._photographees item'))
 
                 editingInput <- liftIO $ currentValue bEditingInput
                 editingSelect <- liftIO $ currentValue bEditingSelect
@@ -328,7 +325,7 @@ sinkModel env@Env{..} win translations bModel = do
 
                 let ident = Photographee.toIdent (Main._photographees item')
                 let name = Photographee.toName (Main._photographees item')
-                _ <- element currentPhotographee # set text (fromMaybe "" name)
+                _ <- element currentPhotographee # set text name
 
                 _ <- setBuild env translations mkBuild' (Main._session item')
 
@@ -337,7 +334,7 @@ sinkModel env@Env{..} win translations bModel = do
                     element select # set children [] #+ options
 
                 when (not editingInput) $ void $
-                    element input # set value (fromMaybe "" ident) --- eh
+                    element input # set value ident --- eh
 
                 when (not (editingInput || editingSelectPhotographee || editingSelect || editingInputPhotographee || editingInputPhotographeeIdent )) $ void $ do
                     selectInputPhotographeeSection <- selectPhotographeeSection env win translations inputPhotographee inputPhotographeeIdent selectPhotographee newPhotographee (Main._photographees item')
