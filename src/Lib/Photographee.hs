@@ -4,6 +4,7 @@
 module Lib.Photographee
     ( Photographee(..)
     , Photographees(..)
+    , setName
     , empty
     , insert
     , name
@@ -71,6 +72,13 @@ tryFindById s (Photographees x) =
         case found of
             Nothing -> Photographees x
             Just xs -> Photographees xs
+
+
+setName :: String -> Photographees -> Photographees
+setName _ NoPhotographees = NoPhotographees
+setName name (Photographees xs) = Photographees $ 
+    ListZipper.mapFocus (\x -> photographee (_tea x) (_grade x) name (_ident x)) xs
+
 
 toName :: Photographees -> Maybe String
 toName NoPhotographees = Nothing

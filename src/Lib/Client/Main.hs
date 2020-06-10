@@ -44,8 +44,8 @@ mkModel location grades dump dumpDir photograhees =
     Model $ Item <$> Location.unModel location <*> Grade._grades grades <*> Dump.unModel dump <*> Dump.unDumpDirModel dumpDir <*> (Lens.view Photographee.unModel photograhees)
 
 
-photographeesList :: Env -> Window -> Photographee.Photographees -> [UI Element]
-photographeesList _ _ Photographee.NoPhotographees = []
+photographeesList :: Env -> Window -> Photographee.Photographees -> UI [Element]
+photographeesList _ _ Photographee.NoPhotographees = return []
 photographeesList env _ (Photographee.Photographees photographees') = do
         let currentPhotographee = extract photographees'
         let elems = photographees' =>> \photographees''-> let
@@ -57,7 +57,7 @@ photographeesList env _ (Photographee.Photographees photographees') = do
                         )
 
         let elems' = sortOn (\(a,_,_) -> fmap toLower (Photographee._name a)) $ toList elems
-        (mkPhotographee env) <$> elems'
+        mapM (mkPhotographee env) elems'
 
 
 mkPhotographee :: Env -> (Photographee.Photographee, Bool, Photographee.Photographees) -> UI Element
@@ -101,6 +101,33 @@ mkCreate env win translations = do
 
 
 
+selectPhotographeeSection :: Env -> Window -> Translation -> Element -> Element -> Photographee.Photographees -> UI Element
+selectPhotographeeSection env _ _ input select photographees = do
+    _ <- element input # set value (fromMaybe "" (Photographee.toName photographees))
+    _ <- element select # set children [] -- #+ (mkGrades env grades)
+    content <-
+        UI.div
+        #. "section"
+        #+ [ UI.div
+                #. "field is-horizontal"
+                #+ [ UI.div
+                    #. "field-body"
+                    #+ [ UI.div
+                        #. "field"
+                        #+ [ UI.p
+                            #. "control"
+                            #+ [element input #. "input"]
+                        ]
+                        , UI.div
+                        #. "field"
+                        #+ [UI.p #. "control" #+ [UI.div #. "select" #+ [element select]]]
+                        ]
+                ]
+            ]
+
+    return content
+
+
 
 sinkModel :: Env -> Window -> Translation -> Behavior Model -> UI Element
 sinkModel env@Env{..} win translations bModel = do
@@ -126,8 +153,14 @@ sinkModel env@Env{..} win translations bModel = do
             ]
 
     newPhotographee <- mkCreate env win translations
-
     newPhotographeeSection <- UI.div #. "section" # set children [newPhotographee]
+    inputPhotographee <- UI.input
+    selectPhotographee <- UI.select
+    bEditingInputPhotographee <- bEditing inputPhotographee
+    bEditingSelectPhotographee <- bEditing selectPhotographee
+
+    photographees' <- UI.div
+
 
     bEditingInput <- bEditing input
     bEditingSelect  <- bEditing select
@@ -151,17 +184,21 @@ sinkModel env@Env{..} win translations bModel = do
                     return ()
 
                 Data item -> do
+                    selectInputPhotographeeSection <- selectPhotographeeSection env win translations inputPhotographee selectPhotographee (photographees item)
+                    
                     editing <- liftIO $ currentValue bEditingInput
                     dumpFilesCounter' <- dumpFilesCounter env win translations (dumpDir item)
                     let options = CLocation.mkGrades env (grades item)
                     _ <- element select # set children [] #+ options
-                    let photographees'' =  photographeesList env win (photographees item)
-                    photographees' <- UI.div #+ photographees''
+
+                    photographeesList' <- photographeesList env win (photographees item)
+                    _ <- element photographees' # set children photographeesList'
+
                     let ident = Photographee.toIdent (photographees item)
                     let name = Photographee.toName (photographees item)
                     element currentPhotographee # set text (fromMaybe "" name)
                     _ <- element input # set value (fromMaybe "" ident) --- eh
-                    element content # set children [dumpFilesCounter', inputSection, newPhotographeeSection, selectSection, photographees']
+                    element content # set children [dumpFilesCounter', inputSection, selectInputPhotographeeSection, newPhotographeeSection, selectSection, photographees']
                     return ()
 
 
@@ -180,12 +217,18 @@ sinkModel env@Env{..} win translations bModel = do
                 element content # set children [msg]
                 return ()
             Data item -> do
+                editingInputPhotographee <- liftIO $ currentValue bEditingInputPhotographee
+
+                when (not editingInputPhotographee ) $ void $
+                    element inputPhotographee # set value (fromMaybe "" (Photographee.toName (photographees item)))
+
                 editingInput <- liftIO $ currentValue bEditingInput
                 editingSelect <- liftIO $ currentValue bEditingSelect
 
                 dumpFilesCounter' <- dumpFilesCounter env win translations (dumpDir item)
-                let photographees'' =  photographeesList env win (photographees item)
-                photographees' <- UI.div #+ photographees''
+                photographeesList' <- photographeesList env win (photographees item)
+                _ <- element photographees' # set children photographeesList'
+
                 let ident = Photographee.toIdent (photographees item)
                 let name = Photographee.toName (photographees item)
                 element currentPhotographee # set text (fromMaybe "" name)
@@ -197,14 +240,20 @@ sinkModel env@Env{..} win translations bModel = do
                 when (not editingInput) $ void $
                     element input # set value (fromMaybe "" ident) --- eh
 
-                when (not (editingInput || editingSelect)) $ void $ do
-                    element content # set children [dumpFilesCounter', inputSection, newPhotographeeSection, selectSection, photographees']
+                when (not (editingInput || editingSelect || editingInputPhotographee )) $ void $ do
+                    selectInputPhotographeeSection <- selectPhotographeeSection env win translations inputPhotographee selectPhotographee (photographees item)
+                    element content # set children [dumpFilesCounter', inputSection, selectInputPhotographeeSection,newPhotographeeSection, selectSection, photographees']
                     return ()
 
 
+    let eNewPhotographee = Photographee.insert Photographee.empty <$ UI.click newPhotographee
+    let eInputPhotographee = Photographee.setName <$> UI.valueChange inputPhotographee
+    --let eSelect   = selectGrade <$> filterJust (selectionChange' select)
+    let allEventsPhotographee = concatenate' <$> unions' (eInputPhotographee :| [eNewPhotographee])
+
     let eSelect   = CLocation.selectGrade <$> filterJust (selectionChange' select)
     let eFind = Photographee.tryFindById <$> UI.valueChange input
-    let eNewPhotographee = Photographee.insert Photographee.empty <$ UI.click newPhotographee
+
     let gradeEvent = concatenate' <$> unions' (eSelect :| [])
     let findEvent = concatenate' <$> unions' (eFind :| [])
     let ee  = filterJust
@@ -245,11 +294,10 @@ sinkModel env@Env{..} win translations bModel = do
                                     )
                         )
                         bModel
-                <@> findEvent
+                <@> allEventsPhotographee
 
     _ <- onEvent ee3 $ \model -> do
         void $ liftIO $ do
-            traceShowM "lol"
             case toJust (unModel model) of
                 Nothing -> return ()
                 Just item'  -> do
