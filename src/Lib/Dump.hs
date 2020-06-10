@@ -6,6 +6,7 @@ module Lib.Dump
     , DumpDir(..)
     , DumpModel(..)
     , DumpDirModel(..)
+    , count
     , getDump
     , writeDump
     , getDump'
@@ -74,6 +75,10 @@ newtype DumpDir = DumpDir { unDumpDir :: [FilePath] }
     deriving (Eq, Ord, Show)
     deriving (Generic)
     deriving (FromJSON, ToJSON)
+
+
+count :: DumpDir -> Int
+count = length . unDumpDir
 
 
 getDumpFiles :: Dump -> Camera.Camera -> IO (Either String DumpDir)

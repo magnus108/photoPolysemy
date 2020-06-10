@@ -53,4 +53,7 @@
 ,"_locationTab" : "location"
 ,"_mainTab": "main"
 ,"_controlTab" : "control"
+, "_doneBuild" : "Færdigt flyt"
+, "_building" : "Bygger"
+, "_noBuild" : "Intet byg"
 }

@@ -30,6 +30,7 @@ import qualified Lib.DagsdatoBackup as DagsdatoBackup
 import qualified Lib.Shooting as Shooting
 import qualified Lib.Doneshooting as Doneshooting
 import qualified Lib.Photographer as Photographer
+import qualified Lib.Build as Build
 
 import Control.Lens
 
@@ -46,6 +47,7 @@ data Item = Item { _location :: Location.LocationFile
                  , _doneshooting :: Doneshooting.Doneshooting
                  , _photographer :: Photographer.Photographer
                  , _dagsdatoBackup :: DagsdatoBackup.DagsdatoBackup
+                 , _build :: Build.Build
                  }
 
 makeLenses ''Item

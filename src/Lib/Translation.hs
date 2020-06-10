@@ -3,6 +3,9 @@
 
 module Lib.Translation
     ( Translation(..)
+    , doneBuild
+    , building
+    , noBuild
     , build
     , buildSingle
     , buildGroup
@@ -121,6 +124,9 @@ data Translation = Translation { _loading :: String
                                , _locationTab :: String
                                , _mainTab :: String
                                , _controlTab :: String
+                               , _doneBuild :: String
+                               , _building :: String
+                               , _noBuild :: String
                                }
     deriving (Show, Ord, Eq, Generic, ToJSON, FromJSON)
 

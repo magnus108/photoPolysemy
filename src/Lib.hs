@@ -23,6 +23,7 @@ import Lib.Photographer (getPhotographers)
 
 import Utils.ListZipper
 
+import qualified Lib.Build as Build
 import qualified Lib.Translation as Translation
 import qualified Lib.Photographee as Photographee
 import Lib.Session
@@ -100,8 +101,13 @@ runServer port env@Env{..} = do
 
     (ePhotographees, hPhotographees) <- newEvent
 
+    (eBuild, hBuild) <- newEvent
+
     watchers <- newMVar mempty
     withManager $ \mgr -> do
+        --Build
+        stopBuild <- build mgr mBuildFile watchers hBuild
+
         --Photographers
         stopConfigPhotographers <- configPhotographers mgr mPhotographersFile watchers hPhotographers
 
@@ -149,6 +155,8 @@ runServer port env@Env{..} = do
                     [("stopConfigTab", stopConfigTab )
 
                     ,("stopConfigLocationFile", stopConfigLocationFile)
+
+                    ,("stopBuild", stopBuild)
                     ,("stopGrades", stopGrades)
 
                     ,("stopConfigPhotographers", stopConfigPhotographers)
@@ -172,6 +180,10 @@ runServer port env@Env{..} = do
                     ,("stopDirDump", stopDirDump)
                     ,("stopPhotographees", stopPhotographees)
                     ]
+
+        --Photographers
+        bBuild <- UI.stepper Build.initalState eBuild
+        _ <- Build.getBuild mBuildFile hBuild
 
         --Photographers
         bPhotographers <- UI.stepper Photographer.initalState ePhotographers
@@ -226,10 +238,24 @@ runServer port env@Env{..} = do
 
         translations <- Translation.read mTranslationFile
         --VERY important this is here.. BADNESS FIX AT THE END
-        Server.run port env (fromJust (rightToMaybe translations)) bGrades bLocationConfigFile bSessions bShootings bCameras bDump bDumpDir bDoneshooting bDagsdato bDagsdatoBackup eTabs bPhotographers bPhotographees hGrades hLocationConfigFile hConfigDump hDumpDir hPhotographees
+        Server.run port env (fromJust (rightToMaybe translations)) bBuild bGrades bLocationConfigFile bSessions bShootings bCameras bDump bDumpDir bDoneshooting bDagsdato bDagsdatoBackup eTabs bPhotographers bPhotographees hGrades hLocationConfigFile hConfigDump hDumpDir hPhotographees
 
 
 type WatchMap = MVar (HashMap String StopListening)
+
+
+build :: WatchManager -> MVar FilePath -> WatchMap -> Handler Build.Model -> IO StopListening
+build mgr mBuildFile _ handler = do
+    filepath <- readMVar mBuildFile
+    watchDir
+        mgr
+        (dropFileName filepath)
+        (\e -> eventPath e == filepath)
+        (\e -> void $ do
+            print e
+            Build.getBuild mBuildFile handler
+        )
+
 
 
 configTab :: WatchManager -> Files -> WatchMap -> Handler Tabs -> IO StopListening

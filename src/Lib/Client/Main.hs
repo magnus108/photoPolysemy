@@ -5,6 +5,7 @@ module Lib.Client.Main
 
 import Lib.Data
 import qualified Lib.Main as Main
+import qualified Lib.Server.Build as SBuild
 import qualified Lib.Build as Build
 import qualified Utils.RoseTree as RT
 import qualified Utils.TreeZipper as TZ
@@ -42,8 +43,8 @@ import           Reactive.Threepenny
 import Lib.Client.Element
 
 
-mkModel :: Location.Model -> Grade.Model -> Dump.DumpModel -> Dump.DumpDirModel -> Photographee.Model -> Data String Session.Session -> Data String Camera.Camera -> Data String Dagsdato.Dagsdato -> Data String Shooting.Shooting -> Data String Doneshooting.Doneshooting -> Data String Photographer.Photographer -> Data String DagsdatoBackup.DagsdatoBackup -> Main.Model
-mkModel location grades dump dumpDir photograhees session camera dagsdato shooting doneshooting photographer dagsdatoBackup =
+mkModel :: Location.Model -> Grade.Model -> Dump.DumpModel -> Dump.DumpDirModel -> Photographee.Model -> Data String Session.Session -> Data String Camera.Camera -> Data String Dagsdato.Dagsdato -> Data String Shooting.Shooting -> Data String Doneshooting.Doneshooting -> Data String Photographer.Photographer -> Data String DagsdatoBackup.DagsdatoBackup -> Data String Build.Build -> Main.Model
+mkModel location grades dump dumpDir photograhees session camera dagsdato shooting doneshooting photographer dagsdatoBackup build =
     Main.Model $ Main.Item <$>
         Location.unModel location <*> Grade._grades grades <*>
             Dump.unModel dump <*>
@@ -56,6 +57,7 @@ mkModel location grades dump dumpDir photograhees session camera dagsdato shooti
                     <*> doneshooting
                     <*> photographer
                     <*> dagsdatoBackup
+                    <*> build
 
 
 photographeesList :: Env -> Window -> Photographee.Photographees -> UI [Element]
@@ -88,10 +90,10 @@ mkPhotographee Env{..} (photographee, isCenter, photographees)
 
 
 dumpFilesCounter :: Env -> Window -> Translation -> Dump.DumpDir -> UI Element
-dumpFilesCounter _ _ translations (Dump.DumpDir dumpDir) =
+dumpFilesCounter _ _ translations dumpDir =
     UI.div #. "section" #+
         [ mkLabel (Lens.view dumpDirCounter translations)
-        , UI.string (show $ length (dumpDir))
+        , UI.string (show $ Dump.count dumpDir)
                 #. "is-size-1 has-text-danger has-text-weight-bold" # set (attr "id") "count"]
 
 
@@ -212,6 +214,8 @@ sinkModel env@Env{..} win translations bModel = do
     mkBuild' <- mkButton "mkBuild" ""
     mkBuild <- UI.div #. "section" # set children [mkBuild']
 
+    build <- UI.div #. "section"
+
     content <- UI.div
     select <- UI.select
     input <- UI.input #. "input"
@@ -267,6 +271,8 @@ sinkModel env@Env{..} win translations bModel = do
                     return ()
 
                 Data item' -> do
+                    buildStatus <- UI.string $ Build.toString (Main._build item') translations
+                    _ <- element build # set children [buildStatus]
                     _ <- setBuild env translations mkBuild' (Main._session item')
                     selectInputPhotographeeSection <- selectPhotographeeSection env win translations inputPhotographee inputPhotographeeIdent selectPhotographee newPhotographee (Main._photographees item')
                     
@@ -281,7 +287,7 @@ sinkModel env@Env{..} win translations bModel = do
                     let name = Photographee.toName (Main._photographees item')
                     _ <- element currentPhotographee # set text name
                     _ <- element input # set value ident
-                    _ <- element content # set children [mkBuild, dumpFilesCounter', inputSection, selectInputPhotographeeSection, selectSection, photographees']
+                    _ <- element content # set children [build, mkBuild, dumpFilesCounter', inputSection, selectInputPhotographeeSection, selectSection, photographees']
                     return ()
 
 
@@ -319,6 +325,9 @@ sinkModel env@Env{..} win translations bModel = do
                 editingInput <- liftIO $ currentValue bEditingInput
                 editingSelect <- liftIO $ currentValue bEditingSelect
 
+                buildStatus <- UI.string $ Build.toString (Main._build item') translations
+                _ <- element build # set children [buildStatus]
+
                 dumpFilesCounter' <- dumpFilesCounter env win translations (Main._dumpDir item')
                 photographeesList' <- photographeesList env win (Main._photographees item')
                 _ <- element photographees' # set children photographeesList'
@@ -338,7 +347,7 @@ sinkModel env@Env{..} win translations bModel = do
 
                 when (not (editingInput || editingSelectPhotographee || editingSelect || editingInputPhotographee || editingInputPhotographeeIdent )) $ void $ do
                     selectInputPhotographeeSection <- selectPhotographeeSection env win translations inputPhotographee inputPhotographeeIdent selectPhotographee newPhotographee (Main._photographees item')
-                    _ <- element content # set children [mkBuild, dumpFilesCounter', inputSection, selectInputPhotographeeSection, selectSection, photographees']
+                    _ <- element content # set children [build ,mkBuild, dumpFilesCounter', inputSection, selectInputPhotographeeSection, selectSection, photographees']
                     return ()
 
 
@@ -397,7 +406,7 @@ sinkModel env@Env{..} win translations bModel = do
             case toJust (Main._unModel model) of
                 Nothing -> return ()
                 Just item'  -> do
-                    Build.entry item' 
+                    SBuild.entry mBuildFile item' 
                     return ()
 
 
