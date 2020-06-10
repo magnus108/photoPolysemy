@@ -1,14 +1,20 @@
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE DeriveAnyClass #-}
 module Lib.Build
-    (entry) where
+    (Build(..), entry) where
 
 import qualified Data.List.Index
+import Control.Concurrent
 import Data.Strings
+import Graphics.UI.Threepenny.Core
 
+import Control.Lens
 import Utils.Comonad
 
 import qualified Lib.Main as Main
 import qualified Control.Lens as Lens
 
+import Lib.Data
 import qualified Lib.Shooting as Shooting
 import qualified Lib.Photographer as Photographer
 import qualified Lib.Photographee as Photographee
@@ -26,6 +32,66 @@ import Development.Shake.FilePath
 
 import Data.Time.Format
 import Data.Time.Clock
+
+
+data Build
+    = DoneBuild Photographee.Photographee String
+    | Building Photographee.Photographee String
+    | NoBuild
+    deriving (Eq, Show)
+    deriving (Generic)
+    deriving (FromJSON, ToJSON)
+
+
+
+getBuild' :: (MonadIO m, MonadThrow m) => FilePath -> m (Either String Build)
+getBuild' = readJSONFile'
+
+
+writeBuild' :: (MonadIO m) => FilePath -> Build -> m ()
+writeBuild' = writeJSONFile
+
+newtype Model = Model { unModel :: Data String Build }
+
+makeLenses ''Model
+
+
+initalState :: Model
+initalState = Model NotAsked
+
+
+--TODO could do some notification on save..
+write :: (MonadIO m, MonadThrow m) => MVar FilePath -> Build -> m ()
+write file build = liftIO $ withMVar file $ \f -> writeBuild' f build
+
+--TODO could handle error on write.
+writeBuild :: (MonadIO m) => MVar FilePath -> Build -> m ThreadId
+writeBuild file build = liftIO $ forkFinally (write file build ) $ \ _ -> return ()
+
+
+read :: (MonadIO m, MonadThrow m) => MVar FilePath -> m (Either String Build)
+read file = liftIO $ withMVar file $ \f -> getBuild' f
+
+
+getBuild :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler Model -> m ()
+getBuild file handle = liftIO $ (read file) >>= \case
+            Left e' -> handle $ Model (Failure e')
+            Right s -> handle $ Model (Data s)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 shakeDir :: FilePath
 shakeDir = "._build"
@@ -155,12 +221,4 @@ myShake opts time item = shake opts $ do
 
         dagsdatoBackupJpg %> copyFile' (root </> jpg)
 
-    {-
-        x <- liftIO $ getDump config
-        dump (action $ return ()) (\fp -> do
-                    liftIO $ setId config Id.noId
-                    if removeIt then
-                        action $ removeFilesAfter fp ["//*.CR3", "//*.JPG", "//*.cr3", "//*.jpg","//*.CR3","//*.cr3"]
-                    else
-                        return () ) x
-    -}
+        action $ removeFilesAfter root ["//*.CR3", "//*.JPG", "//*.cr3", "//*.jpg","//*.CR2","//*.cr2"]

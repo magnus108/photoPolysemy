@@ -24,4 +24,5 @@ data Env = Env
     , mTranslationFile :: MVar FilePath
     , mShootingsFile :: MVar FilePath
     , mPhotographeesFile :: MVar FilePath
+    , mBuildFile :: MVar FilePath
     }

@@ -11,4 +11,5 @@
 , "gradesFile":"/home/magnus/Documents/projects/photoPolysemy/config/grades.json"
 , "locationConfigFile":"/home/magnus/Documents/projects/photoPolysemy/config/locationConfig.json"
 , "translationFile":"/home/magnus/Documents/projects/photoPolysemy/config/translation.json"
+, "buildFile":"/home/magnus/Documents/projects/photoPolysemy/config/build.json"
 }

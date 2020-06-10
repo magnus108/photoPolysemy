@@ -66,6 +66,8 @@ mkEnv Config{..} = do
 
     mPhotographeesFile <- newMVar photograheesFile
 
+    mBuildFile <- newMVar buildFile
+
     files <- newMVar Files{..}
     pure Env{..}
 
