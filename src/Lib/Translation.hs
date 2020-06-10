@@ -5,6 +5,9 @@ module Lib.Translation
     ( Translation(..)
     , createPhotographee
     , dumpDirCounter
+    , photographeeName
+    , photographeeIdent
+    , photographeePick
     , newGrade
     , starting
     , loading
@@ -85,6 +88,9 @@ data Translation = Translation { _loading :: String
                                , _newGrade :: String
                                , _dumpDirCounter :: String
                                , _createPhotographee :: String
+                               , _photographeeName :: String
+                               , _photographeeIdent :: String
+                               , _photographeePick :: String
                                }
     deriving (Show, Ord, Eq, Generic, ToJSON, FromJSON)
 

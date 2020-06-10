@@ -35,4 +35,7 @@
 , "_newGrade":"Opret ny"
 , "_dumpDirCounter": "Antal billeder"
 , "_createPhotographee": "Opret ny"
+, "_photographeeName" : "Navn"
+, "_photographeeIdent" : "Id"
+, "_photographeePick" : "Vælg"
 }
