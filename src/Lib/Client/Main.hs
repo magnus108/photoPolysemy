@@ -3,6 +3,7 @@ module Lib.Client.Main
     , mkModel
     ) where
 
+import qualified Utils.ListZipper as ListZipper
 import Utils.Comonad
 
 import           Data.Char
@@ -100,11 +101,25 @@ mkCreate env win translations = do
     return button
 
 
+mkPhotographees :: Env -> Photographee.Photographees -> [UI Element]
+mkPhotographees env (Photographee.Photographees photographees') = do
+    let elems = ListZipper.iextend (\index photographees'' -> (index, photographees' == photographees'', extract photographees'')) photographees'
+    map (mkPhotographeeListItem env) (ListZipper.toList elems)
 
-selectPhotographeeSection :: Env -> Window -> Translation -> Element -> Element -> Photographee.Photographees -> UI Element
-selectPhotographeeSection env _ _ input select photographees = do
+
+mkPhotographeeListItem :: Env -> (Int, Bool, Photographee.Photographee) -> UI Element
+mkPhotographeeListItem Env {..} (thisIndex, isCenter, photographee) = do
+    let name   = Lens.view Photographee.name photographee
+    let option = UI.option # set value (show thisIndex) # set text name
+    if isCenter then option # set UI.selected True else option
+
+
+
+selectPhotographeeSection :: Env -> Window -> Translation -> Element -> Element -> Element -> Photographee.Photographees -> UI Element
+selectPhotographeeSection env _ _ input inputIdent select photographees = do
     _ <- element input # set value (fromMaybe "" (Photographee.toName photographees))
-    _ <- element select # set children [] -- #+ (mkGrades env grades)
+    _ <- element select # set children [] #+ (mkPhotographees env photographees)
+    _ <- element inputIdent # set value (fromMaybe "" (Photographee.toIdent photographees))
     content <-
         UI.div
         #. "section"
@@ -117,6 +132,9 @@ selectPhotographeeSection env _ _ input select photographees = do
                         #+ [ UI.p
                             #. "control"
                             #+ [element input #. "input"]
+                           , UI.p
+                           #. "control"
+                           #+ [element inputIdent #. "input"]
                         ]
                         , UI.div
                         #. "field"
@@ -126,6 +144,15 @@ selectPhotographeeSection env _ _ input select photographees = do
             ]
 
     return content
+
+selectPhotographeeF :: Int -> Photographee.Photographees -> Photographee.Photographees
+selectPhotographeeF selected (Photographee.Photographees photographees') =
+        -- TODO this just wierd
+    fromMaybe (Photographee.Photographees photographees') $ asum $ ListZipper.toNonEmpty $ ListZipper.iextend
+        (\thisIndex photographees'' -> if selected == thisIndex
+            then Just (Photographee.Photographees photographees'')
+            else Nothing
+        ) photographees'
 
 
 
@@ -155,8 +182,10 @@ sinkModel env@Env{..} win translations bModel = do
     newPhotographee <- mkCreate env win translations
     newPhotographeeSection <- UI.div #. "section" # set children [newPhotographee]
     inputPhotographee <- UI.input
+    inputPhotographeeIdent <- UI.input
     selectPhotographee <- UI.select
     bEditingInputPhotographee <- bEditing inputPhotographee
+    bEditingInputPhotographeeIdent <- bEditing inputPhotographeeIdent
     bEditingSelectPhotographee <- bEditing selectPhotographee
 
     photographees' <- UI.div
@@ -184,7 +213,7 @@ sinkModel env@Env{..} win translations bModel = do
                     return ()
 
                 Data item -> do
-                    selectInputPhotographeeSection <- selectPhotographeeSection env win translations inputPhotographee selectPhotographee (photographees item)
+                    selectInputPhotographeeSection <- selectPhotographeeSection env win translations inputPhotographee inputPhotographeeIdent selectPhotographee (photographees item)
                     
                     editing <- liftIO $ currentValue bEditingInput
                     dumpFilesCounter' <- dumpFilesCounter env win translations (dumpDir item)
@@ -218,9 +247,18 @@ sinkModel env@Env{..} win translations bModel = do
                 return ()
             Data item -> do
                 editingInputPhotographee <- liftIO $ currentValue bEditingInputPhotographee
+                editingInputPhotographeeIdent <- liftIO $ currentValue bEditingInputPhotographeeIdent
+                editingSelectPhotographee <- liftIO $ currentValue bEditingSelectPhotographee
+
 
                 when (not editingInputPhotographee ) $ void $
                     element inputPhotographee # set value (fromMaybe "" (Photographee.toName (photographees item)))
+
+                when (not editingSelectPhotographee) $ void $
+                    element selectPhotographee # set children [] #+ (mkPhotographees env (photographees item))
+
+                when (not editingInputPhotographeeIdent) $ void $
+                    element inputPhotographeeIdent # set value (fromMaybe "" (Photographee.toIdent (photographees item)))
 
                 editingInput <- liftIO $ currentValue bEditingInput
                 editingSelect <- liftIO $ currentValue bEditingSelect
@@ -241,15 +279,18 @@ sinkModel env@Env{..} win translations bModel = do
                     element input # set value (fromMaybe "" ident) --- eh
 
                 when (not (editingInput || editingSelect || editingInputPhotographee )) $ void $ do
-                    selectInputPhotographeeSection <- selectPhotographeeSection env win translations inputPhotographee selectPhotographee (photographees item)
+                    selectInputPhotographeeSection <- selectPhotographeeSection env win translations inputPhotographee inputPhotographeeIdent selectPhotographee (photographees item)
                     element content # set children [dumpFilesCounter', inputSection, selectInputPhotographeeSection,newPhotographeeSection, selectSection, photographees']
                     return ()
 
 
     let eNewPhotographee = Photographee.insert Photographee.empty <$ UI.click newPhotographee
     let eInputPhotographee = Photographee.setName <$> UI.valueChange inputPhotographee
-    --let eSelect   = selectGrade <$> filterJust (selectionChange' select)
-    let allEventsPhotographee = concatenate' <$> unions' (eInputPhotographee :| [eNewPhotographee])
+    let eInputPhotographeeIdent = Photographee.setIdent <$> UI.valueChange inputPhotographeeIdent
+
+    let eSelect   = selectPhotographeeF <$> filterJust (selectionChange' selectPhotographee)
+
+    let allEventsPhotographee = concatenate' <$> unions' (eInputPhotographee :| [eNewPhotographee, eInputPhotographeeIdent, eSelect])
 
     let eSelect   = CLocation.selectGrade <$> filterJust (selectionChange' select)
     let eFind = Photographee.tryFindById <$> UI.valueChange input

@@ -5,6 +5,7 @@ module Lib.Photographee
     ( Photographee(..)
     , Photographees(..)
     , setName
+    , setIdent
     , empty
     , insert
     , name
@@ -78,6 +79,11 @@ setName :: String -> Photographees -> Photographees
 setName _ NoPhotographees = NoPhotographees
 setName name (Photographees xs) = Photographees $ 
     ListZipper.mapFocus (\x -> photographee (_tea x) (_grade x) name (_ident x)) xs
+
+setIdent :: String -> Photographees -> Photographees
+setIdent _ NoPhotographees = NoPhotographees
+setIdent ident (Photographees xs) = Photographees $
+    ListZipper.mapFocus (\x -> photographee (_tea x) (_grade x) (_name x) ident) xs
 
 
 toName :: Photographees -> Maybe String
