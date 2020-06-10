@@ -145,47 +145,43 @@ entry mBuildFile item = do
 
     let photographees = Lens.view Main.photographees item
     let photographee = extract (Photographee.unPhotographees photographees)
-    myShake (opts mBuildFile photographee) date item `catchAny` (\_ -> do
-            Build.write mBuildFile Build.NoBuild
-        )
-
-
-catchAny :: IO a -> (SomeException -> IO a) -> IO a
-catchAny = catch
+    myShake mBuildFile (opts mBuildFile photographee) date item
 
 
 
-myShake :: ShakeOptions -> String -> Main.Item -> IO ()
-myShake opts time item = shake opts $ do
+myShake :: MVar FilePath -> ShakeOptions -> String -> Main.Item -> IO ()
+myShake mBuildFile opts time item = do
     let dump = Lens.view Main.dump item
     let dumpDir = Lens.view Main.dumpDir item
+    if length (Dump.unDumpDir dumpDir) == 0 then
+        void $ Build.write mBuildFile (Build.NoBuild)
+    else shake opts $ do
+        Data.List.Index.ifor_ (sort (Dump.unDumpDir dumpDir)) $ \ index' cr -> do
+            let root = Dump.unDump dump
+            let index = index' + 1
+            let jpg = cr -<.> "jpg"
 
-    Data.List.Index.ifor_ (sort (Dump.unDumpDir dumpDir)) $ \ index' cr -> do
-        let root = Dump.unDump dump
-        let index = index' + 1
-        let jpg = cr -<.> "jpg"
+            let doneshootingCr = mkDoneshootingPath index cr item
+            let doneshootingJpg = mkDoneshootingPathJpg index jpg item
 
-        let doneshootingCr = mkDoneshootingPath index cr item
-        let doneshootingJpg = mkDoneshootingPathJpg index jpg item
+            let dagsdatoCr = mkDagsdatoPath cr time item
+            let dagsdatoJpg = mkDagsdatoPath jpg time item
 
-        let dagsdatoCr = mkDagsdatoPath cr time item
-        let dagsdatoJpg = mkDagsdatoPath jpg time item
+            let dagsdatoBackupCr = mkDagsdatoBackupPath cr time item
+            let dagsdatoBackupJpg = mkDagsdatoBackupPath jpg time item
 
-        let dagsdatoBackupCr = mkDagsdatoBackupPath cr time item
-        let dagsdatoBackupJpg = mkDagsdatoBackupPath jpg time item
+            want [doneshootingCr, doneshootingJpg, dagsdatoCr, dagsdatoJpg , dagsdatoBackupCr, dagsdatoBackupJpg]
 
-        want [doneshootingCr, doneshootingJpg, dagsdatoCr, dagsdatoJpg , dagsdatoBackupCr, dagsdatoBackupJpg]
+            doneshootingCr %> copyFile' (root </> cr)
 
-        doneshootingCr %> copyFile' (root </> cr)
+            doneshootingJpg %> copyFile' (root </> jpg)
 
-        doneshootingJpg %> copyFile' (root </> jpg)
+            dagsdatoCr %> copyFile' (root </> cr)
 
-        dagsdatoCr %> copyFile' (root </> cr)
+            dagsdatoJpg %> copyFile' (root </> jpg)
 
-        dagsdatoJpg %> copyFile' (root </> jpg)
+            dagsdatoBackupCr %> copyFile' (root </> cr)
 
-        dagsdatoBackupCr %> copyFile' (root </> cr)
+            dagsdatoBackupJpg %> copyFile' (root </> jpg)
 
-        dagsdatoBackupJpg %> copyFile' (root </> jpg)
-
-        action $ removeFilesAfter root ["//*.CR3", "//*.JPG", "//*.cr3", "//*.jpg","//*.CR2","//*.cr2"]
+            action $ removeFilesAfter root ["//*.CR3", "//*.JPG", "//*.cr3", "//*.jpg","//*.CR2","//*.cr2"]
