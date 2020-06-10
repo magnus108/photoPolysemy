@@ -4,6 +4,18 @@
 module Lib.Translation
     ( Translation(..)
     , createPhotographee
+    , dumpTab
+    , dagsdatoTab
+    , dagsdatoBackupTab
+    , doneshootingTab
+    , doneshootingBackuptab
+    , photographersTab
+    , cameraTab
+    , shootingTab
+    , sessionTab
+    , locationTab
+    , mainTab
+    , controlTab
     , dumpDirCounter
     , photographeeName
     , photographeeIdent
@@ -91,6 +103,18 @@ data Translation = Translation { _loading :: String
                                , _photographeeName :: String
                                , _photographeeIdent :: String
                                , _photographeePick :: String
+                               , _cameraTab :: String
+                               , _dumpTab :: String
+                               , _dagsdatoTab :: String
+                               , _dagsdatoBackupTab :: String
+                               , _doneshootingTab :: String
+                               , _doneshootingBackuptab :: String
+                               , _photographersTab :: String
+                               , _shootingTab :: String
+                               , _sessionTab :: String
+                               , _locationTab :: String
+                               , _mainTab :: String
+                               , _controlTab :: String
                                }
     deriving (Show, Ord, Eq, Generic, ToJSON, FromJSON)
 

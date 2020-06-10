@@ -30,7 +30,7 @@ sessionsSection env@Env{..} win translation tabs bSessions = do
     let bView = mkSessions env translation <$> bSessions
     content <- UI.div #. "section" # sink item bView
 
-    tabs' <- mkElement "nav" #. "section" #+ [mkTabs env tabs]
+    tabs' <- mkElement "nav" #. "section" #+ [mkTabs env translation tabs]
     navigation <- mkElement "footer" #. "section" #+ [mkNavigation env translation tabs]
 
     view <- UI.div #+ fmap element [ content ]

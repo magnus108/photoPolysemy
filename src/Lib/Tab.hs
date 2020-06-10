@@ -5,10 +5,12 @@ module Lib.Tab
     ( Tabs(..)
     , Tab(..)
     , getTabs
+    , toTranslation
     , writeTabs
     ) where
 
 import Utils.ListZipper
+import Lib.Translation
 
 data Tab
     = DumpTab
@@ -41,3 +43,16 @@ getTabs = readJSONFile
 
 writeTabs :: (MonadIO m) => FilePath -> Tabs -> m ()
 writeTabs = writeJSONFile
+
+toTranslation DumpTab = dumpTab
+toTranslation DagsdatoTab = dagsdatoTab
+toTranslation DagsdatoBackupTab = dagsdatoBackupTab
+toTranslation DoneshootingTab = doneshootingTab
+toTranslation DoneshootingBackupTab = doneshootingBackuptab
+toTranslation PhotographersTab = photographersTab
+toTranslation CamerasTab = cameraTab
+toTranslation ShootingsTab = shootingTab
+toTranslation SessionsTab = sessionTab
+toTranslation LocationTab = locationTab
+toTranslation MainTab = mainTab
+toTranslation ControlTab = controlTab

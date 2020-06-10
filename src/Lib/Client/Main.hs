@@ -89,7 +89,7 @@ mainSection :: Env -> Window -> Translation -> Tabs -> Behavior Model -> UI ()
 mainSection env@Env{..} win translations tabs bModel = do
     view <- sinkModel env win translations bModel
 
-    tabs' <- mkElement "nav" #. "section" #+ [mkTabs env tabs]
+    tabs' <- mkElement "nav" #. "section" #+ [mkTabs env translations tabs]
     navigation <- mkElement "footer" #. "section" #+ [mkNavigation env translations tabs]
 
     void $ UI.getBody win # set children [tabs', view, navigation]

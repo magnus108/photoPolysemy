@@ -10,6 +10,7 @@ import Graphics.UI.Threepenny.Core
 import qualified Graphics.UI.Threepenny as UI
 
 import Lib.Tab
+import qualified Lib.Tab as Tab
 import Lib.Translation (Translation)
 import qualified Lib.Translation as Translation
 
@@ -22,9 +23,9 @@ import Lib.App (Env(..), Files(..))
 
 import qualified Control.Lens as Lens
 
-mkTabs :: Env -> Tabs -> UI Element
-mkTabs env (Tabs tabs) = do
-    tabs' <- mapM (mkTab env) elems
+mkTabs :: Env -> Translation -> Tabs -> UI Element
+mkTabs env translations (Tabs tabs) = do
+    tabs' <- mapM (mkTab env translations) elems
     UI.div #. "buttons has-addons" #+ fmap element (ListZipper.toList tabs')
         where 
             --TODO Lav en indexedmap for zippers
@@ -36,13 +37,13 @@ mkTabs env (Tabs tabs) = do
                     (thisTab, thisTab == currentTab, Tabs tabs'')
 
 
-mkTab :: Env -> (Tab, Bool, Tabs) -> UI Element
-mkTab Env{..} (tab, isCenter, tabs)
+mkTab :: Env -> Translation -> (Tab, Bool, Tabs) -> UI Element
+mkTab Env{..} translations (tab, isCenter, tabs)
     | isCenter = do
-        let name = show tab
+        let name = Lens.view (Tab.toTranslation tab) translations
         mkButton "idd" name #. "button is-selected" # set (attr "disabled") "true"
     | otherwise = do
-        let name = show tab
+        let name = Lens.view (Tab.toTranslation tab) translations
         button <- mkButton "idd" name
         UI.on UI.click button $ \_ ->
             liftIO $ withMVar files $ \ Files{..} ->
