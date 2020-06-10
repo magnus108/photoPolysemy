@@ -52,11 +52,16 @@ data Build
 
 
 toString :: Build -> Translation.Translation -> String
-toString build = Lens.view translator
-    where translator = case build of
-            (DoneBuild photographee x) -> Translation.doneBuild
-            (Building photographee x) -> Translation.building
-            NoBuild -> Translation.noBuild
+toString build translation = Lens.view translator translation ++ ". " ++ info
+    where 
+        translator = case build of
+                (DoneBuild photographee x) -> Translation.doneBuild
+                (Building photographee x) -> Translation.building
+                NoBuild -> Translation.noBuild
+        info = case build of
+                (DoneBuild photographee x) -> Lens.view Photographee.name photographee ++ " " ++ x
+                (Building photographee x) -> Lens.view Photographee.name photographee ++ " " ++ x
+                NoBuild -> ""
 
 
 getBuild' :: (MonadIO m, MonadThrow m) => FilePath -> m (Either String Build)

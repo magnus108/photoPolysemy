@@ -2,6 +2,8 @@ module Lib.Server.Build
     ( entry
     ) where
 
+import Control.Exception
+import qualified Data.String as String
 import qualified Data.List.Index
 import Control.Concurrent
 import Data.Strings
@@ -60,7 +62,7 @@ opts mBuildFile photographee = shakeOptions
             progressDisplay 0.05 (\s -> do
                 case s of
                     "" -> Build.write mBuildFile (Build.NoBuild)
-                    x -> case words (show x) of
+                    x -> case String.words x of
                             "Finished":_ -> Build.write mBuildFile (Build.DoneBuild photographee x)
                             _ -> Build.write mBuildFile (Build.Building photographee x)
                 ) p
@@ -143,7 +145,14 @@ entry mBuildFile item = do
 
     let photographees = Lens.view Main.photographees item
     let photographee = extract (Photographee.unPhotographees photographees)
-    myShake (opts mBuildFile photographee) date item
+    myShake (opts mBuildFile photographee) date item `catchAny` (\_ -> do
+            Build.write mBuildFile Build.NoBuild
+        )
+
+
+catchAny :: IO a -> (SomeException -> IO a) -> IO a
+catchAny = catch
+
 
 
 myShake :: ShakeOptions -> String -> Main.Item -> IO ()
