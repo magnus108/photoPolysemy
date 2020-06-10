@@ -240,9 +240,11 @@ sinkModel env@Env{..} win translations bModel = do
                     msg <- Lens.views loading string translations
                     _ <- element content # set children [msg]
                     return ()
-                Failure _ -> do
+                Failure e -> do
                     msg <- Lens.views mainPageError string translations
-                    _ <- element content # set children [msg]
+                    err <- UI.div #+ [string e]
+                    section <- UI.div #. "section" # set children [msg, err]
+                    _ <- element content # set children [section]
                     return ()
 
                 Data item' -> do
@@ -273,9 +275,11 @@ sinkModel env@Env{..} win translations bModel = do
                 msg <- Lens.views loading string translations
                 _ <- element content # set children [msg]
                 return ()
-            Failure _ -> do
+            Failure e -> do
                 msg <- Lens.views mainPageError string translations
-                _ <- element content # set children [msg]
+                err <- UI.div #+ [string e]
+                section <- UI.div #. "section" # set children [msg, err]
+                _ <- element content # set children [section]
                 return ()
             Data item' -> do
                 editingInputPhotographee <- liftIO $ currentValue bEditingInputPhotographee

@@ -110,8 +110,8 @@ runServer port env@Env{..} = do
         stopPhotographees <- photographees mgr mPhotographeesFile watchers hPhotographees
 
         --Dump
-        stopConfigDump <- configDump mgr mDumpFile watchers hConfigDump hDumpDir
-        stopDirDump <- dirDump mgr mDumpFile watchers hDumpDir
+        stopConfigDump <- configDump mgr mDumpFile mCamerasFile watchers hConfigDump hDumpDir
+        stopDirDump <- dirDump mgr mDumpFile mCamerasFile watchers hDumpDir
 
         --Dagsdato
         stopConfigDagsdato <- configDagsdato mgr mDagsdatoFile watchers hConfigDagsdato hDirDagsdato
@@ -126,7 +126,7 @@ runServer port env@Env{..} = do
         stopDirDoneshooting <- dirDoneshooting mgr mDoneshootingFile watchers hDirDoneshooting
 
         --Cameras
-        stopConfigCameras <- configCameras mgr mCamerasFile watchers hCameras
+        stopConfigCameras <- configCameras mgr mCamerasFile mDumpFile watchers hCameras hDumpDir
 
         --Shootings
         stopConfigShootings <- configShootings mgr mShootingsFile watchers hShootings
@@ -219,7 +219,7 @@ runServer port env@Env{..} = do
 
         -- DumpDir
         bDumpDir <- UI.stepper Dump.initalStateDir eDumpDir
-        _ <- Dump.getDumpDir mDumpFile hDumpDir
+        _ <- Dump.getDumpDir mDumpFile mCamerasFile hDumpDir
 
 
         translations <- Translation.read mTranslationFile
@@ -308,14 +308,18 @@ configSessions mgr mSessionsFile _ handler = do
         (\e -> void $ print e >> getSessions mSessionsFile handler)
 
 
-configCameras :: WatchManager -> MVar FilePath -> WatchMap -> Handler Camera.Model -> IO StopListening
-configCameras mgr mCamerasFile _ handler = do
+configCameras :: WatchManager -> MVar FilePath -> MVar FilePath -> WatchMap -> Handler Camera.Model -> Handler (Dump.DumpDirModel) -> IO StopListening
+configCameras mgr mCamerasFile mDumpFile watchMap handler handleDumpDir = do
     filepath <- readMVar mCamerasFile
     watchDir
         mgr
         (dropFileName filepath)
         (\e -> eventPath e == filepath)
-        (\e -> void $ print e >> getCameras mCamerasFile handler)
+        (\e -> do
+            print e
+            getCameras mCamerasFile handler
+            getDumpDir mDumpFile mCamerasFile handleDumpDir
+        )
 
 
 configShootings :: WatchManager -> MVar FilePath -> WatchMap -> Handler Shooting.Model -> IO StopListening
@@ -362,8 +366,8 @@ dirDoneshooting mgr mDoneshootingFile _ handler = do
                     `catch` (\( _ :: SomeException ) -> return $ return () ) --TODO this sucks
 
 
-configDump :: WatchManager -> MVar FilePath -> WatchMap -> Handler (Dump.DumpModel) -> Handler (Dump.DumpDirModel) -> IO StopListening
-configDump mgr mDumpFile watchMap handler handleDumpDir = do
+configDump :: WatchManager -> MVar FilePath -> MVar FilePath -> WatchMap -> Handler (Dump.DumpModel) -> Handler (Dump.DumpDirModel) -> IO StopListening
+configDump mgr mDumpFile mCamerasFile watchMap handler handleDumpDir = do
     filepath <- readMVar mDumpFile
     watchDir
         mgr
@@ -377,13 +381,13 @@ configDump mgr mDumpFile watchMap handler handleDumpDir = do
             _ <- Dump.getDump mDumpFile handler
             modifyMVar_ watchMap $ \ h -> do
                 h HashMap.! "stopDirDump"
-                stopDirDump <- dirDump mgr mDumpFile watchMap handleDumpDir
+                stopDirDump <- dirDump mgr mDumpFile mCamerasFile watchMap handleDumpDir
                 return $ HashMap.insert "stopDirDump" stopDirDump h
         )
 
 
-dirDump :: WatchManager -> MVar FilePath -> WatchMap -> Handler Dump.DumpDirModel -> IO StopListening
-dirDump mgr mDump _ handler = do
+dirDump :: WatchManager -> MVar FilePath -> MVar FilePath -> WatchMap -> Handler Dump.DumpDirModel -> IO StopListening
+dirDump mgr mDump mCamerasFile _ handler = do
     dumpFile <- readMVar mDump
     dumpPath <- getDump' dumpFile
     case dumpPath of
@@ -393,7 +397,7 @@ dirDump mgr mDump _ handler = do
             mgr
             (unDump path)
             (const True)
-            (\e -> void $ print e >> getDumpDir mDump handler)
+            (\e -> void $ print e >> getDumpDir mDump mCamerasFile handler)
 
 
 configDagsdato :: WatchManager -> MVar FilePath -> WatchMap -> Handler (Dagsdato.Model) -> Handler () -> IO StopListening

@@ -4,7 +4,9 @@
 
 module Lib.Camera
     ( Cameras(..)
+    , toExtension
     , Camera(..)
+    , read
     , getCameras'
     , writeCameras'
     , getCameras
@@ -29,6 +31,10 @@ data Camera
     deriving (Generic)
     deriving (FromJSON, ToJSON)
 
+
+toExtension :: Camera -> (String, String)
+toExtension CR2 = ("CR2", "cr2")
+toExtension CR3 = ("CR3", "cr3")
 
 newtype Cameras = Cameras { unCameras :: ListZipper Camera }
     deriving (Eq, Ord, Show)
@@ -63,13 +69,11 @@ writeCameras :: (MonadIO m) => MVar FilePath -> Cameras -> m ThreadId
 writeCameras file cameras = liftIO $ forkFinally (write file cameras ) $ \ _ -> return ()
 
 
-read :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler Model -> m (Either String Cameras)
-read file _ = liftIO $ withMVar file $ \f -> do
-        --_ <- liftIO $ handle (Model Loading)
-        getCameras' f
+read :: (MonadIO m, MonadThrow m) => MVar FilePath -> m (Either String Cameras)
+read file = liftIO $ withMVar file $ \f -> getCameras' f
 
 
 getCameras :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler Model -> m ()
-getCameras file handle = liftIO $ (read file handle) >>= \case
+getCameras file handle = liftIO $ (read file) >>= \case
             Left e' -> handle $ Model (Failure e')
             Right s -> handle $ Model (Data s)
