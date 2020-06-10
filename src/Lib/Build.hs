@@ -1,5 +1,5 @@
 module Lib.Build
-    () where
+    (entry) where
 
 import qualified Data.List.Index
 import Data.Strings
@@ -49,7 +49,7 @@ mkDoneshootingPath :: Int -> FilePath -> Main.Item -> FilePath
 mkDoneshootingPath index file item =
     Doneshooting.unDoneshooting doneshooting </> location </> extension </> grade </> sessionId ++ "." ++ tea ++ "." ++ shootingId ++ "." ++ photographerId ++ "." ++ no ++ (takeExtension file)
         where
-            location = Location.unLocationFile $ Lens.view Main.location item
+            location = takeBaseName $ Location.unLocationFile $ Lens.view Main.location item
             session = Lens.view Main.session item
             sessionId = show $ Session.toInteger session
 
@@ -104,9 +104,11 @@ entry item = do
 
 myShake :: ShakeOptions -> String -> Main.Item -> IO ()
 myShake opts time item = shake opts $ do
+    let dump = Lens.view Main.dump item
     let dumpDir = Lens.view Main.dumpDir item
 
     Data.List.Index.ifor_ (sort (Dump.unDumpDir dumpDir)) $ \ index' cr -> do
+        let root = Dump.unDump dump
         let index = index' + 1
         let jpg = cr -<.> "jpg"
 
@@ -114,8 +116,7 @@ myShake opts time item = shake opts $ do
 
         want [doneshootingCr] --, doneshootingJpg, dagsdatoCr, dagsdatoJpg, dagsdatoBackupCr, dagsdatoBackupJpg]
 
-        doneshootingCr %> \f -> do
-            copyFile' cr f
+        doneshootingCr %> copyFile' (root </> cr)
 
         {-
         doneshootingJpg %> \f -> do

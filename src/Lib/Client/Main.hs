@@ -397,8 +397,7 @@ sinkModel env@Env{..} win translations bModel = do
             case toJust (Main._unModel model) of
                 Nothing -> return ()
                 Just item'  -> do
-                    --BUILD MODEL
-                    traceShowM "lol"
+                    Build.entry item' 
                     return ()
 
 
