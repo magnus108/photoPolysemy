@@ -23,6 +23,7 @@ import qualified Lib.Camera as Camera
 import qualified Lib.Location as Location
 import qualified Lib.Grade as Grade
 
+import qualified Lib.ControlModel as ControlModel
 import qualified Lib.Client.Location as CLocation
 import qualified Lib.Client.Main as CMain
 import Lib.Client.Session
@@ -33,6 +34,7 @@ import Lib.Client.Dagsdato
 import Lib.Client.DagsdatoBackup
 import Lib.Client.Doneshooting
 import Lib.Client.Photographer
+import Lib.Client.Control
 
 
 import qualified Utils.RoseTree as RT
@@ -82,8 +84,14 @@ view env@Env{..} win translation bBuild bGrades bLocationConfigFile bSessions bS
             CMain.mainSection env win translation tabs bModel
             -- QUICK BADNESS
             return ()
+        ControlTab -> do
+            let bModel = ControlModel.mkModel <$> bGrades
+            controlSection env win translation tabs bModel
+            return ()
+        _ -> 
+            return ()
 
-        _ -> dagsdatoBackupSection env win translation tabs bDagsdatoBackup
+
 
 
 

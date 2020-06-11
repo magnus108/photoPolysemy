@@ -3,6 +3,7 @@
 
 module Lib.Translation
     ( Translation(..)
+    , controlError
     , doneBuild
     , building
     , noBuild
@@ -127,6 +128,7 @@ data Translation = Translation { _loading :: String
                                , _doneBuild :: String
                                , _building :: String
                                , _noBuild :: String
+                               , _controlError :: String
                                }
     deriving (Show, Ord, Eq, Generic, ToJSON, FromJSON)
 

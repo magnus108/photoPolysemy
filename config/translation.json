@@ -56,4 +56,5 @@
 , "_doneBuild" : "Færdigt flyt"
 , "_building" : "Bygger"
 , "_noBuild" : "Intet byg"
+, "_controlError" : "Der er fejl med control program"
 }
