@@ -1,5 +1,11 @@
 module Lib.Server.Build
     ( entry
+    , getDate
+    , myShake'
+    , mkDagsdatoBackupPath
+    , mkDagsdatoPath
+    , mkDoneshootingPath
+    , mkDoneshootingPathJpg
     ) where
 
 import Control.Exception
@@ -155,7 +161,15 @@ myShake mBuildFile opts time item = do
     let dumpDir = Lens.view Main.dumpDir item
     if length (Dump.unDumpDir dumpDir) == 0 then
         void $ Build.write mBuildFile (Build.NoBuild)
-    else shake opts $ do
+    else
+        myShake' opts time item
+
+myShake' :: ShakeOptions -> String -> Main.Item -> IO ()
+myShake' opts time item = shake opts $ do
+
+        let dump = Lens.view Main.dump item
+        let dumpDir = Lens.view Main.dumpDir item
+
         Data.List.Index.ifor_ (sort (Dump.unDumpDir dumpDir)) $ \ index' cr -> do
             let root = Dump.unDump dump
             let index = index' + 1

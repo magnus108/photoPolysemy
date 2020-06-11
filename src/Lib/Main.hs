@@ -35,6 +35,7 @@ import qualified Lib.Build as Build
 import Control.Lens
 
 
+-- OVERVEJ DER SKAL LAVES EN SPECIFIKT TIL BUILD
 data Item = Item { _location :: Location.LocationFile
                  , _grades :: Grade.Grades
                  , _dump :: Dump.Dump

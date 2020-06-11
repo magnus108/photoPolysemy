@@ -1,107 +1,153 @@
+import qualified Data.List.Index
+import System.Directory
+import qualified Control.Lens as Lens
+import qualified Lib.Grade as Grade
+import qualified Lib.Session as Session
+import qualified Lib.Shooting as Shooting
+import qualified Lib.Dump as Dump
+import qualified Lib.Build as Build
+import qualified Lib.Dagsdato as Dagsdato
+import qualified Lib.Location as Location
+import qualified Lib.Doneshooting as Doneshooting
+import qualified Lib.DagsdatoBackup as DagsdatoBackup
+import qualified Lib.Photographer as Photographer
+import qualified Lib.Photographee as Photographee
+import qualified Lib.Main as Main
+import qualified Lib.Camera as Camera
 
+import qualified Lib.Server.Build as SBuild
+
+import Relude.Unsafe
+
+import Data.Time.Calendar
+import Data.Time.Format
+import Data.Time.Clock
 
 import Test.Tasty
 import Test.Tasty.Golden
 
+import Development.Shake.FilePath
+
+import qualified Utils.RoseTree as RT
+import qualified Utils.TreeZipper as TZ
+import Utils.Comonad
+
+import qualified Lib.App as App
+import Lib.Config (loadConfig)
+import Lib (mkEnv)
+
+import qualified Data.ByteString.Lazy as LBS
+
+import Development.Shake
+import Development.Shake.FilePath
+
 main :: IO ()
-main = do
-    return ()
-    {-
-    _ <- getPhotographers mPhotographersFile
-
-    _ <- Dump.getDump mDumpFile
-
-    _ <- Dagsdato.getDagsdato mDagsdatoFile
-
-    _ <- DagsdatoBackup.getDagsdatoBackup mDagsdatoBackupFile 
-
-    _ <- Doneshooting.getDoneshooting mDoneshootingFile 
-
-    _ <- Camera.getCameras mCamerasFile 
-
-    _ <- Shooting.getShootings mShootingsFile 
-
-    _ <- Session.getSessions mSessionsFile 
-
-    _ <- Grade.getGrades mGradesFile 
-
-    _ <- Photographee.getPhotographees mPhotographeesFile 
-
-    _ <- Location.getLocationFile mLocationConfigFile 
-
-    _ <- Dump.getDumpDir mDumpFile mCamerasFile 
-
-    golden <- goldenTests
-    defaultMain $ testGroup "tests" [ golden ]
-    -}
+main = loadConfig "test/config.json" >>= mkEnv >>= run
 
 
---goldenTests :: IO TestTree
---goldenTests = do
-    
-    {-
-    config <- toShakeConfig Nothing "test/config.cfg"    
-    
-    --IO bads
-    dagsdatoX <- getDagsdato config
-    doneshootingX <- getDoneshooting config
-    
-    xxxx <- getLocationFile config
-    --
-    --- ??????
-    location (error "no location in test eeee") (\xxx -> do
-            let photographeeId = "5678"
-            photographee <- findPhotographee xxxx (Id.fromString photographeeId)
+run :: App.Env -> IO ()
+run env@App.Env{..} = do
+    photographers <- Photographer.getPhotographers mPhotographersFile
+    let photographer = extract . Photographer.unPhotographers <$> photographers
+    dump <- Dump.getDump mDumpFile
+    dagsdato <- Dagsdato.getDagsdato mDagsdatoFile
+    dagsdatoBackup <- DagsdatoBackup.getDagsdatoBackup mDagsdatoBackupFile
+    doneshooting <- Doneshooting.getDoneshooting mDoneshootingFile
+    cameras <- Camera.getCameras mCamerasFile
+    let camera = extract . Camera.unCameras <$> cameras
+    shootings <- Shooting.getShootings mShootingsFile
+    let shooting = extract . Shooting.unShootings <$> shootings
+    sessions <- Session.getSessions mSessionsFile
+    let session = (\(Session.Sessions sessions) -> case sessions of
+                            (TZ.TreeZipper (RT.Leaf x) _) -> do
+                                Right x
+                            (TZ.TreeZipper (RT.Branch _ _) _) -> do
+                                Left "Session"
+                                ) =<< sessions
 
-            let ident = _ident (fromJust  photographee)
-            let goldenDir = "test" </> ident 
+    grades <- Grade.getGrades mGradesFile
+    photographees <- Photographee.getPhotographees mPhotographeesFile
+    location <- Location.getLocationFile mLocationConfigFile
+    dumpDir <- Dump.getDumpDir mDumpFile mCamerasFile
+    build <- Build.getBuild mBuildFile
 
-            -- uglys
-            doneshooting (return ()) (\f -> do
-                    createDirectoryIfMissing False f
-                    removeDirectoryRecursive f) doneshootingX
+    let item = Main.Item <$> location
+                         <*> grades
+                         <*> dump
+                         <*> dumpDir
+                         <*> photographees
+                         <*> session
+                         <*> camera
+                         <*> dagsdato
+                         <*> shooting
+                         <*> doneshooting
+                         <*> photographer
+                         <*> dagsdatoBackup
+                         <*> build
 
-            dagsdato (return ()) (\f -> do
-                    createDirectoryIfMissing False f
-                    removeDirectoryRecursive f) dagsdatoX
-
-
-            let day = fromGregorian 2009 12 31
-            let time = UTCTime day (secondsToDiffTime 0)
-
-            myShake config (fromJust photographee) (takeBaseName xxx) time False
-
-            -- bads 
-            photographer <- getPhotographer config
-            session <- getSession config
-            shooting <- getShooting config
+    golden <- mapM (goldenTests env) item
+    defaultMain $ testGroup "tests" [ fromJust (rightToMaybe golden) ]
 
 
-            -- de lader til at være en fejl at disse paths ligger her. og at null og 0 er med
-            -- can throw error fixxxx
-            cameras <- getCameras config
+shakeDir :: FilePath
+shakeDir = "test/._build"
 
-            let doneshootingPath = Camera.cameras (error "lol") (\c -> takeDirectory $ mkDoneshootingPath doneshootingX (fromJust photographee) (takeBaseName xxx) photographer session shooting "null" 0 (focus c)) cameras
-            let dagsdatoPath = takeDirectory $ mkDagsdatoPath dagsdatoX (fromJust photographee) (takeBaseName xxx) "null" time
+opts :: ShakeOptions
+opts = shakeOptions { shakeFiles = shakeDir }
 
-            doneShootingFiles <- listDirectory doneshootingPath
-            dagsdatoFiles <- listDirectory dagsdatoPath
 
-            -- overvej refac
-            -- der er fejl i og med extension ikke er med i output
-            return $ testGroup "all files moved" $ 
+
+check date item = Data.List.Index.imap (\index' cr -> 
+        let 
+                                            root = Dump.unDump dump
+                                            index = index' + 1
+                                            jpg = cr -<.> "jpg"
+                                            doneshootingCr = SBuild.mkDoneshootingPath index cr item
+                                            doneshootingJpg = SBuild.mkDoneshootingPathJpg index jpg item
+                                            dagsdatoCr = SBuild.mkDagsdatoPath cr date item
+                                            dagsdatoJpg = SBuild.mkDagsdatoPath jpg date item
+                                            dagsdatoBackupCr = SBuild.mkDagsdatoBackupPath cr date item
+                                            dagsdatoBackupJpg = SBuild.mkDagsdatoBackupPath jpg date item
+                                            dump = Lens.view Main.dump item
+        in
+            (doneshootingCr, doneshootingJpg, dagsdatoCr, dagsdatoJpg, dagsdatoBackupCr, dagsdatoBackupJpg)
+            ) (sort (Dump.unDumpDir dumpDir))
+        where 
+            dumpDir = Lens.view Main.dumpDir item
+
+
+goldenTests :: App.Env -> Main.Item -> IO TestTree
+goldenTests App.Env{..} item@Main.Item{..} = do
+        let time = fromGregorian 2009 12 31
+        let date = SBuild.getDate (UTCTime time (secondsToDiffTime 0))
+        let photographees = Lens.view Main.photographees item
+        let photographee = extract (Photographee.unPhotographees photographees)
+        let ident = Lens.view Photographee.ident photographee
+        let goldenDir = "test" </> ident
+
+        let dump = Lens.view Main.dump item
+        let dumpDir = Lens.view Main.dumpDir item
+
+        _ <- SBuild.myShake' opts date item
+
+        let lol = check date item
+        traceShowM lol
+
+        return $ testGroup "all files moved" $ []
+            {-
+        return $ testGroup "all files moved" $ 
                 [ goldenVsString
                     (takeBaseName file)
                     goldenFile
                     (LBS.readFile file)
                 | file <- fmap (\x -> doneshootingPath </> x) doneShootingFiles --could be nicer
                 , let goldenFile = replaceDirectory file goldenDir
-                ] ++    
+                ] ++
                 [ goldenVsString
                     (takeBaseName file)
                     goldenFile
                     (LBS.readFile file)
                 | file <- fmap (\x -> dagsdatoPath </> x) dagsdatoFiles --could be nicer
                 , let goldenFile = replaceDirectory file goldenDir
-                ]) xxxx    
+                ]
                 -}
