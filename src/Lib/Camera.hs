@@ -73,7 +73,5 @@ read :: (MonadIO m, MonadThrow m) => MVar FilePath -> m (Either String Cameras)
 read file = liftIO $ withMVar file $ \f -> getCameras' f
 
 
-getCameras :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler Model -> m ()
-getCameras file handle = liftIO $ (read file) >>= \case
-            Left e' -> handle $ Model (Failure e')
-            Right s -> handle $ Model (Data s)
+getCameras :: (MonadIO m, MonadThrow m) => MVar FilePath -> m (Either String Cameras)
+getCameras file = liftIO $ read file

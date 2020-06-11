@@ -90,15 +90,10 @@ initialState :: Model
 initialState = Model NotAsked
 
 
-forker :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler Model -> m (Either String Grades)
-forker file _ = do
-    liftIO $ withMVar file $ \f -> do
-        ---_ <- liftIO $ handle $ Model Loading
+forker :: (MonadIO m, MonadThrow m) => MVar FilePath -> m (Either String Grades)
+forker file = liftIO $ withMVar file $ \f -> do
         getGrades' f
 
 
-getGrades :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler Model -> m ()
-getGrades file handle = do
-    liftIO $ (forker file handle) >>= \case
-                    Left e' -> handle $ Model $ Failure e'
-                    Right s -> handle $ Model $ Data s
+getGrades :: (MonadIO m, MonadThrow m) => MVar FilePath -> m (Either String Grades)
+getGrades file = liftIO $ forker file

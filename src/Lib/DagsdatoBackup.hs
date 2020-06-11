@@ -48,13 +48,10 @@ writeDagsdatoBackup :: (MonadIO m) => MVar FilePath -> DagsdatoBackup -> m Threa
 writeDagsdatoBackup file dagsdatoBackup' = liftIO $ forkFinally (write file dagsdatoBackup') $ \ _ -> return ()
 
 
-read :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler Model -> m (Either String DagsdatoBackup)
-read file _ = liftIO $ withMVar file $ \f -> do
-        --_ <- liftIO $ handle (Model Loading)
+read :: (MonadIO m, MonadThrow m) => MVar FilePath -> m (Either String DagsdatoBackup)
+read file = liftIO $ withMVar file $ \f -> do
         getDagsdatoBackup' f
 
 
-getDagsdatoBackup :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler Model -> m ()
-getDagsdatoBackup file handle = liftIO $ (read file handle) >>= \case
-            Left e' -> handle $ Model (Failure e')
-            Right s -> handle $ Model (Data s)
+getDagsdatoBackup :: (MonadIO m, MonadThrow m) => MVar FilePath -> m (Either String DagsdatoBackup)
+getDagsdatoBackup file = liftIO $ read file

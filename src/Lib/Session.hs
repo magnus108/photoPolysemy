@@ -108,13 +108,11 @@ writeSessions :: (MonadIO m) => MVar FilePath -> Sessions -> m ThreadId
 writeSessions file sessions = liftIO $ forkFinally (write file sessions) $ \ _ -> return ()
 
 
-read :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler Model -> m (Either String Sessions)
-read file _ = liftIO $ withMVar file $ \f -> do
+read :: (MonadIO m, MonadThrow m) => MVar FilePath -> m (Either String Sessions)
+read file = liftIO $ withMVar file $ \f -> do
         --_ <- liftIO $ handle (Model Loading)
         getSessions' f
 
 
-getSessions :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler Model -> m ()
-getSessions file handle = liftIO $ (read file handle) >>= \case
-            Left e' -> handle $ Model (Failure e')
-            Right s -> handle $ Model (Data s)
+getSessions :: (MonadIO m, MonadThrow m) => MVar FilePath -> m (Either String Sessions)
+getSessions file = liftIO $ read file

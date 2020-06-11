@@ -49,12 +49,10 @@ writeDoneshooting :: (MonadIO m) => MVar FilePath -> Doneshooting -> m ThreadId
 writeDoneshooting file dagsdato' = liftIO $ forkFinally (write file dagsdato') $ \ _ -> return ()
 
 
-read :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler Model -> m (Either String Doneshooting)
-read file _ = liftIO $ withMVar file $ \f -> do
+read :: (MonadIO m, MonadThrow m) => MVar FilePath -> m (Either String Doneshooting)
+read file = liftIO $ withMVar file $ \f -> do
         getDoneshooting' f
 
 
-getDoneshooting :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler Model -> m ()
-getDoneshooting file handle = liftIO $ (read file handle) >>= \case
-            Left e' -> handle $ Model (Failure e')
-            Right s -> handle $ Model (Data s)
+getDoneshooting :: (MonadIO m, MonadThrow m) => MVar FilePath -> m (Either String Doneshooting)
+getDoneshooting file = liftIO $ read file

@@ -52,13 +52,11 @@ writeLocationFile :: (MonadIO m) => MVar FilePath -> LocationFile -> m ThreadId
 writeLocationFile file sessions = liftIO $ forkFinally (write file sessions) $ \ _ -> return ()
 
 
-read :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler Model -> m (Either String LocationFile)
-read file _ = do
+read :: (MonadIO m, MonadThrow m) => MVar FilePath -> m (Either String LocationFile)
+read file = do
     liftIO $ withMVar file $ \f -> do
         getLocationFile' f
 
 
-getLocationFile :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler Model -> m ()
-getLocationFile file handle = liftIO $ (read file handle) >>= \case
-            Left e' -> handle $ Model (Failure e')
-            Right s -> handle $ Model (Data s)
+getLocationFile :: (MonadIO m, MonadThrow m) => MVar FilePath -> m (Either String LocationFile)
+getLocationFile file = liftIO $ read file 

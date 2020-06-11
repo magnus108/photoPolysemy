@@ -176,16 +176,14 @@ writePhotographees :: (MonadIO m) => MVar FilePath -> Photographees -> m ()
 writePhotographees file photographees = liftIO $ (write file photographees)
 
 
-read :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler Model -> m (Either String Photographees)
-read file _ = liftIO $ withMVar file $ \f -> do
+read :: (MonadIO m, MonadThrow m) => MVar FilePath -> m (Either String Photographees)
+read file = liftIO $ withMVar file $ \f -> do
 --        _ <- liftIO $ handle (Model Loading)
         getPhotographees' f
 
 
-getPhotographees :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler Model -> m ()
-getPhotographees file handle = liftIO $ (read file handle) >>= \case
-            Left e' -> handle $ Model (Failure e')
-            Right s -> handle $ Model (Data s)
+getPhotographees :: (MonadIO m, MonadThrow m) => MVar FilePath -> m (Either String Photographees)
+getPhotographees file = liftIO $ read file
 
 
 -------------------------------------------------------------------------------------------------------------------------

@@ -49,13 +49,10 @@ writeDagsdato :: (MonadIO m) => MVar FilePath -> Dagsdato -> m ThreadId
 writeDagsdato file dagsdato' = liftIO $ forkFinally (write file dagsdato') $ \ _ -> return ()
 
 
-read :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler Model -> m (Either String Dagsdato)
-read file _ = liftIO $ withMVar file $ \f -> do
-        --_ <- liftIO $ handle (Model Loading)
+read :: (MonadIO m, MonadThrow m) => MVar FilePath -> m (Either String Dagsdato)
+read file = liftIO $ withMVar file $ \f -> do
         getDagsdato' f
 
 
-getDagsdato :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler Model -> m ()
-getDagsdato file handle = liftIO $ (read file handle) >>= \case
-            Left e' -> handle $ Model (Failure e')
-            Right s -> handle $ Model (Data s)
+getDagsdato :: (MonadIO m, MonadThrow m) => MVar FilePath -> m (Either String Dagsdato)
+getDagsdato file = liftIO $ read file

@@ -93,7 +93,5 @@ read :: (MonadIO m, MonadThrow m) => MVar FilePath -> m (Either String Build)
 read file = liftIO $ withMVar file $ \f -> getBuild' f
 
 
-getBuild :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler Model -> m ()
-getBuild file handle = liftIO $ (read file) >>= \case
-            Left e' -> handle $ Model (Failure "Kunne ikke finde byg")
-            Right s -> handle $ Model (Data s)
+getBuild :: (MonadIO m, MonadThrow m) => MVar FilePath -> m (Either String Build)
+getBuild file = liftIO $ read file

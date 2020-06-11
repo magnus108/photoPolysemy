@@ -4,6 +4,7 @@ module Lib
     , runServer
     , main
     ) where
+import Lib.Data
 
 import Relude.Unsafe (fromJust)
 
@@ -183,57 +184,84 @@ runServer port env@Env{..} = do
 
         --Photographers
         bBuild <- UI.stepper Build.initalState eBuild
-        _ <- Build.getBuild mBuildFile hBuild
+        Build.getBuild mBuildFile >>= \case
+                Left e' -> hBuild $ Build.Model (Failure "Kunne ikke finde byg")
+                Right s -> hBuild $ Build.Model (Data s)
 
         --Photographers
         bPhotographers <- UI.stepper Photographer.initalState ePhotographers
-        _ <- getPhotographers mPhotographersFile hPhotographers
+        _ <- getPhotographers mPhotographersFile >>= \case
+                Left e' -> hPhotographers $ Photographer.Model (Failure e')
+                Right s -> hPhotographers $ Photographer.Model (Data s)
 
         --Dump
         bDump <- UI.stepper Dump.initalState eConfigDump
-        _ <- Dump.getDump mDumpFile hConfigDump
+        _ <- Dump.getDump mDumpFile >>= \case
+                Left e' -> hConfigDump $ Dump.DumpModel (Failure e')
+                Right s -> hConfigDump $ Dump.DumpModel (Data s)
 
         --Dagsdato
         bDagsdato <- UI.stepper Dagsdato.initialState eConfigDagsdato
-        _ <- Dagsdato.getDagsdato mDagsdatoFile hConfigDagsdato
+        _ <- Dagsdato.getDagsdato mDagsdatoFile >>= \case
+                Left e' -> hConfigDagsdato $ Dagsdato.Model (Failure e')
+                Right s -> hConfigDagsdato $ Dagsdato.Model (Data s)
 
         --DagsdatoBackup
         bDagsdatoBackup <- UI.stepper DagsdatoBackup.initialState eConfigDagsdatoBackup
-        _ <- DagsdatoBackup.getDagsdatoBackup mDagsdatoBackupFile hConfigDagsdatoBackup
+        _ <- DagsdatoBackup.getDagsdatoBackup mDagsdatoBackupFile  >>= \case
+                Left e' -> hConfigDagsdatoBackup $ DagsdatoBackup.Model (Failure e')
+                Right s -> hConfigDagsdatoBackup $ DagsdatoBackup.Model (Data s)
 
         -- Doneshooting
         bDoneshooting <- UI.stepper Doneshooting.initialState eConfigDoneshooting
-        _ <- Doneshooting.getDoneshooting mDoneshootingFile hConfigDoneshooting
+        _ <- Doneshooting.getDoneshooting mDoneshootingFile >>= \case
+            Left e' -> hConfigDoneshooting $ Doneshooting.Model (Failure e')
+            Right s -> hConfigDoneshooting $ Doneshooting.Model (Data s)
 
         -- Cameras
         bCameras <- UI.stepper Camera.initalState eCameras
-        _ <- Camera.getCameras mCamerasFile hCameras
+        _ <- Camera.getCameras mCamerasFile >>= \case
+            Left e' -> hCameras $ Camera.Model (Failure e')
+            Right s -> hCameras $ Camera.Model (Data s)
 
         -- Shootings
         bShootings <- UI.stepper Shooting.initialState eShootings
-        _ <- Shooting.getShootings mShootingsFile hShootings
+        _ <- Shooting.getShootings mShootingsFile >>= \case
+            Left e' -> hShootings $ Shooting.Model (Failure e')
+            Right s -> hShootings $ Shooting.Model (Data s)
 
         -- Sessions
         bSessions <- UI.stepper Session.initialState eSessions
-        _ <- Session.getSessions mSessionsFile hSessions
+        _ <- Session.getSessions mSessionsFile >>= \case
+            Left e' -> hSessions $ Session.Model (Failure e')
+            Right s -> hSessions $ Session.Model (Data s)
 
         -- Grades
 
         bGrades <- UI.stepper Grade.initialState eGrades
-        _ <- Grade.getGrades mGradesFile hGrades
+        _ <- Grade.getGrades mGradesFile >>= \case
+                    Left e' -> hGrades $ Grade.Model $ Failure e'
+                    Right s -> hGrades $ Grade.Model $ Data s
 
         -- Photographees this is REAL BAD AS it does not wrk with bLocationConfigFile as expected
         bPhotographees <- UI.stepper Photographee.initialState ePhotographees
-        _ <- Photographee.getPhotographees mPhotographeesFile hPhotographees
+        _ <- Photographee.getPhotographees mPhotographeesFile >>= \case
+            Left e' -> hPhotographees $ Photographee.Model (Failure e')
+            Right s -> hPhotographees $ Photographee.Model (Data s)
+
 
 
         -- Location
         bLocationConfigFile <- UI.stepper Location.initialState eLocationConfigFile
-        _ <- Location.getLocationFile mLocationConfigFile hLocationConfigFile
+        _ <- Location.getLocationFile mLocationConfigFile >>= \case
+            Left e' -> hLocationConfigFile $ Location.Model (Failure e')
+            Right s -> hLocationConfigFile $ Location.Model (Data s)
 
         -- DumpDir
         bDumpDir <- UI.stepper Dump.initalStateDir eDumpDir
-        _ <- Dump.getDumpDir mDumpFile mCamerasFile hDumpDir
+        _ <- Dump.getDumpDir mDumpFile mCamerasFile >>= \case
+                Left e' -> hDumpDir $ DumpDirModel (Failure e')
+                Right s -> hDumpDir $ DumpDirModel (Data s)
 
 
         translations <- Translation.read mTranslationFile
@@ -253,7 +281,9 @@ build mgr mBuildFile _ handler = do
         (\e -> eventPath e == filepath)
         (\e -> void $ do
             print e
-            Build.getBuild mBuildFile handler
+            Build.getBuild mBuildFile >>= \case
+                Left e' -> handler $ Build.Model (Failure "Kunne ikke finde byg")
+                Right s -> handler $ Build.Model (Data s)
         )
 
 
@@ -294,7 +324,9 @@ photographees mgr mPhotographeesFile _ handler = do
         (\e -> eventPath e == filepath)
         (\e -> void $ do
             print e
-            Photographee.getPhotographees mPhotographeesFile handler
+            Photographee.getPhotographees mPhotographeesFile >>= \case
+                Left e' -> handler $ Photographee.Model (Failure e')
+                Right s -> handler $ Photographee.Model (Data s)
         )
 
 
@@ -308,7 +340,9 @@ grades mgr mGradesFile mLocationConfigFile mPhotographeesFile _ handler = do
         (\e -> eventPath e == filepath)
         (\e -> void $ do
             print e 
-            Grade.getGrades mGradesFile handler
+            _ <- Grade.getGrades mGradesFile >>= \case
+                    Left e' -> handler $ Grade.Model $ Failure e'
+                    Right s -> handler $ Grade.Model $ Data s
             Photographee.reloadPhotographees mGradesFile mLocationConfigFile mPhotographeesFile
         )
 
@@ -323,7 +357,12 @@ configPhotographers mgr mFilepath _ handler = do
         --TODO SPAWNER THREAD SOM IKKE DØR
         --TODO SPAWNER THREAD SOM IKKE DØR
         --TODO SPAWNER THREAD SOM IKKE DØR
-        (\e -> void $ print e >> getPhotographers mFilepath handler)
+        (\e -> void $ do
+            print e 
+            getPhotographers mFilepath >>= \case
+                Left e' -> handler $ Photographer.Model (Failure e')
+                Right s -> handler $ Photographer.Model (Data s)
+        )
 
 
 configSessions :: WatchManager -> MVar FilePath -> WatchMap -> Handler Session.Model -> IO StopListening
@@ -333,7 +372,12 @@ configSessions mgr mSessionsFile _ handler = do
         mgr
         (dropFileName filepath)
         (\e -> eventPath e == filepath)
-        (\e -> void $ print e >> getSessions mSessionsFile handler)
+        (\e -> do
+            print e 
+            Session.getSessions mSessionsFile >>= \case
+                    Left e' -> handler $ Session.Model (Failure e')
+                    Right s -> handler $ Session.Model (Data s)
+        )
 
 
 configCameras :: WatchManager -> MVar FilePath -> MVar FilePath -> WatchMap -> Handler Camera.Model -> Handler (Dump.DumpDirModel) -> IO StopListening
@@ -345,8 +389,12 @@ configCameras mgr mCamerasFile mDumpFile _ handler handleDumpDir = do
         (\e -> eventPath e == filepath)
         (\e -> do
             print e
-            getCameras mCamerasFile handler
-            getDumpDir mDumpFile mCamerasFile handleDumpDir
+            _ <- Camera.getCameras mCamerasFile >>= \case
+                Left e' -> handler $ Camera.Model (Failure e')
+                Right s -> handler $ Camera.Model (Data s)
+            getDumpDir mDumpFile mCamerasFile >>= \case
+                Left e' -> handleDumpDir $ DumpDirModel (Failure e')
+                Right s -> handleDumpDir $ DumpDirModel (Data s)
         )
 
 
@@ -357,7 +405,12 @@ configShootings mgr mShootingsFile _ handler = do
         mgr
         (dropFileName filepath)
         (\e -> eventPath e == filepath)
-        (\e -> void $ print e >> getShootings mShootingsFile handler)
+        (\e -> do
+            print e
+            Shooting.getShootings mShootingsFile >>= \case
+                Left e' -> handler $ Shooting.Model (Failure e')
+                Right s -> handler $ Shooting.Model (Data s)
+        )
 
 
 configDoneshooting :: WatchManager -> MVar FilePath -> WatchMap -> Handler Doneshooting.Model -> Handler () -> IO StopListening
@@ -369,7 +422,9 @@ configDoneshooting mgr mDoneshootingFile watchMap handler handleDonshootingDir =
         (\e -> eventPath e == filepath)
         (\e -> do
             print e
-            _ <- Doneshooting.getDoneshooting mDoneshootingFile handler
+            _ <- Doneshooting.getDoneshooting mDoneshootingFile >>= \case
+                Left e' -> handler $ Doneshooting.Model (Failure e')
+                Right s -> handler $ Doneshooting.Model (Data s)
             -- TODO these two are related
             modifyMVar_ watchMap $ \ h -> do
                 h HashMap.! "stopDirDoneshooting"
@@ -406,7 +461,10 @@ configDump mgr mDumpFile mCamerasFile watchMap handler handleDumpDir = do
         --TODO SPAWNER THREAD SOM IKKE DØR
         (\e -> do
             print e
-            _ <- Dump.getDump mDumpFile handler
+            _ <- Dump.getDump mDumpFile >>= \case
+                Left e' -> handler $ Dump.DumpModel (Failure e')
+                Right s -> handler $ Dump.DumpModel (Data s)
+
             modifyMVar_ watchMap $ \ h -> do
                 h HashMap.! "stopDirDump"
                 stopDirDump <- dirDump mgr mDumpFile mCamerasFile watchMap handleDumpDir
@@ -425,7 +483,12 @@ dirDump mgr mDump mCamerasFile _ handler = do
             mgr
             (unDump path)
             (const True)
-            (\e -> void $ print e >> getDumpDir mDump mCamerasFile handler)
+            (\e -> do
+                print e
+                getDumpDir mDump mCamerasFile >>= \case
+                    Left e' -> handler $ Dump.DumpDirModel (Failure e')
+                    Right s -> handler $ Dump.DumpDirModel (Data s)
+            )
 
 
 configDagsdato :: WatchManager -> MVar FilePath -> WatchMap -> Handler (Dagsdato.Model) -> Handler () -> IO StopListening
@@ -437,7 +500,9 @@ configDagsdato mgr mDagsdatoFile watchMap handler handleDagsdatoDir = do
         (\e -> eventPath e == filepath)
         (\e -> do
             print e
-            _ <- Dagsdato.getDagsdato mDagsdatoFile handler
+            _ <- Dagsdato.getDagsdato mDagsdatoFile >>= \case
+                    Left e' -> handler $ Dagsdato.Model (Failure e')
+                    Right s -> handler $ Dagsdato.Model (Data s)
             modifyMVar_ watchMap $ \ h -> do
                 h HashMap.! "stopDirDagsdato"
                 stopDirDagsdato <- dirDagsdato mgr mDagsdatoFile watchMap handleDagsdatoDir
@@ -471,7 +536,9 @@ configDagsdatoBackup mgr mDagsdatoBackupFile watchMap handler handleDagsdatoBack
         (\e -> eventPath e == filepath)
         (\e -> do
             print e
-            _ <- DagsdatoBackup.getDagsdatoBackup mDagsdatoBackupFile handler
+            _ <- DagsdatoBackup.getDagsdatoBackup mDagsdatoBackupFile  >>= \case
+                    Left e' -> handler $ DagsdatoBackup.Model (Failure e')
+                    Right s -> handler $ DagsdatoBackup.Model (Data s)
             modifyMVar_ watchMap $ \ h -> do
                 h HashMap.! "stopDirDagsdatoBackup"
                 stopDirDagsdatoBackup <- dirDagsdatoBackup mgr mDagsdatoBackupFile watchMap handleDagsdatoBackupDir

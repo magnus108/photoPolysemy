@@ -63,13 +63,9 @@ writePhotographers :: (MonadIO m) => MVar FilePath -> Photographers -> m ThreadI
 writePhotographers file photographers = liftIO $ forkFinally (write file photographers ) $ \ _ -> return ()
 
 
-read :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler Model -> m (Either String Photographers)
-read file _ = liftIO $ withMVar file $ \f -> do
---        _ <- liftIO $ handle (Model Loading)
-        getPhotographers' f
+read :: (MonadIO m, MonadThrow m) => MVar FilePath -> m (Either String Photographers)
+read file = liftIO $ withMVar file $ getPhotographers'
 
 
-getPhotographers :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler Model -> m ()
-getPhotographers file handle = liftIO $ (read file handle) >>= \case
-            Left e' -> handle $ Model (Failure e')
-            Right s -> handle $ Model (Data s)
+getPhotographers :: (MonadIO m, MonadThrow m) => MVar FilePath -> m (Either String Photographers)
+getPhotographers file = liftIO $ read file

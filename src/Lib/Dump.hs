@@ -56,15 +56,12 @@ writeDump :: (MonadIO m) => MVar FilePath -> Dump -> m ThreadId
 writeDump file dump' = liftIO $ forkFinally (write file dump') $ \ _ -> return ()
 
 
-read :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler DumpModel -> m (Either String Dump)
-read file _ = liftIO $ withMVar file $ \f -> do
-        getDump' f
+read :: (MonadIO m, MonadThrow m) => MVar FilePath -> m (Either String Dump)
+read file = liftIO $ withMVar file $ getDump'
 
 
-getDump :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler DumpModel -> m ()
-getDump file handle = liftIO $ (read file handle) >>= \case
-            Left e' -> handle $ DumpModel (Failure e')
-            Right s -> handle $ DumpModel (Data s)
+getDump :: (MonadIO m, MonadThrow m) => MVar FilePath -> m (Either String Dump)
+getDump file = liftIO $ read file
 
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
@@ -133,7 +130,5 @@ readDir file mCamerasFile =
                             Right ff -> getDumpDir' ff (extract (Camera.unCameras cameras'))
 
 
-getDumpDir :: (MonadIO m, MonadThrow m) => MVar FilePath -> MVar FilePath -> Handler DumpDirModel -> m ()
-getDumpDir file mCamerasFile handle = liftIO $ (readDir file mCamerasFile) >>= \case
-                Left e' -> handle $ DumpDirModel (Failure e')
-                Right s -> handle $ DumpDirModel (Data s)
+getDumpDir :: (MonadIO m, MonadThrow m) => MVar FilePath -> MVar FilePath -> m (Either String DumpDir)
+getDumpDir file mCamerasFile = liftIO $ readDir file mCamerasFile
