@@ -16,6 +16,7 @@ module Lib.Doneshooting
     ) where
 
 
+import Control.Exception
 import Control.Concurrent
 
 import Lib.Data
@@ -82,8 +83,11 @@ newtype DoneshootingDir = DoneshootingDir { unDoneshootingDir :: [FilePath] }
 getDoneshootingFiles :: Doneshooting -> Camera.Camera -> IO (Either String DoneshootingDir)
 getDoneshootingFiles doneshooting camera = do
     let filepath = unDoneshooting doneshooting
-    files <- listDirectory filepath
-    return $ Right $ DoneshootingDir files
+    files <- try $ listDirectory filepath :: IO (Either SomeException [FilePath])
+    case files of
+      Left _ -> return $ Left "could not read"
+      Right files' ->
+          return $ Right $ DoneshootingDir files'
 
 
 getDoneshootingDir' :: (MonadIO m, MonadThrow m) => Doneshooting -> Camera.Camera -> m (Either String DoneshootingDir)

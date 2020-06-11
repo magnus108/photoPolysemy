@@ -315,7 +315,7 @@ configLocationFile mgr mLocationConfigFile mGradesFile _ _ = do
             grades' <- mapM Photographee.parseGrades locationFile
             let grades'' = either (const (Grade.Grades (ListZipper [] (Grade.Grade "") []))) id (join grades')
             void $ Grade.writeGrades mGradesFile grades''
-        )
+        )`catch` (\( _ :: SomeException ) -> return $ return () ) --TODO this sucks
 
 
 -- der skal skydes et lag in herimellem der kan lytte på locationen
@@ -331,7 +331,7 @@ photographees mgr mPhotographeesFile _ handler = do
             Photographee.getPhotographees mPhotographeesFile >>= \case
                 Left e' -> handler $ Photographee.Model (Failure e')
                 Right s -> handler $ Photographee.Model (Data s)
-        )
+        )`catch` (\( _ :: SomeException ) -> return $ return () ) --TODO this sucks
 
 
 -- der skal skydes et lag in herimellem der kan lytte på locationen
@@ -348,7 +348,7 @@ grades mgr mGradesFile mLocationConfigFile mPhotographeesFile _ handler = do
                     Left e' -> handler $ Grade.Model $ Failure e'
                     Right s -> handler $ Grade.Model $ Data s
             Photographee.reloadPhotographees mGradesFile mLocationConfigFile mPhotographeesFile
-        )
+        )`catch` (\( _ :: SomeException ) -> return $ return () ) --TODO this sucks
 
 
 configPhotographers :: WatchManager -> MVar FilePath -> WatchMap -> Handler Photographer.Model -> IO StopListening
@@ -366,7 +366,7 @@ configPhotographers mgr mFilepath _ handler = do
             getPhotographers mFilepath >>= \case
                 Left e' -> handler $ Photographer.Model (Failure e')
                 Right s -> handler $ Photographer.Model (Data s)
-        )
+        )`catch` (\( _ :: SomeException ) -> return $ return () ) --TODO this sucks
 
 
 configSessions :: WatchManager -> MVar FilePath -> WatchMap -> Handler Session.Model -> IO StopListening
@@ -381,7 +381,7 @@ configSessions mgr mSessionsFile _ handler = do
             Session.getSessions mSessionsFile >>= \case
                     Left e' -> handler $ Session.Model (Failure e')
                     Right s -> handler $ Session.Model (Data s)
-        )
+        )`catch` (\( _ :: SomeException ) -> return $ return () ) --TODO this sucks
 
 
 configCameras :: WatchManager -> MVar FilePath -> MVar FilePath -> MVar FilePath -> WatchMap -> Handler Camera.Model -> Handler (Dump.DumpDirModel) -> Handler (Doneshooting.DoneshootingDirModel) -> IO StopListening
@@ -405,7 +405,7 @@ configCameras mgr mCamerasFile mDumpFile mDoneshootingFile _ handler handleDumpD
                 Left e' -> handleDonshootingDir $ DoneshootingDirModel (Failure e')
                 Right s -> handleDonshootingDir $ DoneshootingDirModel (Data s)
 
-        )
+        )`catch` (\( _ :: SomeException ) -> return $ return () ) --TODO this sucks
 
 
 configShootings :: WatchManager -> MVar FilePath -> WatchMap -> Handler Shooting.Model -> IO StopListening
@@ -420,7 +420,7 @@ configShootings mgr mShootingsFile _ handler = do
             Shooting.getShootings mShootingsFile >>= \case
                 Left e' -> handler $ Shooting.Model (Failure e')
                 Right s -> handler $ Shooting.Model (Data s)
-        )
+        )`catch` (\( _ :: SomeException ) -> return $ return () ) --TODO this sucks
 
 
 configDoneshooting :: WatchManager -> MVar FilePath -> MVar FilePath -> WatchMap -> Handler Doneshooting.Model -> Handler Doneshooting.DoneshootingDirModel -> IO StopListening
@@ -440,7 +440,7 @@ configDoneshooting mgr mDoneshootingFile mCamerasFile watchMap handler handleDon
                 h HashMap.! "stopDirDoneshooting"
                 stopDirDoneshooting <- dirDoneshooting mgr mDoneshootingFile mCamerasFile watchMap handleDonshootingDir
                 return $ HashMap.insert "stopDirDoneshooting" stopDirDoneshooting  h
-        )
+        )`catch` (\( _ :: SomeException ) -> return $ return () ) --TODO this sucks
 
 
 
@@ -483,7 +483,7 @@ configDump mgr mDumpFile mCamerasFile watchMap handler handleDumpDir = do
                 h HashMap.! "stopDirDump"
                 stopDirDump <- dirDump mgr mDumpFile mCamerasFile watchMap handleDumpDir
                 return $ HashMap.insert "stopDirDump" stopDirDump h
-        )
+        )  `catch` (\( _ :: SomeException ) -> return $ return () ) --TODO this sucks
 
 
 dirDump :: WatchManager -> MVar FilePath -> MVar FilePath -> WatchMap -> Handler Dump.DumpDirModel -> IO StopListening
@@ -502,7 +502,7 @@ dirDump mgr mDump mCamerasFile _ handler = do
                 getDumpDir mDump mCamerasFile >>= \case
                     Left e' -> handler $ Dump.DumpDirModel (Failure e')
                     Right s -> handler $ Dump.DumpDirModel (Data s)
-            )
+            )`catch` (\( _ :: SomeException ) -> return $ return () ) --TODO this sucks
 
 
 configDagsdato :: WatchManager -> MVar FilePath -> WatchMap -> Handler (Dagsdato.Model) -> Handler () -> IO StopListening
@@ -521,7 +521,7 @@ configDagsdato mgr mDagsdatoFile watchMap handler handleDagsdatoDir = do
                 h HashMap.! "stopDirDagsdato"
                 stopDirDagsdato <- dirDagsdato mgr mDagsdatoFile watchMap handleDagsdatoDir
                 return $ HashMap.insert "stopDirDagsdato" stopDirDagsdato h
-        )
+        )`catch` (\( _ :: SomeException ) -> return $ return () ) --TODO this sucks
 
 
 
@@ -557,7 +557,7 @@ configDagsdatoBackup mgr mDagsdatoBackupFile watchMap handler handleDagsdatoBack
                 h HashMap.! "stopDirDagsdatoBackup"
                 stopDirDagsdatoBackup <- dirDagsdatoBackup mgr mDagsdatoBackupFile watchMap handleDagsdatoBackupDir
                 return $ HashMap.insert "stopDirDagsdatoBackup" stopDirDagsdatoBackup h
-        )
+        )`catch` (\( _ :: SomeException ) -> return $ return () ) --TODO this sucks
 
 
 

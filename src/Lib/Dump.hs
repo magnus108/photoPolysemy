@@ -18,6 +18,7 @@ module Lib.Dump
 import System.FilePath
 import System.Directory
 import Control.Concurrent (ThreadId, withMVar, forkFinally)
+import Control.Exception
 
 import Utils.Comonad
 import Lib.Data
@@ -80,27 +81,30 @@ count = length . unDumpDir
 getDumpFiles :: Dump -> Camera.Camera -> IO (Either String DumpDir)
 getDumpFiles dump camera = do
     let filepath = unDump dump
-    files <- listDirectory filepath
-    validateDump <- mapM (\file ->  do
-            if or [ isExtensionOf (fst (Camera.toExtension camera)) file
-                  , isExtensionOf (snd (Camera.toExtension camera)) file
-                  ] then
-                    doesFileExist (filepath </> file -<.> "jpg") ||^ (doesFileExist (filepath </> file -<.> "JPG"))
-            else if or [ isExtensionOf "JPG" file
-                       , isExtensionOf "jpg" file
-                       ] then
-                            doesFileExist (filepath </> file -<.> (fst (Camera.toExtension camera)))
-                            ||^ (doesFileExist (filepath </> file -<.> (snd (Camera.toExtension camera))))
-            else
-               return False
-        ) files
+    files <- try $ listDirectory filepath :: IO (Either SomeException [FilePath])
+    case files of
+        Left _ -> return $ Left "problem reading dump"
+        Right filess -> do
+                    validateDump <- mapM (\file ->  do
+                            if or [ isExtensionOf (fst (Camera.toExtension camera)) file
+                                , isExtensionOf (snd (Camera.toExtension camera)) file
+                                ] then
+                                    doesFileExist (filepath </> file -<.> "jpg") ||^ (doesFileExist (filepath </> file -<.> "JPG"))
+                            else if or [ isExtensionOf "JPG" file
+                                    , isExtensionOf "jpg" file
+                                    ] then
+                                            doesFileExist (filepath </> file -<.> (fst (Camera.toExtension camera)))
+                                            ||^ (doesFileExist (filepath </> file -<.> (snd (Camera.toExtension camera))))
+                            else
+                                return False
+                        ) filess
 
-    let crs = filter (\x -> isExtensionOf (snd (Camera.toExtension camera)) x || isExtensionOf (fst (Camera.toExtension camera)) x) files
+                    let crs = filter (\x -> isExtensionOf (snd (Camera.toExtension camera)) x || isExtensionOf (fst (Camera.toExtension camera)) x) filess
 
-    if and validateDump then
-        return $ Right $ DumpDir crs
-    else 
-        return $ Left "Der er fejl med filer i dump"
+                    if and validateDump then
+                        return $ Right $ DumpDir crs
+                    else 
+                        return $ Left "Der er fejl med filer i dump"
 
 
 getDumpDir' :: (MonadIO m, MonadThrow m) => Dump -> Camera.Camera -> m (Either String DumpDir)
