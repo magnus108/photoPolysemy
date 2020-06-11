@@ -14,7 +14,6 @@ module Lib.Location
 
 
 import Control.Concurrent
-import Graphics.UI.Threepenny.Core
 
 import Lib.Data
 import Control.Lens

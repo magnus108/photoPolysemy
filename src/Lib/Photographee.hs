@@ -30,7 +30,6 @@ import Data.Csv
 import Data.List (nub)
 
 import Prelude hiding (empty)
-import Graphics.UI.Threepenny.Core hiding (empty)
 
 import Lib.Data
 import Control.Lens

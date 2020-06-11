@@ -3,6 +3,7 @@
 module Lib.Build
     ( Build(..)
     , Model(..)
+    , writeBuild
     , write
     , getBuild
     , toString
@@ -12,34 +13,15 @@ module Lib.Build
 import Prelude hiding (toString)
 import qualified Lib.Translation  as Translation --todo should not be here
 
-import qualified Data.List.Index
 import Control.Concurrent
-import Data.Strings hiding (toString)
-import Graphics.UI.Threepenny.Core
 
 import Control.Lens
-import Utils.Comonad
 
 import qualified Control.Lens as Lens
 
 import Lib.Data
-import qualified Lib.Shooting as Shooting
-import qualified Lib.Photographer as Photographer
 import qualified Lib.Photographee as Photographee
-import qualified Lib.Session as Session
-import qualified Lib.Location as Location
-import qualified Lib.Grade as Grade
-import qualified Lib.Dump as Dump
-import qualified Lib.Doneshooting as Doneshooting
-import qualified Lib.Dagsdato as Dagsdato
-import qualified Lib.DagsdatoBackup as DagsdatoBackup
-import qualified Lib.Camera as Camera
 
-import Development.Shake
-import Development.Shake.FilePath
-
-import Data.Time.Format
-import Data.Time.Clock
 
 
 data Build
@@ -55,8 +37,8 @@ toString :: Build -> Translation.Translation -> String
 toString build translation = Lens.view translator translation ++ ". " ++ info
     where 
         translator = case build of
-                (DoneBuild photographee x) -> Translation.doneBuild
-                (Building photographee x) -> Translation.building
+                (DoneBuild _ _) -> Translation.doneBuild
+                (Building _ _) -> Translation.building
                 NoBuild -> Translation.noBuild
         info = case build of
                 (DoneBuild photographee x) -> Lens.view Photographee.name photographee ++ " " ++ x

@@ -17,7 +17,6 @@ module Lib.Shooting
 import Prelude hiding (toInteger)
 
 import Control.Concurrent
-import Graphics.UI.Threepenny.Core
 
 import Lib.Data
 

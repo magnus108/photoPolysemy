@@ -12,7 +12,6 @@ module Lib.Doneshooting
 
 
 import Control.Concurrent
-import Graphics.UI.Threepenny.Core
 
 import Lib.Data
 

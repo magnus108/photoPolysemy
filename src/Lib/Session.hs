@@ -23,7 +23,6 @@ import qualified Control.Lens as Lens
 import Utils.TreeZipper
 
 import Control.Concurrent
-import Graphics.UI.Threepenny.Core
 
 import Lib.Data
 import Control.Lens

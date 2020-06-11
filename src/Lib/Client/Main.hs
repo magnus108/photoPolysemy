@@ -7,8 +7,6 @@ import Lib.Data
 import qualified Lib.Main as Main
 import qualified Lib.Server.Build as SBuild
 import qualified Lib.Build as Build
-import qualified Utils.RoseTree as RT
-import qualified Utils.TreeZipper as TZ
 
 import qualified Utils.ListZipper as ListZipper
 import Utils.Comonad
@@ -44,7 +42,7 @@ import Lib.Client.Element
 
 
 mkModel :: Location.Model -> Grade.Model -> Dump.DumpModel -> Dump.DumpDirModel -> Photographee.Model -> Data String Session.Session -> Data String Camera.Camera -> Data String Dagsdato.Dagsdato -> Data String Shooting.Shooting -> Data String Doneshooting.Doneshooting -> Data String Photographer.Photographer -> Data String DagsdatoBackup.DagsdatoBackup -> Data String Build.Build -> Main.Model
-mkModel location grades dump dumpDir photograhees session camera dagsdato shooting doneshooting photographer dagsdatoBackup build =
+mkModel location grades dump dumpDir photograhees session camera dagsdato shooting doneshooting photographer dagsdatoBackup build' =
     Main.Model $ Main.Item <$>
         Location.unModel location <*> Grade._grades grades <*>
             Dump.unModel dump <*>
@@ -57,7 +55,7 @@ mkModel location grades dump dumpDir photograhees session camera dagsdato shooti
                     <*> doneshooting
                     <*> photographer
                     <*> dagsdatoBackup
-                    <*> build
+                    <*> build'
 
 
 photographeesList :: Env -> Window -> Photographee.Photographees -> UI [Element]
@@ -214,7 +212,7 @@ sinkModel env@Env{..} win translations bModel = do
     mkBuild' <- mkButton "mkBuild" ""
     mkBuild <- UI.div #. "section" # set children [mkBuild']
 
-    build <- UI.div #. "section"
+    build' <- UI.div #. "section"
 
     content <- UI.div
     select <- UI.select
@@ -272,7 +270,7 @@ sinkModel env@Env{..} win translations bModel = do
 
                 Data item' -> do
                     buildStatus <- UI.string $ Build.toString (Main._build item') translations
-                    _ <- element build # set children [buildStatus]
+                    _ <- element build' # set children [buildStatus]
                     _ <- setBuild env translations mkBuild' (Main._session item')
                     selectInputPhotographeeSection <- selectPhotographeeSection env win translations inputPhotographee inputPhotographeeIdent selectPhotographee newPhotographee (Main._photographees item')
                     
@@ -287,7 +285,7 @@ sinkModel env@Env{..} win translations bModel = do
                     let name = Photographee.toName (Main._photographees item')
                     _ <- element currentPhotographee # set text name
                     _ <- element input # set value ident
-                    _ <- element content # set children [build, mkBuild, dumpFilesCounter', inputSection, selectInputPhotographeeSection, selectSection, photographees']
+                    _ <- element content # set children [build', mkBuild, dumpFilesCounter', inputSection, selectInputPhotographeeSection, selectSection, photographees']
                     return ()
 
 
@@ -326,7 +324,7 @@ sinkModel env@Env{..} win translations bModel = do
                 editingSelect <- liftIO $ currentValue bEditingSelect
 
                 buildStatus <- UI.string $ Build.toString (Main._build item') translations
-                _ <- element build # set children [buildStatus]
+                _ <- element build' # set children [buildStatus]
 
                 dumpFilesCounter' <- dumpFilesCounter env win translations (Main._dumpDir item')
                 photographeesList' <- photographeesList env win (Main._photographees item')
@@ -347,7 +345,7 @@ sinkModel env@Env{..} win translations bModel = do
 
                 when (not (editingInput || editingSelectPhotographee || editingSelect || editingInputPhotographee || editingInputPhotographeeIdent )) $ void $ do
                     selectInputPhotographeeSection <- selectPhotographeeSection env win translations inputPhotographee inputPhotographeeIdent selectPhotographee newPhotographee (Main._photographees item')
-                    _ <- element content # set children [build ,mkBuild, dumpFilesCounter', inputSection, selectInputPhotographeeSection, selectSection, photographees']
+                    _ <- element content # set children [build' ,mkBuild, dumpFilesCounter', inputSection, selectInputPhotographeeSection, selectSection, photographees']
                     return ()
 
 

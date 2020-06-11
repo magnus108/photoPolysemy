@@ -67,11 +67,11 @@ mkPhotographers env@Env{..} translations model =
 mkPhotographer :: Env -> (Photographer, Bool, Photographers) -> UI Element
 mkPhotographer Env{..} (photographer, isCenter, photographers)
     | isCenter = do
-        let name = _name photographer
-        mkButton name name #. "button is-selected" # set (attr "disabled") "true"
+        let name' = _name photographer
+        mkButton name' name' #. "button is-selected" # set (attr "disabled") "true"
     | otherwise = do
-        let name = _name photographer
-        button <- mkButton name name
+        let name' = _name photographer
+        button <- mkButton name' name'
         UI.on UI.click button $ \_ ->
             writePhotographers mPhotographersFile photographers
         return button

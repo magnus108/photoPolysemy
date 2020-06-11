@@ -118,6 +118,13 @@ check date item = Data.List.Index.imap (\index' cr ->
 
 goldenTests :: App.Env -> Main.Item -> IO TestTree
 goldenTests App.Env{..} item@Main.Item{..} = do
+        writeFile "test/dump/test.cr2" ""
+        writeFile "test/dump/test.jpg" ""
+        
+        doneShootingFiles <- listDirectory "test/dump"
+        traceShowM doneShootingFiles
+
+
         let time = fromGregorian 2009 12 31
         let date = SBuild.getDate (UTCTime time (secondsToDiffTime 0))
         let photographees = Lens.view Main.photographees item
@@ -128,10 +135,11 @@ goldenTests App.Env{..} item@Main.Item{..} = do
         let dump = Lens.view Main.dump item
         let dumpDir = Lens.view Main.dumpDir item
 
-        _ <- SBuild.myShake' opts date item
-
         let lol = check date item
         traceShowM lol
+        
+        _ <- SBuild.myShake' opts date item
+
 
         return $ testGroup "all files moved" $ []
             {-
@@ -142,12 +150,5 @@ goldenTests App.Env{..} item@Main.Item{..} = do
                     (LBS.readFile file)
                 | file <- fmap (\x -> doneshootingPath </> x) doneShootingFiles --could be nicer
                 , let goldenFile = replaceDirectory file goldenDir
-                ] ++
-                [ goldenVsString
-                    (takeBaseName file)
-                    goldenFile
-                    (LBS.readFile file)
-                | file <- fmap (\x -> dagsdatoPath </> x) dagsdatoFiles --could be nicer
-                , let goldenFile = replaceDirectory file goldenDir
-                ]
+                ] 
                 -}

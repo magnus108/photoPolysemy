@@ -64,8 +64,8 @@ view env@Env{..} win translation bBuild bGrades bLocationConfigFile bSessions bS
             let bSession =
                     fmap (\x -> (\(Session.Sessions sessions) ->
                     case sessions of
-                            (TZ.TreeZipper (RT.Leaf x) _) -> do
-                                Data x
+                            (TZ.TreeZipper (RT.Leaf y) _) -> do
+                                Data y
                             (TZ.TreeZipper (RT.Branch _ _) _) -> do
                                 Failure "Session"
                                 ) =<< (Session.unModel x) ) bSessions

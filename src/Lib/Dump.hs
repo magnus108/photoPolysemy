@@ -18,7 +18,6 @@ module Lib.Dump
 import System.FilePath
 import System.Directory
 import Control.Concurrent (ThreadId, withMVar, forkFinally)
-import Graphics.UI.Threepenny.Core
 
 import Utils.Comonad
 import Lib.Data

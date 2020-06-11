@@ -8,20 +8,15 @@ module Lib.Server.Build
     , mkDoneshootingPathJpg
     ) where
 
-import Control.Exception
 import qualified Data.String as String
 import qualified Data.List.Index
-import Control.Concurrent
 import Data.Strings
-import Graphics.UI.Threepenny.Core
 
-import Control.Lens
 import Utils.Comonad
 
 import qualified Lib.Main as Main
 import qualified Control.Lens as Lens
 
-import Lib.Data
 import qualified Lib.Build as Build
 import qualified Lib.Shooting as Shooting
 import qualified Lib.Photographer as Photographer
@@ -75,7 +70,7 @@ opts mBuildFile photographee = shakeOptions
 
 
 mkDoneshootingPath :: Int -> FilePath -> Main.Item -> FilePath
-mkDoneshootingPath index file item =
+mkDoneshootingPath index' file item =
     Doneshooting.unDoneshooting doneshooting </> location </> extension </> grade </> sessionId ++ "." ++ tea ++ "." ++ shootingId ++ "." ++ photographerId ++ "." ++ no ++ (takeExtension file)
         where
             location = takeBaseName $ Location.unLocationFile $ Lens.view Main.location item
@@ -94,11 +89,11 @@ mkDoneshootingPath index file item =
             photographee = extract (Photographee.unPhotographees photographees)
             tea = Lens.view Photographee.tea photographee
             pad x = strPadLeft '0' 3 (show x)
-            no = pad index
+            no = pad index'
 
 
 mkDoneshootingPathJpg :: Int -> FilePath -> Main.Item -> FilePath
-mkDoneshootingPathJpg index file item =
+mkDoneshootingPathJpg index' file item =
     Doneshooting.unDoneshooting doneshooting </> location </> extension </> "_webshop" </> sessionId ++ "." ++ tea ++ "." ++ shootingId ++ "." ++ photographerId ++ "." ++ no ++ (takeExtension file)
         where
             location = takeBaseName $ Location.unLocationFile $ Lens.view Main.location item
@@ -112,12 +107,11 @@ mkDoneshootingPathJpg index file item =
             doneshooting = Lens.view Main.doneshooting item
             shooting = Lens.view Main.shooting item
             shootingId = show $ Shooting.toInteger shooting
-            grade = Grade.showGrade (Lens.view Main.grades item)
             photographees = Lens.view Main.photographees item
             photographee = extract (Photographee.unPhotographees photographees)
             tea = Lens.view Photographee.tea photographee
             pad x = strPadLeft '0' 3 (show x)
-            no = pad index
+            no = pad index'
 
 
 mkDagsdatoPath :: FilePath -> String -> Main.Item -> FilePath
@@ -156,27 +150,26 @@ entry mBuildFile item = do
 
 
 myShake :: MVar FilePath -> ShakeOptions -> String -> Main.Item -> IO ()
-myShake mBuildFile opts time item = do
-    let dump = Lens.view Main.dump item
+myShake mBuildFile opts' time item = do
     let dumpDir = Lens.view Main.dumpDir item
     if length (Dump.unDumpDir dumpDir) == 0 then
         void $ Build.write mBuildFile (Build.NoBuild)
     else
-        myShake' opts time item
+        myShake' opts' time item
 
 myShake' :: ShakeOptions -> String -> Main.Item -> IO ()
-myShake' opts time item = shake opts $ do
+myShake' opts' time item = shake opts' $ do
 
         let dump = Lens.view Main.dump item
         let dumpDir = Lens.view Main.dumpDir item
 
         Data.List.Index.ifor_ (sort (Dump.unDumpDir dumpDir)) $ \ index' cr -> do
             let root = Dump.unDump dump
-            let index = index' + 1
+            let index'' = index' + 1
             let jpg = cr -<.> "jpg"
 
-            let doneshootingCr = mkDoneshootingPath index cr item
-            let doneshootingJpg = mkDoneshootingPathJpg index jpg item
+            let doneshootingCr = mkDoneshootingPath index'' cr item
+            let doneshootingJpg = mkDoneshootingPathJpg index'' jpg item
 
             let dagsdatoCr = mkDagsdatoPath cr time item
             let dagsdatoJpg = mkDagsdatoPath jpg time item

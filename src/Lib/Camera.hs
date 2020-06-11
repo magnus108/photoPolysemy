@@ -18,7 +18,6 @@ module Lib.Camera
 import Utils.ListZipper
 
 import Control.Concurrent
-import Graphics.UI.Threepenny.Core
 
 import Lib.Data
 

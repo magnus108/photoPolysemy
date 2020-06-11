@@ -27,9 +27,6 @@ import Utils.ListZipper
 import qualified Lib.Build as Build
 import qualified Lib.Translation as Translation
 import qualified Lib.Photographee as Photographee
-import Lib.Session
-import Lib.Shooting
-import Lib.Camera
 import Lib.Dagsdato
 import Lib.DagsdatoBackup
 import Lib.Doneshooting
@@ -185,7 +182,7 @@ runServer port env@Env{..} = do
         --Photographers
         bBuild <- UI.stepper Build.initalState eBuild
         Build.getBuild mBuildFile >>= \case
-                Left e' -> hBuild $ Build.Model (Failure "Kunne ikke finde byg")
+                Left _ -> hBuild $ Build.Model (Failure "Kunne ikke finde byg")
                 Right s -> hBuild $ Build.Model (Data s)
 
         --Photographers
@@ -282,7 +279,7 @@ build mgr mBuildFile _ handler = do
         (\e -> void $ do
             print e
             Build.getBuild mBuildFile >>= \case
-                Left e' -> handler $ Build.Model (Failure "Kunne ikke finde byg")
+                Left _ -> handler $ Build.Model (Failure "Kunne ikke finde byg")
                 Right s -> handler $ Build.Model (Data s)
         )
 

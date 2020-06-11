@@ -28,7 +28,6 @@ import Utils.ListZipper
 import Lib.Data
 
 import Control.Lens
-import Graphics.UI.Threepenny.Core
 
 newtype Grade = Grade { _unGrade :: String }
     deriving (Eq, Ord, Show)

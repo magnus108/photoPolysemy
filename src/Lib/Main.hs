@@ -14,6 +14,8 @@ module Lib.Main
     , dagsdatoBackup
     , photographer
     , grades
+    , unModel
+    , build
     ) where
 
 

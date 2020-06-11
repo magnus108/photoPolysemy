@@ -9,11 +9,9 @@ module Lib.Photographer
     , writePhotographers
     , initalState
     , tid
+    , name
     , Model(..)
     ) where
-
--- TODO get this import out
-import Graphics.UI.Threepenny.Core
 
 import Control.Concurrent
 import Utils.ListZipper
