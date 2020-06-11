@@ -16,9 +16,10 @@ import           Lib.Data
 import           Lib.Tab
 import qualified Lib.ControlModel as Model
 import qualified Lib.Grade as Grade
+import qualified Lib.Doneshooting as Doneshooting
 import           Lib.App                        ( Env(..))
 import Lib.Client.Utils
-
+import Lib.Client.Element
 
 
 mkControl :: Env -> Translation -> Element -> Model.Model -> UI Element
@@ -30,10 +31,14 @@ mkControl env@Env{..} translations select model =
             err <- UI.p #+ [Lens.views controlError string translations]
             UI.div # set children [err]
         Data item' -> do
+            counter <- UI.div #+ [ mkLabel (Lens.view doneshootingDirCounter translations)
+                                , UI.string (show $ Doneshooting.count (Lens.view Model.doneshootingDir item'))
+                                ]
+            
             let options = CLocation.mkGrades env (Lens.view Model.grades item')
             _ <- element select # set children [] #+ options
             selectGradeSection <- UI.div #. "select" # set children [select]
-            UI.div # set children [selectGradeSection]
+            UI.div # set children [counter, selectGradeSection]
 
 
 controlSection :: Env -> Window -> Translation -> Tabs -> Behavior Model.Model -> UI ()
@@ -62,7 +67,6 @@ controlSection env@Env{..} win translation tabs bModel = do
     let bView = mkControl env translation selectGrade <$> bModel
 
     content <- UI.div #. "section" # sink item bView
-
 
 
     tabs' <- mkElement "nav" #. "section" #+ [mkTabs env translation tabs]

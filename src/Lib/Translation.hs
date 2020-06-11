@@ -24,6 +24,7 @@ module Lib.Translation
     , mainTab
     , controlTab
     , dumpDirCounter
+    , doneshootingDirCounter
     , photographeeName
     , photographeeIdent
     , photographeePick
@@ -109,6 +110,7 @@ data Translation = Translation { _loading :: String
                                , _kindergartenGroup :: String
                                , _newGrade :: String
                                , _dumpDirCounter :: String
+                               , _doneshootingDirCounter :: String
                                , _createPhotographee :: String
                                , _photographeeName :: String
                                , _photographeeIdent :: String

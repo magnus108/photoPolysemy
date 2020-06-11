@@ -73,7 +73,7 @@ mkEnv Config{..} = do
 
 runServer :: Int -> Env -> IO ()
 runServer port env@Env{..} = do
-    (_, hDirDoneshooting) <- newEvent
+    (eDirDoneshooting, hDirDoneshooting) <- newEvent
     (eConfigDoneshooting, hConfigDoneshooting) <- newEvent
 
     (_, hDirDagsdato) <- newEvent
@@ -128,11 +128,11 @@ runServer port env@Env{..} = do
         stopDirDagsdatoBackup <- dirDagsdatoBackup mgr mDagsdatoBackupFile watchers hDirDagsdatoBackup
 
         --Doneshooting
-        stopConfigDoneshooting <- configDoneshooting mgr mDoneshootingFile watchers hConfigDoneshooting hDirDoneshooting
-        stopDirDoneshooting <- dirDoneshooting mgr mDoneshootingFile watchers hDirDoneshooting
+        stopConfigDoneshooting <- configDoneshooting mgr mDoneshootingFile mCamerasFile watchers hConfigDoneshooting hDirDoneshooting
+        stopDirDoneshooting <- dirDoneshooting mgr mDoneshootingFile mCamerasFile watchers hDirDoneshooting
 
         --Cameras
-        stopConfigCameras <- configCameras mgr mCamerasFile mDumpFile watchers hCameras hDumpDir
+        stopConfigCameras <- configCameras mgr mCamerasFile mDumpFile mDoneshootingFile watchers hCameras hDumpDir hDirDoneshooting
 
         --Shootings
         stopConfigShootings <- configShootings mgr mShootingsFile watchers hShootings
@@ -191,6 +191,7 @@ runServer port env@Env{..} = do
                 Left e' -> hPhotographers $ Photographer.Model (Failure e')
                 Right s -> hPhotographers $ Photographer.Model (Data s)
 
+
         --Dump
         bDump <- UI.stepper Dump.initalState eConfigDump
         _ <- Dump.getDump mDumpFile >>= \case
@@ -214,6 +215,12 @@ runServer port env@Env{..} = do
         _ <- Doneshooting.getDoneshooting mDoneshootingFile >>= \case
             Left e' -> hConfigDoneshooting $ Doneshooting.Model (Failure e')
             Right s -> hConfigDoneshooting $ Doneshooting.Model (Data s)
+
+        bDoneshootingDir <- UI.stepper Doneshooting.initialStateDir eDirDoneshooting
+        _ <- Doneshooting.getDoneshootingDir mDoneshootingFile mCamerasFile >>= \case
+            Left e' -> hDirDoneshooting $ Doneshooting.DoneshootingDirModel (Failure e')
+            Right s -> hDirDoneshooting $ Doneshooting.DoneshootingDirModel (Data s)
+
 
         -- Cameras
         bCameras <- UI.stepper Camera.initalState eCameras
@@ -263,7 +270,7 @@ runServer port env@Env{..} = do
 
         translations <- Translation.read mTranslationFile
         --VERY important this is here.. BADNESS FIX AT THE END
-        Server.run port env (fromJust (rightToMaybe translations)) bBuild bGrades bLocationConfigFile bSessions bShootings bCameras bDump bDumpDir bDoneshooting bDagsdato bDagsdatoBackup eTabs bPhotographers bPhotographees hGrades hLocationConfigFile hConfigDump hDumpDir hPhotographees
+        Server.run port env (fromJust (rightToMaybe translations)) bDoneshootingDir bBuild bGrades bLocationConfigFile bSessions bShootings bCameras bDump bDumpDir bDoneshooting bDagsdato bDagsdatoBackup eTabs bPhotographers bPhotographees hGrades hLocationConfigFile hConfigDump hDumpDir hPhotographees
 
 
 type WatchMap = MVar (HashMap String StopListening)
@@ -377,8 +384,8 @@ configSessions mgr mSessionsFile _ handler = do
         )
 
 
-configCameras :: WatchManager -> MVar FilePath -> MVar FilePath -> WatchMap -> Handler Camera.Model -> Handler (Dump.DumpDirModel) -> IO StopListening
-configCameras mgr mCamerasFile mDumpFile _ handler handleDumpDir = do
+configCameras :: WatchManager -> MVar FilePath -> MVar FilePath -> MVar FilePath -> WatchMap -> Handler Camera.Model -> Handler (Dump.DumpDirModel) -> Handler (Doneshooting.DoneshootingDirModel) -> IO StopListening
+configCameras mgr mCamerasFile mDumpFile mDoneshootingFile _ handler handleDumpDir handleDonshootingDir = do
     filepath <- readMVar mCamerasFile
     watchDir
         mgr
@@ -389,9 +396,15 @@ configCameras mgr mCamerasFile mDumpFile _ handler handleDumpDir = do
             _ <- Camera.getCameras mCamerasFile >>= \case
                 Left e' -> handler $ Camera.Model (Failure e')
                 Right s -> handler $ Camera.Model (Data s)
+
             getDumpDir mDumpFile mCamerasFile >>= \case
                 Left e' -> handleDumpDir $ DumpDirModel (Failure e')
                 Right s -> handleDumpDir $ DumpDirModel (Data s)
+
+            getDoneshootingDir mDoneshootingFile mCamerasFile >>= \case
+                Left e' -> handleDonshootingDir $ DoneshootingDirModel (Failure e')
+                Right s -> handleDonshootingDir $ DoneshootingDirModel (Data s)
+
         )
 
 
@@ -410,8 +423,8 @@ configShootings mgr mShootingsFile _ handler = do
         )
 
 
-configDoneshooting :: WatchManager -> MVar FilePath -> WatchMap -> Handler Doneshooting.Model -> Handler () -> IO StopListening
-configDoneshooting mgr mDoneshootingFile watchMap handler handleDonshootingDir = do
+configDoneshooting :: WatchManager -> MVar FilePath -> MVar FilePath -> WatchMap -> Handler Doneshooting.Model -> Handler Doneshooting.DoneshootingDirModel -> IO StopListening
+configDoneshooting mgr mDoneshootingFile mCamerasFile watchMap handler handleDonshootingDir = do
     filepath <- readMVar mDoneshootingFile
     watchDir
         mgr
@@ -425,14 +438,14 @@ configDoneshooting mgr mDoneshootingFile watchMap handler handleDonshootingDir =
             -- TODO these two are related
             modifyMVar_ watchMap $ \ h -> do
                 h HashMap.! "stopDirDoneshooting"
-                stopDirDoneshooting <- dirDoneshooting mgr mDoneshootingFile watchMap handleDonshootingDir
+                stopDirDoneshooting <- dirDoneshooting mgr mDoneshootingFile mCamerasFile watchMap handleDonshootingDir
                 return $ HashMap.insert "stopDirDoneshooting" stopDirDoneshooting  h
         )
 
 
 
-dirDoneshooting :: WatchManager -> MVar FilePath -> WatchMap -> Handler () -> IO StopListening
-dirDoneshooting mgr mDoneshootingFile _ handler = do
+dirDoneshooting :: WatchManager -> MVar FilePath -> MVar FilePath -> WatchMap -> Handler Doneshooting.DoneshootingDirModel -> IO StopListening
+dirDoneshooting mgr mDoneshootingFile mCamerasFile _ handler = do
     doneshootingFile <- readMVar mDoneshootingFile
     doneshootingPath <- getDoneshooting' doneshootingFile
     case doneshootingPath of
@@ -442,8 +455,12 @@ dirDoneshooting mgr mDoneshootingFile _ handler = do
                 mgr
                 (unDoneshooting path)
                 (const True)
-                (\e -> print e >> handler ())
-                    `catch` (\( _ :: SomeException ) -> return $ return () ) --TODO this sucks
+                (\e -> do
+                    print e 
+                    getDoneshootingDir mDoneshootingFile mCamerasFile >>= \case
+                        Left e' -> handler $ Doneshooting.DoneshootingDirModel (Failure e')
+                        Right s -> handler $ Doneshooting.DoneshootingDirModel (Data s)
+                ) `catch` (\( _ :: SomeException ) -> return $ return () ) --TODO this sucks
 
 
 configDump :: WatchManager -> MVar FilePath -> MVar FilePath -> WatchMap -> Handler (Dump.DumpModel) -> Handler (Dump.DumpDirModel) -> IO StopListening
