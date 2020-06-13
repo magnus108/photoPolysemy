@@ -14,6 +14,7 @@ module Lib.Location
 
 
 import Control.Concurrent
+import System.Directory
 
 import Lib.Data
 import Control.Lens
@@ -54,7 +55,16 @@ writeLocationFile file sessions = liftIO $ forkFinally (write file sessions) $ \
 read :: (MonadIO m, MonadThrow m) => MVar FilePath -> m (Either String LocationFile)
 read file = do
     liftIO $ withMVar file $ \f -> do
-        getLocationFile' f
+        file' <- getLocationFile' f
+        case file' of
+          Left e -> return $ Left e
+          Right string -> do
+                isDir <- doesFileExist (unLocationFile string)
+                if isDir then
+                    return $ Right string
+                else
+                    return $ Left "Er ikke mappe"
+            
 
 
 getLocationFile :: (MonadIO m, MonadThrow m) => MVar FilePath -> m (Either String LocationFile)

@@ -84,6 +84,7 @@ sinkModel env@Env{..} win translations bModel = do
     bEditingSelect  <- bEditing select
 
     content <- UI.div
+    locationFileView' <- UI.div #. "section"
 
     liftIOLater $ do
         model <- currentValue bModel
@@ -97,13 +98,24 @@ sinkModel env@Env{..} win translations bModel = do
                     msg <- Lens.views loading string translations
                     _ <- element content # set children [msg]
                     return ()
-                Failure _ -> do
+                Failure e -> do
                     msg <- Lens.views locationPageError string translations
-                    _ <- element content # set children [msg]
+                    err <- UI.div #+ [string e]
+
+                    make <- mkFileMaker "locationsPicker" (Lens.view newLocation translations)
+                            $ \file -> when (file /= "") $ void $ Location.writeLocationFile mLocationConfigFile (Location.LocationFile file)
+
+                    pick <- mkFilePicker "locationFilePicker" (Lens.view pickLocation translations)
+                                    $ \file -> when (file /= "") $ void $ Location.writeLocationFile  mLocationConfigFile (Location.LocationFile file)
+
+                    pickers <- UI.div #. "buttons has-addons" # set children [pick, make]
+
+                    section <- UI.div #. "section" # set children [msg, err, pickers]
+                    _ <- element content # set children [section]
                     return ()
 
                 Data (Item locfile grades) -> do
-                    locationFileView' <- UI.div #. "section" #+ (locationFileView env translations locfile)
+                    element locationFileView' # set children [] #+ (locationFileView env translations locfile)
                     selectInputSection <- selectSection env win translations input select grades
                     _ <- element content # set children [locationFileView', selectInputSection, buttonContent]
                     return ()
@@ -118,9 +130,11 @@ sinkModel env@Env{..} win translations bModel = do
                 msg <- Lens.views loading string translations
                 _ <- element content # set children [msg]
                 return ()
-            Failure _ -> do
+            Failure e -> do
                 msg <- Lens.views locationPageError string translations
-                _ <- element content # set children [msg]
+                err <- UI.div #+ [string e]
+                section <- UI.div #. "section" # set children [msg, err]
+                _ <- element content # set children [section]
                 return ()
             Data (Item locfile grades) -> do
                 editingInput <- liftIO $ currentValue bEditingInput
@@ -132,8 +146,9 @@ sinkModel env@Env{..} win translations bModel = do
                 when (not editingSelect) $ void $
                     element select # set children [] #+ (mkGrades env grades)
 
+                element locationFileView' # set children [] #+ (locationFileView env translations locfile)
+
                 when (not (editingInput || editingSelect)) $ void $ do
-                    locationFileView' <- UI.div #. "section" #+ (locationFileView env translations locfile)
                     selectInputSection <- selectSection env win translations input select grades
                     _ <- element content # set children [locationFileView', selectInputSection, buttonContent ]
                     return ()

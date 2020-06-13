@@ -55,15 +55,6 @@ photographersSection env@Env{..} win translations tabs bModel = do
 
                 Data (Photographers photographers) -> do
                     let currentPhotographer = extract photographers
-                    picker <- mkFilePicker "photographerPicker" (Lens.view filePicker translations) $ \file ->
-                        when (file /= "") $ do
-                            --TODO er det engentligt det her man vil?
-
-                            
-                            --BØR skrive fejl her
-                            parsePhotographers <- liftIO $ getPhotographers' file
-                            forM_ parsePhotographers $ writePhotographers mPhotographersFile
-
                     let elems = photographers =>> \photographers''-> let
                                     thisPhotographer = extract photographers''
                                 in
@@ -72,7 +63,7 @@ photographersSection env@Env{..} win translations tabs bModel = do
                                     , Photographers photographers''
                                     )
                     elems' <- forM elems $ mkPhotographer env
-                    section <- UI.div #. "section" #+ [UI.div #. "buttons has-addons" # set children (toList elems'), element picker]
+                    section <- UI.div #. "section" #+ [UI.div #. "buttons has-addons" # set children (toList elems')]
                     _ <- element content # set children [section]
                     return ()
 
@@ -88,13 +79,8 @@ photographersSection env@Env{..} win translations tabs bModel = do
                 return ()
             Failure e -> do
                 msg <- UI.p #+ [Lens.views photographersError string translations]
-                picker <- mkFilePicker "photographerPicker" (Lens.view filePicker translations) $ \file ->
-                    when (file /= "") $ do
-                        --TODO er det engentligt det her man vil?
-                        parsePhotographers <- liftIO $ getPhotographers' file
-                        forM_ parsePhotographers $ writePhotographers mPhotographersFile
 
-                section <- UI.div #. "section" # set children [msg, picker]
+                section <- UI.div #. "section" # set children [msg]
                 _ <- element content # set children [section]
                 return ()
             Data (Photographers photographers) -> do
