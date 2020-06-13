@@ -35,6 +35,7 @@ toInteger :: Shooting -> Integer
 toInteger = \case
     Normal -> 1
     ReShoot -> 2
+    -- så der skal stå 3 her
 
 newtype Shootings = Shootings { unShootings :: ListZipper Shooting }
     deriving (Eq, Ord, Show)
