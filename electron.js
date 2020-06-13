@@ -26,7 +26,7 @@ freeport((err, port) => {
     // Create the browser window.
     win = new BrowserWindow({
       width: 400,
-      height: 400,
+      height: 1000,
       title: "Doneshooting FF",
       webPreferences: { nodeIntegration: true }
     });
