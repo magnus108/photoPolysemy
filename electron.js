@@ -9,7 +9,7 @@ const timeout = 10000;
 // Relative path to the Threepenny binary.
 const relBin = './.build/photoPolysemy-exe'
 // Additional arguments to pass to the Threepenny binary.
-const binArgs = [];
+const binArgs = [__dirname];
 
 // Assign a random port to run on.
 freeport((err, port) => {

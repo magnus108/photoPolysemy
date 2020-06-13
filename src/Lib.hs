@@ -47,25 +47,25 @@ import qualified Lib.Server.Server as Server
 import Graphics.UI.Threepenny (newEvent, Handler)
 
 
-mkEnv :: Config -> IO Env
-mkEnv Config{..} = do
+mkEnv :: FilePath -> Config -> IO Env
+mkEnv root Config{..} = do
 
-    mPhotographersFile <- newMVar photographersFile
-    mGradesFile <- newMVar gradesFile
-    mDumpFile <- newMVar dumpFile
-    mDagsdatoFile <- newMVar dagsdatoFile
-    mDagsdatoBackupFile <- newMVar dagsdatoBackupFile
-    mDoneshootingFile <- newMVar doneshootingFile
-    mCamerasFile <- newMVar camerasFile
-    mShootingsFile <- newMVar shootingsFile
-    mSessionsFile <- newMVar sessionsFile
-    mLocationConfigFile <- newMVar locationConfigFile
+    mPhotographersFile <- newMVar (root </> photographersFile)
+    mGradesFile <- newMVar (root </> gradesFile)
+    mDumpFile <- newMVar (root </> dumpFile)
+    mDagsdatoFile <- newMVar (root </> dagsdatoFile)
+    mDagsdatoBackupFile <- newMVar (root </> dagsdatoBackupFile)
+    mDoneshootingFile <- newMVar (root </> doneshootingFile)
+    mCamerasFile <- newMVar (root </> camerasFile)
+    mShootingsFile <- newMVar (root </> shootingsFile)
+    mSessionsFile <- newMVar (root </> sessionsFile)
+    mLocationConfigFile <- newMVar (root </> locationConfigFile)
 
-    mTranslationFile <- newMVar translationFile
+    mTranslationFile <- newMVar (root </> translationFile)
 
-    mPhotographeesFile <- newMVar photograheesFile
+    mPhotographeesFile <- newMVar (root </> photograheesFile)
 
-    mBuildFile <- newMVar buildFile
+    mBuildFile <- newMVar (root </> buildFile)
 
     files <- newMVar Files{..}
     pure Env{..}
@@ -297,7 +297,10 @@ configTab mgr Files{..} _ handler = watchDir
         mgr
         (dropFileName tabsFile)
         (\e -> eventPath e == tabsFile)
-        (\e -> print e >> (handler =<< getTabs tabsFile))
+        (\e -> do
+            print e
+            getTabs tabsFile >>= handler
+        )
 
 
 configLocationFile :: WatchManager -> MVar FilePath -> MVar FilePath ->  WatchMap -> Handler Location.Model -> IO StopListening
@@ -578,5 +581,5 @@ dirDagsdatoBackup mgr mDagsdatoBackupFile _ handler = do
                 `catch` (\( _ :: SomeException ) -> return $ return () ) --TODO this sucks
 
 
-main :: Int -> IO ()
-main port = loadConfig "config.json" >>= mkEnv >>= runServer port
+main :: Int -> FilePath -> IO ()
+main port root = loadConfig "config.json" >>= mkEnv root >>= runServer port

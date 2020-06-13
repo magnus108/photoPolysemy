@@ -28,7 +28,9 @@ sinkFromJSON = do
 
 
 readJSONFile :: (MonadIO m, FromJSON a) => FilePath -> m a
-readJSONFile fp = liftIO $ runConduitRes $ sourceFile fp .| sinkFromJSON
+readJSONFile fp = do
+    traceShowM fp
+    liftIO $ runConduitRes $ sourceFile fp .| sinkFromJSON
 
 
 writeJSONFile :: (MonadIO m, ToJSON a) => FilePath -> a -> m ()
