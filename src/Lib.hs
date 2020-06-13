@@ -66,6 +66,7 @@ mkEnv root Config{..} = do
     mPhotographeesFile <- newMVar (root </> photograheesFile)
 
     mBuildFile <- newMVar (root </> buildFile)
+    traceShowM (root </> photographersFile)
 
     files <- newMVar Files{..}
     pure Env{..}
