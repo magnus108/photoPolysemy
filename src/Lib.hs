@@ -69,7 +69,9 @@ mkEnv root' Config{..} = do
     mBuildFile <- newMVar (root </> buildFile)
     traceShowM (root </> photographersFile)
 
-    files <- newMVar Files{..}
+    --ROOT'.....
+    let tabs = (root' </> tabsFile)
+    files <- newMVar (Files tabs)
     pure Env{..}
 
 
