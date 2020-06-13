@@ -331,7 +331,10 @@ photographees mgr mPhotographeesFile _ handler = do
             Photographee.getPhotographees mPhotographeesFile >>= \case
                 Left e' -> handler $ Photographee.Model (Failure e')
                 Right s -> handler $ Photographee.Model (Data s)
-        )`catch` (\( _ :: SomeException ) -> return $ return () ) --TODO this sucks
+        )`catch` (\( _ :: SomeException ) -> do
+            -- ikke helt nok for den skal jo også laves på ny hvis den mangler
+            handler $ Photographee.Model (Failure "Der er en fejl med Photographees")
+            return $ return () ) --TODO this sucks
 
 
 -- der skal skydes et lag in herimellem der kan lytte på locationen
