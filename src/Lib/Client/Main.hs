@@ -170,6 +170,13 @@ sinkModel env@Env{..} win translations bModel = do
                 Data item' -> do
                     buildStatus <- UI.string $ Build.toString (Main._build item') translations
                     _ <- element build' # set children [buildStatus]
+                    _ <- case (Main._build item') of
+                            (Build.DoneBuild _ _) -> do
+                                runFunction  $ ffi "$(%1).removeAttr('disabled')" (mkBuild')
+                            (Build.Building _ _ ) ->void$ element mkBuild' # set (attr "disabled") "true"
+                            (Build.NoBuild) -> 
+                                runFunction  $ ffi "$(%1).removeAttr('disabled')" (mkBuild')
+
                     _ <- setBuild env translations mkBuild' (Main._session item')
                     
                     dumpFilesCounter' <- dumpFilesCounter env win translations (Main._dumpDir item')
@@ -204,6 +211,13 @@ sinkModel env@Env{..} win translations bModel = do
                 _ <- element content # set children [section]
                 return ()
             Data item' -> do
+
+                _ <- case (Main._build item') of
+                        (Build.DoneBuild _ _) ->
+                            runFunction  $ ffi "$(%1).removeAttr('disabled')" (mkBuild')
+                        (Build.Building _ _ ) ->void$ element mkBuild' # set (attr "disabled") "true"
+                        (Build.NoBuild) -> 
+                            runFunction  $ ffi "$(%1).removeAttr('disabled')" (mkBuild')
 
                 editingInput <- liftIO $ currentValue bEditingInput
                 editingSelect <- liftIO $ currentValue bEditingSelect
