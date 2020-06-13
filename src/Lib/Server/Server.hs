@@ -25,6 +25,7 @@ import qualified Lib.Grade as Grade
 
 import qualified Lib.ControlModel as ControlModel
 import qualified Lib.Client.Location as CLocation
+import qualified Lib.Client.InsertPhotographee as InsertPhotographee
 import qualified Lib.Client.Main as CMain
 import Lib.Client.Session
 import Lib.Client.Shooting
@@ -88,6 +89,12 @@ view env@Env{..} win translation bDoneshootingDir bBuild bGrades bLocationConfig
         ControlTab -> do
             let bModel = ControlModel.mkModel <$> bGrades <*> bDoneshootingDir
             controlSection env win translation tabs bModel
+            return ()
+
+        InsertPhotographeeTab -> do
+            let bModel = InsertPhotographee.mkModel <$> bLocationConfigFile <*> bGrades <*> bPhotographees
+            InsertPhotographee.insertPhotographeeSection env win translation tabs bModel
+            -- QUICK BADNESS
             return ()
         _ -> 
             return ()

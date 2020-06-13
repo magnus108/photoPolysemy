@@ -24,6 +24,7 @@ data Tab
     | SessionsTab
     | LocationTab
     | MainTab
+    | InsertPhotographeeTab
     | ControlTab
     deriving (Eq, Ord, Show)
     deriving (Generic)
@@ -57,3 +58,4 @@ toTranslation SessionsTab = sessionTab
 toTranslation LocationTab = locationTab
 toTranslation MainTab = mainTab
 toTranslation ControlTab = controlTab
+toTranslation InsertPhotographeeTab = insertPhotographeeTab

@@ -21,7 +21,6 @@ import Control.Concurrent
 
 import Lib.Data
 import Utils.Comonad
-import System.FilePath
 import System.Directory
 
 import qualified Lib.Camera as Camera
@@ -90,7 +89,7 @@ newtype DoneshootingDir = DoneshootingDir { unDoneshootingDir :: [FilePath] }
 
 
 getDoneshootingFiles :: Doneshooting -> Camera.Camera -> IO (Either String DoneshootingDir)
-getDoneshootingFiles doneshooting camera = do
+getDoneshootingFiles doneshooting _= do
     let filepath = unDoneshooting doneshooting
     files <- try $ listDirectory filepath :: IO (Either SomeException [FilePath])
     case files of

@@ -29,7 +29,7 @@ sinkFromJSON = do
 
 readJSONFile :: (MonadIO m, FromJSON a) => FilePath -> m a
 readJSONFile fp = do
-    traceShowM fp
+    --traceShowM fp
     liftIO $ runConduitRes $ sourceFile fp .| sinkFromJSON
 
 

@@ -115,7 +115,7 @@ sinkModel env@Env{..} win translations bModel = do
                     return ()
 
                 Data (Item locfile grades) -> do
-                    element locationFileView' # set children [] #+ (locationFileView env translations locfile)
+                    _ <- element locationFileView' # set children [] #+ (locationFileView env translations locfile)
                     selectInputSection <- selectSection env win translations input select grades
                     _ <- element content # set children [locationFileView', selectInputSection, buttonContent]
                     return ()
@@ -146,7 +146,7 @@ sinkModel env@Env{..} win translations bModel = do
                 when (not editingSelect) $ void $
                     element select # set children [] #+ (mkGrades env grades)
 
-                element locationFileView' # set children [] #+ (locationFileView env translations locfile)
+                _ <- element locationFileView' # set children [] #+ (locationFileView env translations locfile)
 
                 when (not (editingInput || editingSelect)) $ void $ do
                     selectInputSection <- selectSection env win translations input select grades

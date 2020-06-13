@@ -91,9 +91,9 @@ count = length . unDumpDir
 getDumpFiles :: Dump -> Camera.Camera -> IO (Either String DumpDir)
 getDumpFiles dump camera = do
     let filepath = unDump dump
-    traceShowM filepath
+    --traceShowM filepath
     files <- try $ listDirectory filepath :: IO (Either SomeException [FilePath])
-    traceShowM files
+    --traceShowM files
     case files of
         Left _ -> return $ Left "problem med læsning af dump"
         Right filess -> do

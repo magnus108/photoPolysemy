@@ -11,6 +11,7 @@ module Lib.Translation
     , buildSingle
     , buildGroup
     , createPhotographee
+    , insertPhotographeeTab
     , dumpTab
     , dagsdatoTab
     , dagsdatoBackupTab
@@ -28,6 +29,7 @@ module Lib.Translation
     , photographeeName
     , photographeeIdent
     , photographeePick
+    , gradePick
     , newGrade
     , starting
     , loading
@@ -72,6 +74,7 @@ import Control.Lens
 import Control.Concurrent
 
 data Translation = Translation { _loading :: String
+                               , _insertPhotographeeTab :: String
                                , _build :: String
                                , _buildSingle :: String
                                , _buildGroup :: String
@@ -115,6 +118,7 @@ data Translation = Translation { _loading :: String
                                , _photographeeName :: String
                                , _photographeeIdent :: String
                                , _photographeePick :: String
+                               , _gradePick :: String
                                , _cameraTab :: String
                                , _dumpTab :: String
                                , _dagsdatoTab :: String

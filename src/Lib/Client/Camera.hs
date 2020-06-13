@@ -18,7 +18,6 @@ import Lib.Tab
 import Lib.Client.Tab
 import Lib.Camera
 
-import Lib.Client.Utils
 import Lib.Client.Element
 
 
@@ -41,13 +40,14 @@ camerasSection env@Env{..} win translations tabs bModel = do
                     return ()
                 Failure e -> do
                     err <- UI.p #+ [Lens.views camerasError string translations]
+                    errMsg <- UI.p #+ [string e]
                     picker <- mkFilePicker "cameraPicker" (Lens.view filePicker translations) $ \file ->
                         when (file /= "") $ do
                             --TODO er det engentligt det her man vil?
                             parseCameras <- liftIO $ getCameras' file
                             forM_ parseCameras $ writeCameras mCamerasFile
 
-                    section <- UI.div # set children [err, picker]
+                    section <- UI.div # set children [err, errMsg, picker]
 
                     _ <- element content # set children [section]
                     return ()
@@ -79,13 +79,14 @@ camerasSection env@Env{..} win translations tabs bModel = do
                 return ()
             Failure e -> do
                 err <- UI.p #+ [Lens.views camerasError string translations]
+                errMsg <- UI.p #+ [string e]
                 picker <- mkFilePicker "cameraPicker" (Lens.view filePicker translations) $ \file ->
                     when (file /= "") $ do
                         --TODO er det engentligt det her man vil?
                         parseCameras <- liftIO $ getCameras' file
                         forM_ parseCameras $ writeCameras mCamerasFile
 
-                section <- UI.div # set children [err, picker]
+                section <- UI.div # set children [err, errMsg, picker]
                 _ <- element content # set children [section]
                 return ()
 

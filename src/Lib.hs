@@ -13,7 +13,7 @@ import qualified Graphics.UI.Threepenny as UI
 import Control.Exception (SomeException(..), catch)
 
 import System.FilePath
-import Control.Concurrent.MVar (withMVar, modifyMVar_)
+import Control.Concurrent.MVar (modifyMVar_)
 import qualified Data.HashMap.Strict as HashMap
 import System.FSNotify
 
@@ -67,7 +67,6 @@ mkEnv root' Config{..} = do
     mPhotographeesFile <- newMVar (root </> photograheesFile)
 
     mBuildFile <- newMVar (root </> buildFile)
-    traceShowM (root </> photographersFile)
 
     --ROOT'.....
     let tabs = (root' </> tabsFile)
@@ -592,7 +591,7 @@ dirDagsdatoBackup mgr mDagsdatoBackupFile _ handler = do
 
 main :: Int -> FilePath -> IO ()
 main port root = do
-    traceShowM "starting"
+    --traceShowM "starting"
     config' <- loadConfig (root </> "config.json")
-    traceShowM "starting still"
+    --traceShowM "starting still"
     mkEnv root config' >>= runServer port
