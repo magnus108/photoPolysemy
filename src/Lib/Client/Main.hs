@@ -8,7 +8,6 @@ import qualified Lib.Main as Main
 import qualified Lib.Server.Build as SBuild
 import qualified Lib.Build as Build
 
-import qualified Utils.ListZipper as ListZipper
 import Utils.Comonad
 
 import           Data.Char
@@ -107,97 +106,6 @@ mainSection env@Env{..} win translations tabs bModel = do
     void $ UI.getBody win # set children [tabs', view, navigation]
 
 
-mkCreate :: Env -> Window -> Translation -> UI Element
-mkCreate _ _ translations = do
-    button <- mkButton "mover" (Lens.view createPhotographee translations)
-    return button
-
-
-mkPhotographees :: Env -> Photographee.Photographees -> [UI Element]
-mkPhotographees env (Photographee.Photographees photographees') = do
-    let elems = ListZipper.iextend (\index photographees'' -> (index, photographees' == photographees'', extract photographees'')) photographees'
-    map (mkPhotographeeListItem env) (ListZipper.toList elems)
-
-
-mkPhotographeeListItem :: Env -> (Int, Bool, Photographee.Photographee) -> UI Element
-mkPhotographeeListItem Env {..} (thisIndex, isCenter, photographee) = do
-    let name   = Lens.view Photographee.name photographee
-    let option = UI.option # set value (show thisIndex) # set text name
-    if isCenter then option # set UI.selected True else option
-
-
-
-selectPhotographeeSection :: Env -> Window -> Translation -> Element -> Element -> Element -> Element -> Photographee.Photographees -> UI Element
-selectPhotographeeSection env _ translations input inputIdent select button photographees = do
-    _ <- element input # set value (Photographee.toName photographees)
-    _ <- element select # set children [] #+ (mkPhotographees env photographees)
-    _ <- element inputIdent # set value (Photographee.toIdent photographees)
-    content <-
-        UI.div
-        #. "section"
-        #+ [ 
-        UI.div
-                #. "field is-horizontal"
-                #+ [ UI.div #. "field-label is-normal"
-                    #+ [UI.label #. "label" #+ [Lens.views photographeeName string translations]]
-                   , UI.div
-                    #. "field-body"
-                    #+ [ UI.div
-                        #. "field"
-                        #+ [ UI.p
-                            #. "control"
-                            #+ [element input #. "input"]
-                        ]
-                ]
-                ]
-           , UI.div
-                #. "field is-horizontal"
-                #+ [ UI.div #. "field-label is-normal"
-                    #+ [UI.label #. "label" #+ [Lens.views photographeeIdent string translations]]
-                   , UI.div
-                    #. "field-body"
-                    #+ [ UI.div
-                        #. "field"
-                        #+ [ UI.p
-                           #. "control"
-                           #+ [element inputIdent #. "input"]
-                        ]
-                        ]
-                ]
-           , UI.div
-                #. "field is-horizontal"
-                #+ [ UI.div #. "field-label is-normal"
-                    #+ [UI.label #. "label" #+ [Lens.views photographeePick string translations]]
-                   , UI.div
-                    #. "field-body"
-                    #+ [ UI.div
-                        #. "field"
-                        #+ [ UI.p #. "control" #+ [UI.div #. "select" #+ [element select]]]
-                       ]]
-
-           , UI.div
-                #. "field is-horizontal"
-                #+ [ UI.div #. "field-label is-normal"
-                    #+ [UI.label #. "label"]
-                   , UI.div
-                    #. "field-body"
-                    #+ [ UI.div
-                        #. "field"
-                        #+ [ UI.p #. "control" #+ [element button]]
-                       ]]
-            ]
-
-    return content
-
-selectPhotographeeF :: Int -> Photographee.Photographees -> Photographee.Photographees
-selectPhotographeeF selected (Photographee.Photographees photographees') =
-        -- TODO this just wierd
-    fromMaybe (Photographee.Photographees photographees') $ asum $ ListZipper.toNonEmpty $ ListZipper.iextend
-        (\thisIndex photographees'' -> if selected == thisIndex
-            then Just (Photographee.Photographees photographees'')
-            else Nothing
-        ) photographees'
-
 
 setBuild :: Env -> Translation -> Element -> Session.Session -> UI ()
 setBuild _ translations button session = do
@@ -234,16 +142,7 @@ sinkModel env@Env{..} win translations bModel = do
                 ]
             ]
 
-    newPhotographee <- mkCreate env win translations
-    inputPhotographee <- UI.input
-    inputPhotographeeIdent <- UI.input
-    selectPhotographee <- UI.select
-    bEditingInputPhotographee <- bEditing inputPhotographee
-    bEditingInputPhotographeeIdent <- bEditing inputPhotographeeIdent
-    bEditingSelectPhotographee <- bEditing selectPhotographee
-
     photographees' <- UI.div
-
 
     bEditingInput <- bEditing input
     bEditingSelect  <- bEditing select
@@ -272,7 +171,6 @@ sinkModel env@Env{..} win translations bModel = do
                     buildStatus <- UI.string $ Build.toString (Main._build item') translations
                     _ <- element build' # set children [buildStatus]
                     _ <- setBuild env translations mkBuild' (Main._session item')
-                    selectInputPhotographeeSection <- selectPhotographeeSection env win translations inputPhotographee inputPhotographeeIdent selectPhotographee newPhotographee (Main._photographees item')
                     
                     dumpFilesCounter' <- dumpFilesCounter env win translations (Main._dumpDir item')
                     let options = CLocation.mkGrades env (Main._grades item')
@@ -285,7 +183,7 @@ sinkModel env@Env{..} win translations bModel = do
                     let name = Photographee.toName (Main._photographees item')
                     _ <- element currentPhotographee # set text name
                     _ <- element input # set value ident
-                    _ <- element content # set children [build', mkBuild, dumpFilesCounter', inputSection, selectInputPhotographeeSection, selectSection, photographees']
+                    _ <- element content # set children [build', mkBuild, dumpFilesCounter', inputSection, selectSection, photographees']
                     return ()
 
 
@@ -306,19 +204,6 @@ sinkModel env@Env{..} win translations bModel = do
                 _ <- element content # set children [section]
                 return ()
             Data item' -> do
-                editingInputPhotographee <- liftIO $ currentValue bEditingInputPhotographee
-                editingInputPhotographeeIdent <- liftIO $ currentValue bEditingInputPhotographeeIdent
-                editingSelectPhotographee <- liftIO $ currentValue bEditingSelectPhotographee
-
-
-                when (not editingInputPhotographee ) $ void $
-                    element inputPhotographee # set value (Photographee.toName (Main._photographees item'))
-
-                when (not editingSelectPhotographee) $ void $
-                    element selectPhotographee # set children [] #+ (mkPhotographees env (Main._photographees item'))
-
-                when (not editingInputPhotographeeIdent) $ void $
-                    element inputPhotographeeIdent # set value (Photographee.toIdent (Main._photographees item'))
 
                 editingInput <- liftIO $ currentValue bEditingInput
                 editingSelect <- liftIO $ currentValue bEditingSelect
@@ -343,19 +228,11 @@ sinkModel env@Env{..} win translations bModel = do
                 when (not editingInput) $ void $
                     element input # set value ident --- eh
 
-                when (not (editingInput || editingSelectPhotographee || editingSelect || editingInputPhotographee || editingInputPhotographeeIdent )) $ void $ do
-                    selectInputPhotographeeSection <- selectPhotographeeSection env win translations inputPhotographee inputPhotographeeIdent selectPhotographee newPhotographee (Main._photographees item')
-                    _ <- element content # set children [build' ,mkBuild, dumpFilesCounter', inputSection, selectInputPhotographeeSection, selectSection, photographees']
+                when (not (editingInput || editingSelect )) $ void $ do
+                    _ <- element content # set children [build' ,mkBuild, dumpFilesCounter', inputSection, selectSection, photographees']
                     return ()
 
 
-    let eNewPhotographee = Photographee.insert Photographee.empty <$ UI.click newPhotographee
-    let eInputPhotographee = Photographee.setName <$> UI.valueChange inputPhotographee
-    let eInputPhotographeeIdent = Photographee.setIdent <$> UI.valueChange inputPhotographeeIdent
-
-    let eSelect   = selectPhotographeeF <$> filterJust (selectionChange' selectPhotographee)
-
-    let allEventsPhotographee = concatenate' <$> unions' (eInputPhotographee :| [eNewPhotographee, eInputPhotographeeIdent, eSelect])
 
     let eSelectGrade = CLocation.selectGrade <$> filterJust (selectionChange' select)
     let eFind = Photographee.tryFindById <$> UI.valueChange input
@@ -381,15 +258,6 @@ sinkModel env@Env{..} win translations bModel = do
                         bModel
                 <@> findEvent
 
-    let ee3 = filterJust
-                $   fmap
-                        (\m f -> case toJust (Main._unModel m) of
-                            Nothing -> Nothing
-                            Just x -> Just $ Main.Model $ Data $ Lens.over Main.photographees f x
-                        )
-                        bModel
-                <@> allEventsPhotographee
-
     let ee4 = filterJust
                 $   fmap
                         (\m -> case toJust (Main._unModel m) of
@@ -407,15 +275,6 @@ sinkModel env@Env{..} win translations bModel = do
                     SBuild.entry mBuildFile item' 
                     return ()
 
-
-    _ <- onEvent ee3 $ \model -> do
-        void $ liftIO $ do
-            case toJust (Main._unModel model) of
-                Nothing -> return ()
-                Just item'  -> do
-                    --Location.writeLocationFile mLocationConfigFile (location i)
-                    _ <- Photographee.writePhotographees mPhotographeesFile (Main._photographees item')
-                    return ()
 
     _ <- onEvent ee2 $ \model -> do
         void $ liftIO $ do
