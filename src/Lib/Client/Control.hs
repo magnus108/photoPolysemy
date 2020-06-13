@@ -29,7 +29,7 @@ mkControl env@Env{..} translations select model =
         Loading -> UI.p #+ [Lens.views loading string translations]
         Failure _ -> do
             err <- UI.p #+ [Lens.views controlError string translations]
-            UI.div # set children [err]
+            UI.div #. "section" # set children [err]
         Data item' -> do
             counter <- UI.div #. "section" #+ [ mkLabel (Lens.view doneshootingDirCounter translations)
                                 , UI.string (show $ Doneshooting.count (Lens.view Model.doneshootingDir item'))

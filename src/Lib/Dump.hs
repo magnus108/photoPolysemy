@@ -86,6 +86,7 @@ getDumpFiles dump camera = do
         Left _ -> return $ Left "problem reading dump"
         Right filess -> do
                     validateDump <- mapM (\file ->  do
+                            traceShowM file
                             if or [ isExtensionOf (fst (Camera.toExtension camera)) file
                                 , isExtensionOf (snd (Camera.toExtension camera)) file
                                 ] then
