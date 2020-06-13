@@ -10,5 +10,5 @@ import System.IO (BufferMode(LineBuffering), hSetBuffering)
 main :: IO ()
 main = do
     hSetBuffering stdout LineBuffering
-    [port] <- getArgs
-    Lib.main (read port)
+    [port, root] <- getArgs
+    Lib.main (read port) root
