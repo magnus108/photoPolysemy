@@ -586,4 +586,8 @@ dirDagsdatoBackup mgr mDagsdatoBackupFile _ handler = do
 
 
 main :: Int -> FilePath -> IO ()
-main port root = loadConfig "config.json" >>= mkEnv root >>= runServer port
+main port root = do
+    traceShowM "starting"
+    config' <- loadConfig "config.json"
+    traceShowM "starting still"
+    mkEnv root config' >>= runServer port
