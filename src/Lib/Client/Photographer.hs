@@ -53,6 +53,12 @@ mkPhotographers env@Env{..} translations model =
 
         Data (Photographers photographers) -> do
                 let currentPhotographer = extract photographers
+                picker <- mkFilePicker "photographerPicker" (Lens.view filePicker translations) $ \file ->
+                    when (file /= "") $ do
+                        --TODO er det engentligt det her man vil?
+                        parsePhotographers <- liftIO $ getPhotographers' file
+                        forM_ parsePhotographers $ writePhotographers mPhotographersFile
+
                 let elems = photographers =>> \photographers''-> let
                                 thisPhotographer = extract photographers''
                             in
@@ -61,7 +67,7 @@ mkPhotographers env@Env{..} translations model =
                                 , Photographers photographers''
                                 )
                 elems' <- forM elems $ mkPhotographer env
-                UI.div #. "buttons has-addons" # set children (toList elems')
+                UI.div #+ [UI.div #. "buttons has-addons" # set children (toList elems'), element picker]
 
 
 mkPhotographer :: Env -> (Photographer, Bool, Photographers) -> UI Element
