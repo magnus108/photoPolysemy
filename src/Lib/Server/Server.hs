@@ -45,18 +45,8 @@ import Utils.Comonad
 
 
 
-addStyleSheet :: Window -> FilePath -> UI ()
-addStyleSheet w filename = void $ do
-    bulma <- loadFile "text/css" filename
-    el <- mkElement "link"
-            # set (attr "rel" ) "stylesheet"
-            # set (attr "type") "text/css"
-            # set (attr "href") bulma
-    getHead w #+ [element el]
-
 view :: Env -> Window -> Translation -> Behavior Doneshooting.DoneshootingDirModel -> Behavior Build.Model -> Behavior Grade.Model -> Behavior Location.Model -> UI.Behavior Session.Model -> UI.Behavior Shooting.Model -> UI.Behavior Camera.Model -> UI.Behavior Dump.DumpModel -> UI.Behavior Dump.DumpDirModel -> UI.Behavior Doneshooting.Model -> UI.Behavior Dagsdato.Model -> UI.Behavior DagsdatoBackup.Model -> UI.Behavior Photographer.Model -> UI.Behavior Photographee.Model -> Handler (Grade.Model) -> Handler (Location.Model) -> Handler Dump.DumpModel -> Handler Dump.DumpDirModel -> Handler Photographee.Model -> Tabs -> UI ()
 view env@Env{..} win translation bDoneshootingDir bBuild bGrades bLocationConfigFile bSessions bShootings bCameras bDump bDumpDir bDoneshooting bDagsdato bDagsdatoBackup bPhotographers bPhotographees _ _ _ _ _ tabs = do
-    _ <- addStyleSheet win "bulma.min.css" --delete me
     let currentTab = focus (unTabs tabs)
     case currentTab of
         DumpTab -> dumpSection env win translation tabs bDump
@@ -113,6 +103,8 @@ run port env@Env{..} translations bDoneshootingDir bBuild eGrades bLocationConfi
     startGUI defaultConfig
         { jsWindowReloadOnDisconnect = False
         , jsPort = Just port
+        , jsStatic = Just "static"
+        , jsCustomHTML = Just "index.html"
         } $ \win -> do
 
         -- behaviors
