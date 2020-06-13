@@ -61,7 +61,16 @@ writeDoneshooting file dagsdato' = liftIO $ forkFinally (write file dagsdato') $
 
 read :: (MonadIO m, MonadThrow m) => MVar FilePath -> m (Either String Doneshooting)
 read file = liftIO $ withMVar file $ \f -> do
-        getDoneshooting' f
+        file' <- getDoneshooting' f
+        case file' of
+          Left e -> return $ Left e
+          Right string -> do
+                isDir <- doesDirectoryExist (unDoneshooting string)
+                if isDir then
+                    return $ Right string
+                else
+                    return $ Left "Er ikke mappe"
+            
 
 
 getDoneshooting :: (MonadIO m, MonadThrow m) => MVar FilePath -> m (Either String Doneshooting)
