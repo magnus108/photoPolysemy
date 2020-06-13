@@ -10,6 +10,7 @@ module Lib.Dagsdato
     , initialState
     ) where
 
+import System.Directory
 
 import Control.Concurrent
 
@@ -50,7 +51,17 @@ writeDagsdato file dagsdato' = liftIO $ forkFinally (write file dagsdato') $ \ _
 
 read :: (MonadIO m, MonadThrow m) => MVar FilePath -> m (Either String Dagsdato)
 read file = liftIO $ withMVar file $ \f -> do
-        getDagsdato' f
+        file' <- getDagsdato' f
+        case file' of
+          Left e -> return $ Left e
+          Right string -> do
+                isDir <- doesDirectoryExist (unDagsdato string)
+                if isDir then
+                    return $ Right string
+                else
+                    return $ Left "Er ikke mappe"
+            
+
 
 
 getDagsdato :: (MonadIO m, MonadThrow m) => MVar FilePath -> m (Either String Dagsdato)

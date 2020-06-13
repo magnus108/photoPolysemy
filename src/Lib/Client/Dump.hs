@@ -26,8 +26,8 @@ mkDump Env{..} translations model = do
     case unModel model of
         NotAsked -> [UI.p #+ [Lens.views starting string translations]]
         Loading -> [UI.p #+ [Lens.views loading string translations]]
-        Failure _ ->
-            [ UI.div #. "section" #+ [Lens.views dumpError string translations]
+        Failure e ->
+            [ UI.div #. "section" #+ [Lens.views dumpError string translations, UI.div #+ [string e]]
                    , UI.div #. "section" #+
                        [ mkFolderPicker "dumpPicker" (Lens.view folderPicker translations) $ \folder ->
                             when (folder /= "") $

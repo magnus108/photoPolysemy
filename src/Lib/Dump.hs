@@ -57,7 +57,17 @@ writeDump file dump' = liftIO $ forkFinally (write file dump') $ \ _ -> return (
 
 
 read :: (MonadIO m, MonadThrow m) => MVar FilePath -> m (Either String Dump)
-read file = liftIO $ withMVar file $ getDump'
+read file = liftIO $ withMVar file $ \f -> do
+        file' <- getDump' f
+        case file' of
+          Left e -> return $ Left e
+          Right string -> do
+                isDir <- doesDirectoryExist (unDump string)
+                if isDir then
+                    return $ Right string
+                else
+                    return $ Left "Er ikke mappe"
+            
 
 
 getDump :: (MonadIO m, MonadThrow m) => MVar FilePath -> m (Either String Dump)
@@ -85,11 +95,7 @@ getDumpFiles dump camera = do
     case files of
         Left _ -> return $ Left "problem reading dump"
         Right filess -> do
-                    traceShowM "filess"
-                    traceShowM filess
                     validateDump <- mapM (\file ->  do
-                            traceShowM "traceShowM file"
-                            traceShowM file
                             if or [ isExtensionOf (fst (Camera.toExtension camera)) file
                                 , isExtensionOf (snd (Camera.toExtension camera)) file
                                 ] then
