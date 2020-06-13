@@ -83,7 +83,7 @@ mkDoneshootingPath index' file item =
             photographerId = Lens.view Photographer.tid photographer
             doneshooting = Lens.view Main.doneshooting item
             shooting = Lens.view Main.shooting item
-            shootingId = show $ Shooting.toInteger shooting
+            shootingId = if session == Session.KindergartenGroup then "3" else show $ Shooting.toInteger shooting
             grade = Grade.showGrade (Lens.view Main.grades item)
             photographees = Lens.view Main.photographees item
             photographee = extract (Photographee.unPhotographees photographees)
@@ -106,7 +106,7 @@ mkDoneshootingPathJpg index' file item =
             photographerId = Lens.view Photographer.tid photographer
             doneshooting = Lens.view Main.doneshooting item
             shooting = Lens.view Main.shooting item
-            shootingId = show $ Shooting.toInteger shooting
+            shootingId = if session == Session.KindergartenGroup then "3" else show $ Shooting.toInteger shooting
             photographees = Lens.view Main.photographees item
             photographee = extract (Photographee.unPhotographees photographees)
             tea = Lens.view Photographee.tea photographee
