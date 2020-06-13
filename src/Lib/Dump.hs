@@ -88,7 +88,7 @@ getDumpFiles dump camera = do
                     traceShowM "filess"
                     traceShowM filess
                     validateDump <- mapM (\file ->  do
-                            "traceShowM file"
+                            traceShowM "traceShowM file"
                             traceShowM file
                             if or [ isExtensionOf (fst (Camera.toExtension camera)) file
                                 , isExtensionOf (snd (Camera.toExtension camera)) file
