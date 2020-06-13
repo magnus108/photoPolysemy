@@ -17,7 +17,7 @@ import Control.Concurrent.MVar (withMVar, modifyMVar_)
 import qualified Data.HashMap.Strict as HashMap
 import System.FSNotify
 
-import Lib.App (Files(..), Env(..))
+import Lib.App (Env(..))
 import Lib.Config (Config (..), loadConfig)
 import Lib.Tab (Tabs, getTabs)
 import Lib.Photographer (getPhotographers)
@@ -71,7 +71,7 @@ mkEnv root' Config{..} = do
 
     --ROOT'.....
     let tabs = (root' </> tabsFile)
-    files <- newMVar (Files tabs)
+    mTabsFile <- newMVar tabs
     pure Env{..}
 
 
@@ -147,41 +147,40 @@ runServer port env@Env{..} = do
         --Location
         stopConfigLocationFile <- configLocationFile mgr mLocationConfigFile mGradesFile watchers hLocationConfigFile
 
-        withMVar files $ \ files' -> do
-            --Tabs
-            stopConfigTab <- configTab mgr files' watchers hTab
+        --Tabs
+        stopConfigTab <- configTab mgr mTabsFile watchers hTab
 
-            --TODO setter
-            modifyMVar_ watchers $ \_ -> do
-                return $ HashMap.fromList
-                    [("stopConfigTab", stopConfigTab )
+        --TODO setter
+        modifyMVar_ watchers $ \_ -> do
+            return $ HashMap.fromList
+                [("stopConfigTab", stopConfigTab )
 
-                    ,("stopConfigLocationFile", stopConfigLocationFile)
+                ,("stopConfigLocationFile", stopConfigLocationFile)
 
-                    ,("stopBuild", stopBuild)
-                    ,("stopGrades", stopGrades)
+                ,("stopBuild", stopBuild)
+                ,("stopGrades", stopGrades)
 
-                    ,("stopConfigPhotographers", stopConfigPhotographers)
+                ,("stopConfigPhotographers", stopConfigPhotographers)
 
-                    ,("stopConfigCameras", stopConfigCameras)
+                ,("stopConfigCameras", stopConfigCameras)
 
-                    ,("stopConfigShootings", stopConfigShootings)
+                ,("stopConfigShootings", stopConfigShootings)
 
-                    ,("stopConfigSessions", stopConfigSessions)
-                    
-                    ,("stopConfigDoneshooting", stopConfigDoneshooting)
-                    ,("stopDirDoneshooting", stopDirDoneshooting)
+                ,("stopConfigSessions", stopConfigSessions)
+                
+                ,("stopConfigDoneshooting", stopConfigDoneshooting)
+                ,("stopDirDoneshooting", stopDirDoneshooting)
 
-                    ,("stopConfigDagsdato", stopConfigDagsdato)
-                    ,("stopDirDagsdato", stopDirDagsdato)
+                ,("stopConfigDagsdato", stopConfigDagsdato)
+                ,("stopDirDagsdato", stopDirDagsdato)
 
-                    ,("stopConfigDagsdatoBackup", stopConfigDagsdatoBackup)
-                    ,("stopDirDagsdatoBackup", stopDirDagsdatoBackup)
+                ,("stopConfigDagsdatoBackup", stopConfigDagsdatoBackup)
+                ,("stopDirDagsdatoBackup", stopDirDagsdatoBackup)
 
-                    ,("stopConfigDump", stopConfigDump)
-                    ,("stopDirDump", stopDirDump)
-                    ,("stopPhotographees", stopPhotographees)
-                    ]
+                ,("stopConfigDump", stopConfigDump)
+                ,("stopDirDump", stopDirDump)
+                ,("stopPhotographees", stopPhotographees)
+                ]
 
         --Photographers
         bBuild <- UI.stepper Build.initalState eBuild
@@ -296,14 +295,17 @@ build mgr mBuildFile _ handler = do
 
 
 
-configTab :: WatchManager -> Files -> WatchMap -> Handler Tabs -> IO StopListening
-configTab mgr Files{..} _ handler = watchDir
+configTab :: WatchManager -> MVar FilePath -> WatchMap -> Handler Tabs -> IO StopListening
+configTab mgr mTabsFile _ handler = do
+    filepath <- readMVar mTabsFile
+    watchDir
         mgr
-        (dropFileName tabsFile)
-        (\e -> eventPath e == tabsFile)
+        (dropFileName filepath)
+        (\e -> eventPath e == filepath)
         (\e -> do
             print e
-            getTabs tabsFile >>= handler
+            filepath' <- readMVar mTabsFile
+            getTabs filepath'  >>= handler
         )
 
 

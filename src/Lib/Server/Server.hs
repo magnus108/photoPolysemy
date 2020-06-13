@@ -6,7 +6,7 @@ import Graphics.UI.Threepenny.Core
 import qualified Graphics.UI.Threepenny as UI
 
 import Control.Concurrent.MVar (withMVar)
-import Lib.App (Env(..), Files(..))
+import Lib.App (Env(..))
 
 import Lib.Translation
 import Lib.Tab
@@ -108,7 +108,7 @@ view env@Env{..} win translation bDoneshootingDir bBuild bGrades bLocationConfig
 
 run :: Int -> Env -> Translation -> UI.Behavior Doneshooting.DoneshootingDirModel -> UI.Behavior Build.Model -> UI.Behavior Grade.Model ->  UI.Behavior Location.Model -> UI.Behavior Session.Model -> UI.Behavior Shooting.Model -> UI.Behavior Camera.Model -> UI.Behavior Dump.DumpModel -> UI.Behavior Dump.DumpDirModel -> UI.Behavior Doneshooting.Model -> UI.Behavior Dagsdato.Model -> UI.Behavior DagsdatoBackup.Model -> UI.Event Tabs -> UI.Behavior (Photographer.Model) -> UI.Behavior (Photographee.Model) -> Handler (Grade.Model) -> Handler (Location.Model) -> Handler Dump.DumpModel -> Handler Dump.DumpDirModel -> Handler Photographee.Model -> IO ()
 run port env@Env{..} translations bDoneshootingDir bBuild eGrades bLocationConfigFile eSessions eShootings eCameras eDump bDumpDir eDoneshooting eDagsdato eDagsdatoBackup eTabs bPhotographers bPhotographees hGrades hLocationConfigFile hDump hDumpDir hPhotographees = do
-    tabs <- withMVar files $ \ Files{..} -> getTabs tabsFile
+    tabs <- withMVar mTabsFile $ \tabsFile -> getTabs tabsFile
 
     startGUI defaultConfig
         { jsWindowReloadOnDisconnect = False

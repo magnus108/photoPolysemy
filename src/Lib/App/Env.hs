@@ -1,18 +1,10 @@
 {-# LANGUAGE DeriveAnyClass #-}
 module Lib.App.Env
        ( Env(..)
-       , Files(..)
        ) where
 
-data Files = Files
-    { tabsFile :: !FilePath
-    } deriving (Generic)
-      deriving (FromJSON, ToJSON)
-      deriving (Show)
-
 data Env = Env
-    { files :: MVar Files
-    , mLocationConfigFile :: MVar FilePath
+    { mLocationConfigFile :: MVar FilePath
     , mPhotographersFile :: MVar FilePath
     , mSessionsFile :: MVar FilePath
     , mGradesFile :: MVar FilePath
@@ -25,4 +17,5 @@ data Env = Env
     , mShootingsFile :: MVar FilePath
     , mPhotographeesFile :: MVar FilePath
     , mBuildFile :: MVar FilePath
+    , mTabsFile :: MVar FilePath
     }

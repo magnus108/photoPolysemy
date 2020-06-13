@@ -19,7 +19,7 @@ import Utils.Comonad
 import Utils.ListZipper (focus, backward, forward)
 import qualified Utils.ListZipper as ListZipper
 import Control.Concurrent.MVar
-import Lib.App (Env(..), Files(..))
+import Lib.App (Env(..)) 
 
 import qualified Control.Lens as Lens
 
@@ -46,7 +46,7 @@ mkTab Env{..} translations (tab, isCenter, tabs)
         let name = Lens.view (Tab.toTranslation tab) translations
         button <- mkButton "idd" name
         UI.on UI.click button $ \_ ->
-            liftIO $ withMVar files $ \ Files{..} ->
+            liftIO $ withMVar mTabsFile $ \ tabsFile ->
                 writeTabs tabsFile tabs
         return button
 
@@ -54,15 +54,15 @@ mkTab Env{..} translations (tab, isCenter, tabs)
 prev :: Env -> Translation -> Tabs -> UI (Maybe Element)
 prev Env{..} translation tabs =
     control (ListZipper.isLeft, "prev", Lens.view Translation.prev translation) (unTabs tabs) $ \ _ ->
-        liftIO $ withMVar files $ \ Files{..} ->
-            writeTabs tabsFile (Tabs (backward (unTabs tabs)))
+            liftIO $ withMVar mTabsFile $ \ tabsFile ->
+                writeTabs tabsFile (Tabs (backward (unTabs tabs)))
 
 
 next :: Env -> Translation -> Tabs -> UI (Maybe Element)
 next Env{..} translation tabs =
     control (ListZipper.isRight,"next",Lens.view Translation.next translation) (unTabs tabs) $ \ _ ->
-        liftIO $ withMVar files $ \ Files{..} ->
-            writeTabs tabsFile (Tabs (forward (unTabs tabs)))
+        liftIO $ withMVar mTabsFile $ \ tabsFile ->
+                writeTabs tabsFile (Tabs (forward (unTabs tabs)))
 
 
 mkNavigation :: Env -> Translation -> Tabs -> UI Element
