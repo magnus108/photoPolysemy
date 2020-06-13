@@ -31,13 +31,13 @@ mkControl env@Env{..} translations select model =
             err <- UI.p #+ [Lens.views controlError string translations]
             UI.div # set children [err]
         Data item' -> do
-            counter <- UI.div #+ [ mkLabel (Lens.view doneshootingDirCounter translations)
+            counter <- UI.div #. "section" #+ [ mkLabel (Lens.view doneshootingDirCounter translations)
                                 , UI.string (show $ Doneshooting.count (Lens.view Model.doneshootingDir item'))
                                 ]
             
             let options = CLocation.mkGrades env (Lens.view Model.grades item')
             _ <- element select # set children [] #+ options
-            selectGradeSection <- UI.div #. "select" # set children [select]
+            selectGradeSection <- UI.div #. "section" #+ [UI.div #. "select" # set children [select]]
             UI.div # set children [counter, selectGradeSection]
 
 
@@ -66,7 +66,7 @@ controlSection env@Env{..} win translation tabs bModel = do
 
     let bView = mkControl env translation selectGrade <$> bModel
 
-    content <- UI.div #. "section" # sink item bView
+    content <- UI.div # sink item bView
 
 
     tabs' <- mkElement "nav" #. "section" #+ [mkTabs env translation tabs]
