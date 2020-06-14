@@ -41,6 +41,7 @@
 ,"_createPhotographee": "Opret ny"
 ,"_photographeeName" : "Navn"
 ,"_photographeeIdent" : "Id"
+,"_photographeeSys" : "Sys"
 ,"_photographeePick" : "Vælg"
 ,"_gradePick" : "Vælg"
 ,"_dumpTab": "dump"
