@@ -30,7 +30,7 @@ sessionsSection :: Env -> Window -> Translation -> Tabs -> Behavior Model -> UI 
 sessionsSection env@Env{..} win translations tabs bModel = do
     content <- UI.div #. "section" 
 
-    liftIOLater $ do
+    liftIO $ do
         model <- currentValue bModel
         runUI win $ void $ do
             case unModel model of
@@ -79,7 +79,7 @@ sessionsSection env@Env{..} win translations tabs bModel = do
                     return ()
 
 
-    liftIOLater $ onChange bModel $ \model -> runUI win $ do
+    liftIO $ onChange bModel $ \model -> runUI win $ do
         case unModel model of
             NotAsked -> do
                 msg <- Lens.views starting string translations
