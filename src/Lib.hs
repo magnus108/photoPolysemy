@@ -50,6 +50,7 @@ import Graphics.UI.Threepenny (newEvent, Handler)
 mkEnv :: FilePath -> Config -> IO Env
 mkEnv root' Config{..} = do
     let root = root' </> "config"
+    let serverRoot = root'
 
     mPhotographersFile <- newMVar (root </> photographersFile)
     mGradesFile <- newMVar (root </> gradesFile)

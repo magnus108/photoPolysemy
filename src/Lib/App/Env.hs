@@ -3,8 +3,10 @@ module Lib.App.Env
        ( Env(..)
        ) where
 
+
 data Env = Env
-    { mLocationConfigFile :: MVar FilePath
+    { serverRoot :: FilePath
+    , mLocationConfigFile :: MVar FilePath
     , mPhotographersFile :: MVar FilePath
     , mSessionsFile :: MVar FilePath
     , mGradesFile :: MVar FilePath

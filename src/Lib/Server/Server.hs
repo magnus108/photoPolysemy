@@ -2,6 +2,7 @@ module Lib.Server.Server
     ( run
     ) where
 
+import System.FilePath
 import Graphics.UI.Threepenny.Core 
 import qualified Graphics.UI.Threepenny as UI
 
@@ -110,7 +111,7 @@ run port env@Env{..} translations bDoneshootingDir bBuild eGrades bLocationConfi
     startGUI defaultConfig
         { jsWindowReloadOnDisconnect = False
         , jsPort = Just port
-        , jsStatic = Just "static"
+        , jsStatic = Just (serverRoot </> "static")
         , jsCustomHTML = Just "index.html"
         } $ \win -> do
 
