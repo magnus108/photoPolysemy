@@ -103,8 +103,8 @@ write :: (MonadIO m, MonadThrow m) => MVar FilePath -> Sessions -> m ()
 write file sessions = liftIO $ withMVar file $ \f -> writeSessions' f sessions
 
 --TODO could handle error on write.
-writeSessions :: (MonadIO m) => MVar FilePath -> Sessions -> m ThreadId
-writeSessions file sessions = liftIO $ forkFinally (write file sessions) $ \ _ -> return ()
+writeSessions :: (MonadIO m) => MVar FilePath -> Sessions -> m ()
+writeSessions file sessions = liftIO $ (write file sessions) 
 
 
 read :: (MonadIO m, MonadThrow m) => MVar FilePath -> m (Either String Sessions)

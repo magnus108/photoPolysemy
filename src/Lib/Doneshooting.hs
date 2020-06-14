@@ -54,8 +54,8 @@ write file dagsdato' = liftIO $ withMVar file $ \f -> writeDoneshooting' f dagsd
 
 
 --TODO could handle error on write.
-writeDoneshooting :: (MonadIO m) => MVar FilePath -> Doneshooting -> m ThreadId
-writeDoneshooting file dagsdato' = liftIO $ forkFinally (write file dagsdato') $ \ _ -> return ()
+writeDoneshooting :: (MonadIO m) => MVar FilePath -> Doneshooting -> m ()
+writeDoneshooting file dagsdato' = liftIO $ (write file dagsdato') 
 
 
 read :: (MonadIO m, MonadThrow m) => MVar FilePath -> m (Either String Doneshooting)

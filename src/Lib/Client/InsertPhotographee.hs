@@ -210,6 +210,17 @@ sinkModel env@Env{..} win translations bModel = do
                 Data item' -> do
                     let options = CLocation.mkGrades env (_grades item')
                     _ <- element select # set children [] #+ options
+
+
+                    _ <- case (extract (Photographee.unPhotographees (_photographees item'))) of
+                                (Photographee.Unknown g) -> do
+                                    traceShowM g
+                                    runFunction  $ ffi "$(%1).removeAttr('disabled')" (inputPhotographee)
+                                    runFunction  $ ffi "$(%1).removeAttr('disabled')" (inputPhotographeeIdent)
+                                (Photographee.Known _ ) -> do
+                                    void $ element inputPhotographee # set (attr "disabled") "true"
+                                    void $ element inputPhotographeeIdent # set (attr "disabled") "true"
+
                     selectInputPhotographeeSection <- selectPhotographeeSection env win translations inputPhotographee inputPhotographeeIdent selectPhotographee newPhotographee select (_photographees item')
                     _ <- element content # set children [selectInputPhotographeeSection]
                     return ()
@@ -235,6 +246,15 @@ sinkModel env@Env{..} win translations bModel = do
                 editingInputPhotographee <- liftIO $ currentValue bEditingInputPhotographee
                 editingInputPhotographeeIdent <- liftIO $ currentValue bEditingInputPhotographeeIdent
                 editingSelectPhotographee <- liftIO $ currentValue bEditingSelectPhotographee
+
+                _ <- case (extract (Photographee.unPhotographees (_photographees item'))) of
+                            (Photographee.Unknown g) -> do
+                                traceShowM g
+                                runFunction  $ ffi "$(%1).removeAttr('disabled')" (inputPhotographee)
+                                runFunction  $ ffi "$(%1).removeAttr('disabled')" (inputPhotographeeIdent)
+                            (Photographee.Known _ ) -> do
+                                void $ element inputPhotographee # set (attr "disabled") "true"
+                                void $ element inputPhotographeeIdent # set (attr "disabled") "true"
 
                 when (not editingInputPhotographee ) $ void $
                     element inputPhotographee # set value (Photographee.toName (_photographees item'))

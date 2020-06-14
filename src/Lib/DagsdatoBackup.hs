@@ -44,8 +44,8 @@ write file dagsdatoBackup' = liftIO $ withMVar file $ \f -> writeDagsdatoBackup'
 
 
 --TODO could handle error on write.
-writeDagsdatoBackup :: (MonadIO m) => MVar FilePath -> DagsdatoBackup -> m ThreadId
-writeDagsdatoBackup file dagsdatoBackup' = liftIO $ forkFinally (write file dagsdatoBackup') $ \ _ -> return ()
+writeDagsdatoBackup :: (MonadIO m) => MVar FilePath -> DagsdatoBackup -> m ()
+writeDagsdatoBackup file dagsdatoBackup' = liftIO $ (write file dagsdatoBackup') 
 
 
 read :: (MonadIO m, MonadThrow m) => MVar FilePath -> m (Either String DagsdatoBackup)

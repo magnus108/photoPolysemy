@@ -67,8 +67,8 @@ write :: (MonadIO m, MonadThrow m) => MVar FilePath -> Build -> m ()
 write file build = liftIO $ withMVar file $ \f -> writeBuild' f build
 
 --TODO could handle error on write.
-writeBuild :: (MonadIO m) => MVar FilePath -> Build -> m ThreadId
-writeBuild file build = liftIO $ forkFinally (write file build ) $ \ _ -> return ()
+writeBuild :: (MonadIO m) => MVar FilePath -> Build -> m ()
+writeBuild file build = liftIO $ (write file build )
 
 
 read :: (MonadIO m, MonadThrow m) => MVar FilePath -> m (Either String Build)

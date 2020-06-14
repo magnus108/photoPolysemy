@@ -66,8 +66,8 @@ write :: (MonadIO m, MonadThrow m) => MVar FilePath -> Shootings -> m ()
 write file shootings = liftIO $ withMVar file $ \f -> writeShootings' f shootings
 
 --TODO could handle error on write.
-writeShootings :: (MonadIO m) => MVar FilePath -> Shootings -> m ThreadId
-writeShootings file shootings = liftIO $ forkFinally (write file shootings) $ \ _ -> return ()
+writeShootings :: (MonadIO m) => MVar FilePath -> Shootings -> m ()
+writeShootings file shootings = liftIO $ (write file shootings) 
 
 
 read :: (MonadIO m, MonadThrow m) => MVar FilePath -> m (Either String Shootings)

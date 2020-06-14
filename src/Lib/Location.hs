@@ -48,8 +48,8 @@ write :: (MonadIO m, MonadThrow m) => MVar FilePath -> LocationFile -> m ()
 write file locationFile = liftIO $ withMVar file $ \f -> writeLocationFile' f locationFile
 
 --TODO could handle error on write.
-writeLocationFile :: (MonadIO m) => MVar FilePath -> LocationFile -> m ThreadId
-writeLocationFile file sessions = liftIO $ forkFinally (write file sessions) $ \ _ -> return ()
+writeLocationFile :: (MonadIO m) => MVar FilePath -> LocationFile -> m ()
+writeLocationFile file sessions = liftIO $ (write file sessions) 
 
 
 read :: (MonadIO m, MonadThrow m) => MVar FilePath -> m (Either String LocationFile)

@@ -76,8 +76,8 @@ write file grades = liftIO $ withMVar file $ \f -> writeGrades' f grades
 
 
 --TODO could handle error on write.
-writeGrades :: (MonadIO m) => MVar FilePath -> Grades -> m ThreadId
-writeGrades file grades = liftIO $ forkFinally (write file grades) $ \ _ -> return ()
+writeGrades :: (MonadIO m) => MVar FilePath -> Grades -> m ()
+writeGrades file grades = liftIO $ (write file grades) 
 
 
 data Model = Model { _grades :: Data String Grades } deriving Show

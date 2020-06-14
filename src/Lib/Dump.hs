@@ -17,12 +17,12 @@ module Lib.Dump
 
 import System.FilePath
 import System.Directory
-import Control.Concurrent (ThreadId, withMVar, forkFinally)
 import Control.Exception
 
 import Utils.Comonad
 import Lib.Data
 import qualified Lib.Camera as Camera
+import Control.Concurrent (withMVar)
 
 
 newtype Dump = Dump { unDump :: FilePath }
@@ -52,8 +52,8 @@ write file dump' = liftIO $ withMVar file $ \f -> writeDump' f dump'
 
 
 --TODO could handle error on write.
-writeDump :: (MonadIO m) => MVar FilePath -> Dump -> m ThreadId
-writeDump file dump' = liftIO $ forkFinally (write file dump') $ \ _ -> return ()
+writeDump :: (MonadIO m) => MVar FilePath -> Dump -> m ()
+writeDump file dump' = liftIO $ write file dump'
 
 
 read :: (MonadIO m, MonadThrow m) => MVar FilePath -> m (Either String Dump)
