@@ -41,8 +41,8 @@ toString build translation = Lens.view translator translation ++ ". " ++ info
                 (Building _ _) -> Translation.building
                 NoBuild -> Translation.noBuild
         info = case build of
-                (DoneBuild photographee x) -> Lens.view Photographee.name photographee ++ " " ++ x
-                (Building photographee x) -> Lens.view Photographee.name photographee ++ " " ++ x
+                (DoneBuild photographee x) -> Photographee.toName' photographee ++ " " ++ x
+                (Building photographee x) -> Photographee.toName' photographee ++ " " ++ x
                 NoBuild -> ""
 
 

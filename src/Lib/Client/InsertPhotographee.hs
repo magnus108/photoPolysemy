@@ -79,7 +79,7 @@ mkPhotographees env (Photographee.Photographees photographees') = do
 
 mkPhotographeeListItem :: Env -> (Int, Bool, Photographee.Photographee) -> UI Element
 mkPhotographeeListItem Env {..} (thisIndex, isCenter, photographee) = do
-    let name   = Lens.view Photographee.name photographee
+    let name   = Photographee.toName' photographee
     let option = UI.option # set value (show thisIndex) # set text name
     if isCenter then option # set UI.selected True else option
 
@@ -258,7 +258,7 @@ sinkModel env@Env{..} win translations bModel = do
                     return ()
 
 
-    let eNewPhotographee = Photographee.insert Photographee.empty <$ UI.click newPhotographee
+    let eNewPhotographee = Photographee.insert (Photographee.Unknown Photographee.empty) <$ UI.click newPhotographee
     let eInputPhotographee = Photographee.setName <$> UI.valueChange inputPhotographee
     let eInputPhotographeeIdent = Photographee.setIdent <$> UI.valueChange inputPhotographeeIdent
 

@@ -4,6 +4,8 @@
 module Lib.Photographee
     ( Photographee(..)
     , Photographees(..)
+    , toName'
+    , toTea'
     , setName
     , setIdent
     , empty
@@ -43,11 +45,18 @@ import qualified Data.ByteString.Lazy as BL
 import qualified Lib.Location as Location
 import qualified Lib.Grade as Grade
 
-data Photographee = Photographee
+data Photographee' = Photographee'
     { _tea :: String
     , _name :: String
     , _ident :: String
     } deriving (Show, Eq, Generic, ToJSON, FromJSON)
+
+makeLenses ''Photographee'
+
+data Photographee
+    = Unknown Photographee'
+    | Known Photographee'
+    deriving (Show, Eq, Generic, ToJSON, FromJSON)
 
 
 data PhotographeeData = ParsePhotographeeData
@@ -67,41 +76,72 @@ newtype Photographees = Photographees { unPhotographees :: ListZipper.ListZipper
         deriving (FromJSON, ToJSON)
 
 
+lookup' :: String -> Photographee -> Bool
+lookup' s (Unknown a) = _ident a == s
+lookup' s (Known a) = _ident a == s 
+
+
 tryFindById :: String -> Photographees -> Photographees
 tryFindById s (Photographees x) = 
     let 
-        found = ListZipper.findFirst (\y -> (_ident y) == s) x
+        found = ListZipper.findFirst (lookup' s) x
     in 
         case found of
             Nothing -> Photographees x
             Just xs -> Photographees xs
 
 
+
+setName' :: String -> Photographee -> Photographee
+setName' name' (Unknown a) = Unknown $ photographee (_tea a) name' (_ident a)
+setName' name' (Known a) = Known $ photographee (_tea a)  name' (_ident a)
+
 setName :: String -> Photographees -> Photographees
 setName name' (Photographees xs) = Photographees $ 
-    ListZipper.mapFocus (\x -> photographee (_tea x) name' (_ident x)) xs
+    ListZipper.mapFocus (setName' name') xs
+
+
+setIdent' :: String -> Photographee -> Photographee
+setIdent' ident' (Unknown a) = Unknown $ photographee (_tea a) (_name a) ident'
+setIdent' ident' (Known a) = Known $ photographee (_tea a) (_name a) ident'
+
 
 setIdent :: String -> Photographees -> Photographees
 setIdent ident' (Photographees xs) = Photographees $
-    ListZipper.mapFocus (\x -> photographee (_tea x) (_name x) ident') xs
+    ListZipper.mapFocus (setIdent' ident') xs
+
+
+toTea' :: Photographee -> String
+toTea' (Unknown x) = _tea x
+toTea' (Known x) =  _tea x
+
+toName' :: Photographee -> String
+toName' (Unknown x) = _name x
+toName' (Known x) =  _name x
 
 
 toName :: Photographees -> String
-toName (Photographees x) = _name ( extract x)
+toName (Photographees x) = toName' ( extract x)
+
+
+toIdent' :: Photographee -> String
+toIdent' (Unknown x) = _ident x
+toIdent' (Known x) =  _ident x
+
 
 toIdent :: Photographees -> String
-toIdent (Photographees x) =  _ident ( extract x)
+toIdent (Photographees x) =  toIdent' ( extract x)
 
 
 
 instance FromRecord PhotographeeData
 instance ToRecord PhotographeeData
 
-photographee :: String -> String -> String -> Photographee
-photographee = Photographee
+photographee :: String -> String -> String -> Photographee'
+photographee = Photographee'
 
 
-empty :: Photographee
+empty :: Photographee'
 empty = photographee "" "" "" 
 
 
@@ -126,7 +166,7 @@ fromGrade locationFile grades = do
             Left _ -> return (Left "fejl")
             Right locData -> do
                 let photographees = Vector.filter (((view Grade.unGrade (extract (view Grade.unGrades grades))) ==) . gradeData) locData
-                let zipper = ListZipper.fromList $ fmap (\x -> photographee (teaData x) (nameData x) (identData x)) $ Vector.toList photographees
+                let zipper = ListZipper.fromList $ fmap (\x -> Known $ photographee (teaData x) (nameData x) (identData x)) $ Vector.toList photographees
                 case zipper of
                     Nothing -> return (Left "fejl")
                     Just zs -> return (Right (Photographees zs))

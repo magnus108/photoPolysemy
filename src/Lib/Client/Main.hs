@@ -68,17 +68,17 @@ photographeesList env _ (Photographee.Photographees photographees') = do
                         , Photographee.Photographees photographees''
                         )
 
-        let elems' = sortOn (\(a,_,_) -> fmap toLower (Photographee._name a)) $ toList elems
+        let elems' = sortOn (\(a,_,_) -> fmap toLower (Photographee.toName' a)) $ toList elems
         mapM (mkPhotographee env) elems'
 
 
 mkPhotographee :: Env -> (Photographee.Photographee, Bool, Photographee.Photographees) -> UI Element
 mkPhotographee Env{..} (photographee, isCenter, photographees)
     | isCenter = do
-        let name = Lens.view Photographee.name photographee
+        let name = Photographee.toName' photographee
         UI.div #. "section" #+ [mkButton name name #. "button is-selected" # set (attr "disabled") "true"]
     | otherwise = do
-        let name = Lens.view Photographee.name photographee
+        let name = Photographee.toName' photographee
         button <- mkButton name name
         UI.on UI.click button $ \_ ->
             Photographee.writePhotographees mPhotographeesFile photographees

@@ -87,7 +87,7 @@ mkDoneshootingPath index' file item =
             grade = Grade.showGrade (Lens.view Main.grades item)
             photographees = Lens.view Main.photographees item
             photographee = extract (Photographee.unPhotographees photographees)
-            tea = Lens.view Photographee.tea photographee
+            tea = Photographee.toTea' photographee
             pad x = strPadLeft '0' 3 (show x)
             no = pad index'
 
@@ -109,7 +109,7 @@ mkDoneshootingPathJpg index' file item =
             shootingId = if session == Session.KindergartenGroup then "3" else show $ Shooting.toInteger shooting
             photographees = Lens.view Main.photographees item
             photographee = extract (Photographee.unPhotographees photographees)
-            tea = Lens.view Photographee.tea photographee
+            tea = Photographee.toTea' photographee
             pad x = strPadLeft '0' 3 (show x)
             no = pad index'
 
@@ -122,8 +122,8 @@ mkDagsdatoPath file date item = dagsdato </> date ++ " - " ++ location </> grade
             grade = Grade.showGrade (Lens.view Main.grades item)
             photographees = Lens.view Main.photographees item
             photographee = extract (Photographee.unPhotographees photographees)
-            tea = Lens.view Photographee.tea photographee
-            name = Lens.view Photographee.name photographee
+            tea = Photographee.toTea' photographee
+            name = Photographee.toName' photographee
 
 
 mkDagsdatoBackupPath :: FilePath -> String -> Main.Item -> FilePath
@@ -134,8 +134,8 @@ mkDagsdatoBackupPath file date item = dagsdatoBackup </> date ++ " - " ++ locati
             grade = Grade.showGrade (Lens.view Main.grades item)
             photographees = Lens.view Main.photographees item
             photographee = extract (Photographee.unPhotographees photographees)
-            tea = Lens.view Photographee.tea photographee
-            name = Lens.view Photographee.name photographee
+            name   = Photographee.toName' photographee
+            tea   = Photographee.toTea' photographee
 
 
 entry :: MVar FilePath -> Main.Item -> IO ()
