@@ -128,4 +128,4 @@ readDir file mCamerasFile =
 
 
 getDoneshootingDir :: (MonadIO m, MonadThrow m) => MVar FilePath -> MVar FilePath -> m (Either String DoneshootingDir)
-getDoneshootingDir file mCamerasFile = liftIO $ readDir file mCamerasFile
+getDoneshootingDir file mCamerasFile = liftIO $ return (Left "this feature is off") -- readDir file mCamerasFile

@@ -55,7 +55,7 @@ opts :: MVar FilePath -> Photographee.Photographee -> ShakeOptions
 opts mBuildFile photographee = shakeOptions
                     { shakeFiles = shakeDir
                     , shakeProgress = progress -- should change
-                    , shakeThreads = 0
+                    , shakeThreads = 1
                     , shakeColor = True
                     }
     where
