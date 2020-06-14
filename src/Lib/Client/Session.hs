@@ -3,6 +3,7 @@ module Lib.Client.Session
     ) where
 
 
+import           Reactive.Threepenny
 import Data.Bitraversable
 
 import Graphics.UI.Threepenny.Core
@@ -26,55 +27,113 @@ import qualified Utils.TreeZipper as TZ
 
 
 sessionsSection :: Env -> Window -> Translation -> Tabs -> Behavior Model -> UI ()
-sessionsSection env@Env{..} win translation tabs bSessions = do
-    let bView = mkSessions env translation <$> bSessions
-    content <- UI.div #. "section" # sink item bView
+sessionsSection env@Env{..} win translations tabs bModel = do
+    content <- UI.div #. "section" 
 
-    tabs' <- mkElement "nav" #. "section" #+ [mkTabs env translation tabs]
-    navigation <- mkElement "footer" #. "section" #+ [mkNavigation env translation tabs]
+    liftIOLater $ do
+        model <- currentValue bModel
+        runUI win $ void $ do
+            case unModel model of
+                NotAsked -> do
+                    msg <- Lens.views starting string translations
+                    _ <- element content # set children [msg]
+                    return ()
+                Loading -> do
+                    msg <- Lens.views loading string translations
+                    _ <- element content # set children [msg]
+                    return ()
+                Failure e -> do
+                    err <- UI.p #+ [Lens.views sessionsError string translations]
+                    err' <- UI.div #+ [string e]
+                    picker <- mkFilePicker "sessionPicker" (Lens.view filePicker translations) $ \file ->
+                        when (file /= "") $ do
+                            --TODO er det engentligt det her man vil?
+                            parseSessions <- liftIO $ getSessions' file
+                            forM_ parseSessions $ writeSessions mSessionsFile
+
+                    child <- UI.div # set children [err, err', picker]
+                    _ <- element content # set children [child]
+                    return ()
+                Data (Sessions sessions) -> do
+                    let children' = case sessions of
+                            (TZ.TreeZipper (RT.Leaf x) []) -> do
+                                let this = mkSelected env translations x
+                                [this]
+
+                            (TZ.TreeZipper (RT.Branch _ xs) []) -> do
+                                let children'' = mkChildren env translations (Sessions sessions) xs
+                                [children'']
+
+                            (TZ.TreeZipper (RT.Leaf x) (TZ.Context _ _ _:_)) -> do
+                                let parent = mkParent env translations (Sessions sessions) --kan give mening senere.
+                                let this = mkSelected env translations x
+                                [parent, this]
+
+                            (TZ.TreeZipper (RT.Branch _ xs) (TZ.Context _ _ _:_)) -> do
+                                let parent = mkParent env translations (Sessions sessions)
+                                let children'' = mkChildren env translations (Sessions sessions) xs
+                                [parent, children'']
+
+                    child <- UI.div #+ children'
+                    _ <- element content # set children [child]
+                    return ()
+
+
+    liftIOLater $ onChange bModel $ \model -> runUI win $ do
+        case unModel model of
+            NotAsked -> do
+                msg <- Lens.views starting string translations
+                _ <- element content # set children [msg]
+                return ()
+            Loading -> do
+                msg <- Lens.views loading string translations
+                _ <- element content # set children [msg]
+                return ()
+            Failure e -> do
+                err <- UI.p #+ [Lens.views sessionsError string translations]
+                err' <- UI.div #+ [string e]
+                picker <- mkFilePicker "sessionPicker" (Lens.view filePicker translations) $ \file ->
+                    when (file /= "") $ do
+                        --TODO er det engentligt det her man vil?
+                        parseSessions <- liftIO $ getSessions' file
+                        forM_ parseSessions $ writeSessions mSessionsFile
+
+                child <- UI.div # set children [err, err', picker]
+                _ <- element content # set children [child]
+                return ()
+            Data (Sessions sessions) -> do
+                let children' = case sessions of
+                        (TZ.TreeZipper (RT.Leaf x) []) -> do
+                            let this = mkSelected env translations x
+                            [this]
+
+                        (TZ.TreeZipper (RT.Branch _ xs) []) -> do
+                            let children'' = mkChildren env translations (Sessions sessions) xs
+                            [children'']
+
+                        (TZ.TreeZipper (RT.Leaf x) (TZ.Context _ _ _:_)) -> do
+                            let parent = mkParent env translations (Sessions sessions) --kan give mening senere.
+                            let this = mkSelected env translations x
+                            [parent, this]
+
+                        (TZ.TreeZipper (RT.Branch _ xs) (TZ.Context _ _ _:_)) -> do
+                            let parent = mkParent env translations (Sessions sessions)
+                            let children'' = mkChildren env translations (Sessions sessions) xs
+                            [parent, children'']
+
+                child <- UI.div #+ children'
+                _ <- element content # set children [child]
+                return ()
+
+
+    tabs' <- mkElement "nav" #. "section" #+ [mkTabs env translations tabs]
+    navigation <- mkElement "footer" #. "section" #+ [mkNavigation env translations tabs]
 
     view <- UI.div #+ fmap element [ content ]
 
     void $ UI.getBody win # set children [tabs', view, navigation]
 
 
--- TODO this is no good
-mkSessions :: Env -> Translation -> Model -> UI Element
-mkSessions env@Env{..} translations model =
-    case unModel model of
-        NotAsked -> UI.p #+ [Lens.views starting string translations]
-        Loading -> UI.p #+ [Lens.views loading string translations]
-        Failure _ -> do
-            err <- UI.p #+ [Lens.views sessionsError string translations]
-            picker <- mkFilePicker "sessionPicker" (Lens.view filePicker translations) $ \file ->
-                when (file /= "") $ do
-                    --TODO er det engentligt det her man vil?
-                    parseSessions <- liftIO $ getSessions' file
-                    forM_ parseSessions $ writeSessions mSessionsFile
-
-            UI.div # set children [err, picker]
-
-        Data (Sessions sessions) -> do
-            let children' = case sessions of
-                    (TZ.TreeZipper (RT.Leaf x) []) -> do
-                        let this = mkSelected env translations x
-                        [this]
-
-                    (TZ.TreeZipper (RT.Branch _ xs) []) -> do
-                        let children'' = mkChildren env translations (Sessions sessions) xs
-                        [children'']
-
-                    (TZ.TreeZipper (RT.Leaf x) (TZ.Context _ _ _:_)) -> do
-                        let parent = mkParent env translations (Sessions sessions) --kan give mening senere.
-                        let this = mkSelected env translations x
-                        [parent, this]
-
-                    (TZ.TreeZipper (RT.Branch _ xs) (TZ.Context _ _ _:_)) -> do
-                        let parent = mkParent env translations (Sessions sessions)
-                        let children'' = mkChildren env translations (Sessions sessions) xs
-                        [parent, children'']
-
-            UI.div #+ children'
 
 
 mkChildren :: Env -> Translation -> Sessions -> [RT.RoseTree Decisions Session] -> UI Element
