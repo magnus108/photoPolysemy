@@ -95,7 +95,7 @@ getDumpFiles dump camera = do
     files <- try $ listDirectory filepath :: IO (Either SomeException [FilePath])
     --traceShowM files
     case files of
-        Left _ -> return $ Left "problem med læsning af dump"
+        Left e -> return $ Left (show e ++ "problem med læsning af dump")
         Right filess -> do
                     validateDump <- mapM (\file ->  do
                             if or [ isExtensionOf (fst (Camera.toExtension camera)) file
