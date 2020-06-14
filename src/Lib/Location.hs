@@ -63,7 +63,7 @@ read file = do
                 if isDir then
                     return $ Right string
                 else
-                    return $ Left "Er ikke mappe"
+                    return $ Left "Lokation findes ikke"
             
 
 
