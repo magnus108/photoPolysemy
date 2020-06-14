@@ -120,22 +120,25 @@ run port env@Env{..} translations bDoneshootingDir bBuild eGrades bLocationConfi
         -- behaviors
         bTabs <- stepper tabs eTabs
 
-        view env win translations bDoneshootingDir bBuild eGrades bLocationConfigFile eSessions
-                                            eShootings
-                                            eCameras
-                                            eDump
-                                            bDumpDir
-                                            eDoneshooting
-                                            eDagsdato
-                                            eDagsdatoBackup
-                                            bPhotographers
-                                            bPhotographees
-                                            hGrades
-                                            hLocationConfigFile
-                                            hDump
-                                            hDumpDir
-                                            hPhotographees
-                                            tabs
+        liftIOLater $ do
+            model <- currentValue bTabs
+            runUI win $ void $ do
+                view env win translations bDoneshootingDir bBuild eGrades bLocationConfigFile eSessions
+                                                eShootings
+                                                eCameras
+                                                eDump
+                                                bDumpDir
+                                                eDoneshooting
+                                                eDagsdato
+                                                eDagsdatoBackup
+                                                bPhotographers
+                                                bPhotographees
+                                                hGrades
+                                                hLocationConfigFile
+                                                hDump
+                                                hDumpDir
+                                                hPhotographees
+                                                model
 
         liftIOLater $ onChange bTabs $ \tabs' -> runUI win $ do
             (view env win translations bDoneshootingDir bBuild eGrades bLocationConfigFile eSessions
