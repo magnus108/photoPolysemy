@@ -2,6 +2,7 @@ module Lib.Client.Shooting
     ( shootingsSection
     ) where
 
+import           Reactive.Threepenny
 
 import Graphics.UI.Threepenny.Core
 import qualified Graphics.UI.Threepenny as UI
@@ -22,44 +23,94 @@ import Lib.Client.Element
 
 
 shootingsSection :: Env -> Window -> Translation -> Tabs -> Behavior Model -> UI ()
-shootingsSection env@Env{..} win translation tabs bModel = do
-    let bView = mkShootings env translation <$> bModel
-    content <- UI.div #. "section" # sink item bView
+shootingsSection env@Env{..} win translations tabs bModel = do
+    content <- UI.div #. "section" 
 
-    tabs' <- mkElement "nav" #. "section" #+ [mkTabs env translation tabs]
-    navigation <- mkElement "footer" #. "section" #+ [mkNavigation env translation tabs]
+
+    liftIOLater $ do
+        model <- currentValue bModel
+        runUI win $ void $ do
+            case unModel model of
+                NotAsked -> do
+                    msg <- Lens.views starting string translations
+                    _ <- element content # set children [msg]
+                    return ()
+
+                Loading -> do
+                    msg <- Lens.views loading string translations
+                    _ <- element content # set children [msg]
+                    return ()
+                Failure e -> do
+                    err <- UI.p #+ [Lens.views shootingsError string translations]
+                    err' <- UI.div #+ [string e]
+                    picker <- mkFilePicker "shootingPicker" (Lens.view filePicker translations) $ \file ->
+                        when (file /= "") $ do
+                            --TODO er det engentligt det her man vil?
+                            parseShootings <- liftIO $ getShootings' file
+                            forM_ parseShootings $ writeShootings mShootingsFile
+
+                    section <- UI.div #. "section" # set children [err, err', picker]
+                    _ <- element content # set children [section]
+                    return ()
+
+                Data (Shootings shootings) -> do
+                        let currentShooting = extract shootings
+                        let elems = shootings =>> \shootings'' -> let
+                                        thisShooting = extract shootings''
+                                    in
+                                        ( thisShooting
+                                        , thisShooting == currentShooting
+                                        , Shootings shootings''
+                                        )
+                        elems' <- forM elems $ mkShooting env translations
+                        section <- UI.div #. "buttons has-addons" # set children (toList elems')
+                        _ <- element content # set children [section]
+                        return ()
+
+    liftIOLater $ onChange bModel $ \model -> runUI win $ do
+        case unModel model of
+                NotAsked -> do
+                    msg <- Lens.views starting string translations
+                    _ <- element content # set children [msg]
+                    return ()
+
+                Loading -> do
+                    msg <- Lens.views loading string translations
+                    _ <- element content # set children [msg]
+                    return ()
+                Failure e -> do
+                    err <- UI.p #+ [Lens.views shootingsError string translations]
+                    err' <- UI.div #+ [string e]
+                    picker <- mkFilePicker "shootingPicker" (Lens.view filePicker translations) $ \file ->
+                        when (file /= "") $ do
+                            --TODO er det engentligt det her man vil?
+                            parseShootings <- liftIO $ getShootings' file
+                            forM_ parseShootings $ writeShootings mShootingsFile
+
+                    section <- UI.div #. "section" # set children [err, err', picker]
+                    _ <- element content # set children [section]
+                    return ()
+
+                Data (Shootings shootings) -> do
+                        let currentShooting = extract shootings
+                        let elems = shootings =>> \shootings'' -> let
+                                        thisShooting = extract shootings''
+                                    in
+                                        ( thisShooting
+                                        , thisShooting == currentShooting
+                                        , Shootings shootings''
+                                        )
+                        elems' <- forM elems $ mkShooting env translations
+                        section <- UI.div #. "buttons has-addons" # set children (toList elems')
+                        _ <- element content # set children [section]
+                        return ()
+
+    tabs' <- mkElement "nav" #. "section" #+ [mkTabs env translations tabs]
+    navigation <- mkElement "footer" #. "section" #+ [mkNavigation env translations tabs]
 
     view <- UI.div #+ fmap element [ content ]
 
     void $ UI.getBody win # set children [tabs', view, navigation]
-
-
-mkShootings :: Env -> Translation -> Model -> UI Element
-mkShootings env@Env{..} translations model =
-    case unModel model of
-        NotAsked -> UI.p #+ [Lens.views starting string translations]
-        Loading -> UI.p #+ [Lens.views loading string translations]
-        Failure _ -> do
-            err <- UI.p #+ [Lens.views shootingsError string translations]
-            picker <- mkFilePicker "shootingPicker" (Lens.view filePicker translations) $ \file ->
-                when (file /= "") $ do
-                    --TODO er det engentligt det her man vil?
-                    parseShootings <- liftIO $ getShootings' file
-                    forM_ parseShootings $ writeShootings mShootingsFile
-
-            UI.div # set children [err, picker]
-
-        Data (Shootings shootings) -> do
-                let currentShooting = extract shootings
-                let elems = shootings =>> \shootings'' -> let
-                                thisShooting = extract shootings''
-                            in
-                                ( thisShooting
-                                , thisShooting == currentShooting
-                                , Shootings shootings''
-                                )
-                elems' <- forM elems $ mkShooting env translations
-                UI.div #. "buttons has-addons" # set children (toList elems')
 
 
 mkShooting :: Env -> Translation -> (Shooting, Bool, Shootings) -> UI Element
