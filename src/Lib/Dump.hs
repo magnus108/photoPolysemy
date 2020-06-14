@@ -97,6 +97,11 @@ getDumpFiles dump camera = do
     case files of
         Left e -> return $ Left (show e ++ "problem med læsning af dump")
         Right filess -> do
+                let crs = filter (\x -> isExtensionOf (snd (Camera.toExtension camera)) x || isExtensionOf (fst (Camera.toExtension camera)) x) filess
+                return $ Right $ DumpDir crs
+
+            {-
+        Right filess -> do
                     validateDump <- mapM (\file ->  do
                             if or [ isExtensionOf (fst (Camera.toExtension camera)) file
                                 , isExtensionOf (snd (Camera.toExtension camera)) file
@@ -117,6 +122,7 @@ getDumpFiles dump camera = do
                         return $ Right $ DumpDir crs
                     else 
                         return $ Left "Der er fejl med filer i dump"
+                        -}
 
 
 getDumpDir' :: (MonadIO m, MonadThrow m) => Dump -> Camera.Camera -> m (Either String DumpDir)
