@@ -185,7 +185,7 @@ runServer port env@Env{..} = do
         --Photographers
         bBuild <- UI.stepper Build.initalState eBuild
         Build.getBuild mBuildFile >>= \case
-                Left e' -> hBuild $ Build.Model (Failure e' ++"Kunne ikke finde byg")
+                Left e' -> hBuild $ Build.Model (Failure (e' ++ "Kunne ikke finde byg"))
                 Right s -> hBuild $ Build.Model (Data s)
 
         --Photographers
