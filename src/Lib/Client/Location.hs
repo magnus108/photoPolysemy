@@ -102,13 +102,13 @@ sinkModel env@Env{..} win translations bModel = do
                     msg <- Lens.views locationPageError string translations
                     err <- UI.div #+ [string e]
 
-                    make <- mkFileMaker "locationsPicker" (Lens.view newLocation translations)
-                            $ \file -> when (file /= "") $ void $ Location.writeLocationFile mLocationConfigFile (Location.LocationFile file)
+                    -- make <- mkFileMaker "locationsPicker" (Lens.view newLocation translations)
+                    --      $ \file -> when (file /= "") $ void $ Location.writeLocationFile mLocationConfigFile (Location.LocationFile file)
 
                     pick <- mkFilePicker "locationFilePicker" (Lens.view pickLocation translations)
                                     $ \file -> when (file /= "") $ void $ Location.writeLocationFile  mLocationConfigFile (Location.LocationFile file)
 
-                    pickers <- UI.div #. "buttons has-addons" # set children [pick, make]
+                    pickers <- UI.div #. "buttons has-addons" # set children [pick] -- , make]
 
                     section <- UI.div #. "section" # set children [msg, err, pickers]
                     _ <- element content # set children [section]
@@ -238,16 +238,16 @@ locationFileView Env {..} translations locationFile = do
     let content = UI.div #+ [UI.string (Location.unLocationFile locationFile)]
 
 
-    let make = mkFileMaker "locationsPicker" (Lens.view newLocation translations)
-            $ \file -> when (file /= "") $ void $ Location.writeLocationFile mLocationConfigFile (Location.LocationFile file)
+    --let make = mkFileMaker "locationsPicker" (Lens.view newLocation translations)
+     --       $ \file -> when (file /= "") $ void $ Location.writeLocationFile mLocationConfigFile (Location.LocationFile file)
 
     let pick = mkFilePicker "locationFilePicker" (Lens.view pickLocation translations)
                     $ \file -> when (file /= "") $ void $ Location.writeLocationFile  mLocationConfigFile (Location.LocationFile file)
 
-    let pickers = UI.div #. "buttons has-addons" #+ [pick, make]
+    let pickers = UI.div #. "buttons has-addons" #+ [pick] --, make]
 
-    let open = mkOpenFile "open"
-                          (Lens.view openLocation translations)
-                          (Location.unLocationFile locationFile)
+    --let open = mkOpenFile "open"
+     --                     (Lens.view openLocation translations)
+      --                    (Location.unLocationFile locationFile)
 
-    [title_, content, pickers, open]
+    [title_, content, pickers] --, open]

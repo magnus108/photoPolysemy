@@ -189,7 +189,7 @@ sinkModel env@Env{..} win translations bModel = do
                     let ident = Photographee.toIdent (Main._photographees item')
                     let name = Photographee.toName (Main._photographees item')
                     _ <- element currentPhotographee # set text name
-                    _ <- element input # set value ident
+                    --_ <- element input # set value ident
                     _ <- element content # set children [build', mkBuild, dumpFilesCounter', inputSection, selectSection, photographees']
                     return ()
 

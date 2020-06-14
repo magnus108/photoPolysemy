@@ -46,7 +46,7 @@ import qualified Lib.Location as Location
 import qualified Lib.Grade as Grade
 
 data Photographee' = Photographee'
-    { _tea :: String
+    { _tea :: String --eller sys
     , _name :: String
     , _ident :: String
     } deriving (Show, Eq, Generic, ToJSON, FromJSON)
