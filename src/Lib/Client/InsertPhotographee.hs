@@ -206,7 +206,7 @@ sinkModel env@Env{..} win translations bModel = do
     bEditingSelect  <- bEditing select
 
 
-    liftIOLater $ do
+    liftIO $ do
         model <- currentValue bModel
         runUI win $ void $ do
             case _unModel model of
@@ -246,7 +246,7 @@ sinkModel env@Env{..} win translations bModel = do
                     return ()
 
 
-    liftIOLater $ onChange bModel $ \model -> runUI win $ do
+    liftIO $ onChange bModel $ \model -> runUI win $ do
         case _unModel model of
             NotAsked -> do
                 msg <- Lens.views starting string translations

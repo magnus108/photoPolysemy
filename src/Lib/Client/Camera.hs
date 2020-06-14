@@ -26,7 +26,7 @@ camerasSection env@Env{..} win translations tabs bModel = do
 
     content <- UI.div #. "section"
 
-    liftIOLater $ do
+    liftIO $ do
         model <- currentValue bModel
         runUI win $ void $ do
             case unModel model of
@@ -67,7 +67,7 @@ camerasSection env@Env{..} win translations tabs bModel = do
                         _ <- element content # set children [section]
                         return ()
 
-    liftIOLater $ onChange bModel $ \model -> runUI win $ do
+    liftIO $ onChange bModel $ \model -> runUI win $ do
         case unModel model of
             NotAsked -> do
                 msg <- Lens.views starting string translations

@@ -120,7 +120,7 @@ run port env@Env{..} translations bDoneshootingDir bBuild eGrades bLocationConfi
         -- behaviors
         bTabs <- stepper tabs eTabs
 
-        liftIOLater $ do
+        liftIO $ do
             model <- currentValue bTabs
             runUI win $ void $ do
                 view env win translations bDoneshootingDir bBuild eGrades bLocationConfigFile eSessions
@@ -140,7 +140,7 @@ run port env@Env{..} translations bDoneshootingDir bBuild eGrades bLocationConfi
                                                 hPhotographees
                                                 model
 
-        liftIOLater $ onChange bTabs $ \tabs' -> runUI win $ do
+        liftIO $ onChange bTabs $ \tabs' -> runUI win $ do
             (view env win translations bDoneshootingDir bBuild eGrades bLocationConfigFile eSessions
                                             eShootings
                                             eCameras

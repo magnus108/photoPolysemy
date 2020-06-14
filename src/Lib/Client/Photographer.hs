@@ -47,7 +47,7 @@ photographersSection env@Env{..} win translations tabs bModel = do
 
     bEditingSelect <- bEditing select
 
-    liftIOLater $ do
+    liftIO $ do
         model <- currentValue bModel
         runUI win $ void $ do
             case unModel model of
@@ -78,7 +78,7 @@ photographersSection env@Env{..} win translations tabs bModel = do
 
                     return ()
 
-    liftIOLater $ onChange bModel $ \model -> runUI win $ do
+    liftIO $ onChange bModel $ \model -> runUI win $ do
         case unModel model of
             NotAsked -> do
                 msg <- Lens.views starting string translations
