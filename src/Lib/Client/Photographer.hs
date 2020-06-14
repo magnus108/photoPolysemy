@@ -3,11 +3,13 @@ module Lib.Client.Photographer
     , Data(..)
     ) where
 
+import Lib.Client.Utils
 
 import Graphics.UI.Threepenny.Core
 import qualified Graphics.UI.Threepenny as UI
 
 import Utils.Comonad
+import qualified Utils.ListZipper as ListZipper
 
 import qualified Control.Lens as Lens
 import           Reactive.Threepenny
@@ -18,15 +20,32 @@ import Lib.Data
 import Lib.Tab
 import Lib.Client.Tab
 import Lib.Photographer
+import qualified Lib.Photographer as Photographer
 
 import Lib.Client.Element
 
+
+mkPhotographers :: Env -> Photographer.Photographers -> [UI Element]
+mkPhotographers env (Photographer.Photographers photographers') = do
+    let elems = ListZipper.iextend (\i photographers'' -> (i, photographers' == photographers'', extract photographers'')) photographers'
+    map (mkPhotographerListItem env) (ListZipper.toList elems)
+
+
+mkPhotographerListItem :: Env -> (Int, Bool, Photographer.Photographer) -> UI Element
+mkPhotographerListItem Env {..} (thisIndex, isCenter, photographer) = do
+    let name   = Photographer._name photographer
+    let option = UI.option # set value (show thisIndex) # set text name
+    if isCenter then option # set UI.selected True else option
 
 
 photographersSection :: Env -> Window -> Translation -> Tabs -> Behavior Model -> UI ()
 photographersSection env@Env{..} win translations tabs bModel = do
 
-    content <- UI.div
+    content <- UI.div #. "section"
+    select <- UI.select
+    selectContent <- UI.div #. "select" #+ [element select]
+
+    bEditingSelect <- bEditing select
 
     liftIOLater $ do
         model <- currentValue bModel
@@ -54,17 +73,9 @@ photographersSection env@Env{..} win translations tabs bModel = do
                     return ()
 
                 Data (Photographers photographers) -> do
-                    let currentPhotographer = extract photographers
-                    let elems = photographers =>> \photographers''-> let
-                                    thisPhotographer = extract photographers''
-                                in
-                                    ( thisPhotographer
-                                    , thisPhotographer == currentPhotographer
-                                    , Photographers photographers''
-                                    )
-                    elems' <- forM elems $ mkPhotographer env
-                    section <- UI.div #. "section" #+ [UI.div #. "buttons has-addons" # set children (toList elems')]
-                    _ <- element content # set children [section]
+                    element select # set children [] #+ (mkPhotographers env (Photographers photographers))
+                    element content # set children [selectContent]
+
                     return ()
 
     liftIOLater $ onChange bModel $ \model -> runUI win $ do
@@ -90,20 +101,36 @@ photographersSection env@Env{..} win translations tabs bModel = do
                 _ <- element content # set children [section]
                 return ()
             Data (Photographers photographers) -> do
-                let currentPhotographer = extract photographers
+                editingSelect <- liftIO $ currentValue bEditingSelect
 
-                let elems = photographers =>> \photographers''-> let
-                                thisPhotographer = extract photographers''
-                            in
-                                ( thisPhotographer
-                                , thisPhotographer == currentPhotographer
-                                , Photographers photographers''
-                                )
-                elems' <- forM elems $ mkPhotographer env
-                section <- UI.div #. "section" #+ [UI.div #. "buttons has-addons" # set children (toList elems')]
-                _ <- element content # set children [section]
+                when (not editingSelect) $ void $
+                    element select # set children [] #+ (mkPhotographers env (Photographers photographers))
+
+                when (not (editingSelect)) $ void $ do
+                    element content # set children [selectContent]
                 return ()
 
+
+    let eSelect   = selectPhotographeeF <$> filterJust (selectionChange' select)
+    let allEventsPhotographee = concatenate' <$> unions' (eSelect :| [])
+
+    let ee3 = filterJust
+                $   fmap
+                        (\m f -> case toJust (unModel m) of
+                            Nothing -> Nothing
+                            Just x -> Just $ Model $ Data $ f x
+                        )
+                        bModel
+                <@> allEventsPhotographee
+
+    _ <- onEvent ee3 $ \model -> do
+        void $ liftIO $ do
+            case toJust (unModel model) of
+                Nothing -> return ()
+                Just item'  -> do
+                    --Location.writeLocationFile mLocationConfigFile (location i)
+                    _ <- Photographer.writePhotographers mPhotographersFile item'
+                    return ()
 
     tabs' <- mkElement "nav" #. "section" #+ [mkTabs env translations tabs]
     navigation <- mkElement "footer" #. "section" #+ [mkNavigation env translations tabs]
@@ -112,6 +139,15 @@ photographersSection env@Env{..} win translations tabs bModel = do
 
     void $ UI.getBody win # set children [tabs', view, navigation]
 
+
+selectPhotographeeF :: Int -> Photographer.Photographers -> Photographer.Photographers
+selectPhotographeeF selected (Photographer.Photographers photographers') =
+        -- TODO this just wierd
+    fromMaybe (Photographer.Photographers photographers') $ asum $ ListZipper.toNonEmpty $ ListZipper.iextend
+        (\thisIndex photographers'' -> if selected == thisIndex
+            then Just (Photographer.Photographers photographers'')
+            else Nothing
+        ) photographers'
 
 mkPhotographer :: Env -> (Photographer, Bool, Photographers) -> UI Element
 mkPhotographer Env{..} (photographer, isCenter, photographers)
