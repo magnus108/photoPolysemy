@@ -322,7 +322,7 @@ configLocationFile mgr mLocationConfigFile mGradesFile _ handler = do
             filepath' <- readMVar mLocationConfigFile
             locationFile <- Location.getLocationFile' filepath'
             grades' <- mapM Photographee.parseGrades locationFile
-            let grades'' = either (const (Grade.Grades (ListZipper [] (Grade.Grade "") []))) id (join grades')
+            let grades'' = either (const (Grade.Grades (ListZipper [] (Grade.Unknown (Grade.Grade' "")) []))) id (join grades')
             _ <- Location.getLocationFile mLocationConfigFile >>= \case
                 Left e' -> handler $ Location.Model (Failure e')
                 Right s -> handler $ Location.Model (Data s)

@@ -165,7 +165,7 @@ fromGrade locationFile grades = do
     case locationData of
             Left _ -> return (Left "fejl")
             Right locData -> do
-                let photographees = Vector.filter (((view Grade.unGrade (extract (view Grade.unGrades grades))) ==) . gradeData) locData
+                let photographees = Vector.filter (((Grade.showGrade grades) ==) . gradeData) locData
                 let zipper = ListZipper.fromList $ fmap (\x -> Known $ photographee (teaData x) (nameData x) (identData x)) $ Vector.toList photographees
                 case zipper of
                     Nothing -> return (Left "fejl")
@@ -184,7 +184,7 @@ parseGrades locationFile = do
                 let grades = nub $ Vector.toList $ fmap gradeData locData
                 case grades of
                     [] -> return (Left "fejl")
-                    x:xs -> return $ Right $ Grade.Grades $ fmap Grade.Grade $ ListZipper.ListZipper [] x xs
+                    x:xs -> return $ Right $ Grade.Grades $ fmap Grade.Known $ fmap Grade.Grade' $ ListZipper.ListZipper [] x xs
 
 
 --------------------------------------------------------------------------------

@@ -4,6 +4,8 @@
 
 module Lib.Grade
     ( Grades(..)
+    , Grade'(..)
+    , showGrade'
     , Grade(..)
     , Model(..)
     , inputGrade
@@ -29,12 +31,22 @@ import Lib.Data
 
 import Control.Lens
 
-newtype Grade = Grade { _unGrade :: String }
+newtype Grade' = Grade' { _unGrade :: String }
     deriving (Eq, Ord, Show)
     deriving (Generic)
     deriving (FromJSON, ToJSON)
 
+makeLenses ''Grade'
+
+data Grade
+    = Known Grade'
+    | Unknown Grade'
+        deriving (Eq, Ord, Show)
+        deriving (Generic)
+        deriving (FromJSON, ToJSON)
+
 makeLenses ''Grade
+
 
 newtype Grades = Grades { _unGrades :: ListZipper Grade }
     deriving (Eq, Ord, Show)
@@ -47,18 +59,23 @@ makeLenses ''Grades
 extractGrade :: Grades -> Grade
 extractGrade = extract . (view unGrades)
 
+
+showGrade' :: Grade -> String
+showGrade' (Unknown x) = _unGrade x
+showGrade' (Known x) = _unGrade x
+
 showGrade :: Grades -> String
-showGrade = view unGrade . extract . view unGrades
+showGrade = showGrade' . extract . view unGrades
 
 mkNewGrade :: Grades -> Grades
 mkNewGrade grades' =
     grades' & unGrades %~ (\x -> insert x newGrade)
         where
-            newGrade = Grade ""
+            newGrade = Unknown (Grade' "")
 
 inputGrade :: String -> Grades -> Grades
 inputGrade name grades' =
-    grades' & unGrades %~ mapFocus (const (Grade name))
+    grades' & unGrades %~ mapFocus (const (Unknown (Grade' name)))
 
 
 getGrades' :: (MonadIO m, MonadThrow m) => FilePath -> m (Either String Grades)

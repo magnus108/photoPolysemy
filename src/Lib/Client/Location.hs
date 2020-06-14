@@ -116,6 +116,13 @@ sinkModel env@Env{..} win translations bModel = do
 
                 Data (Item locfile grades) -> do
                     _ <- element locationFileView' # set children [] #+ (locationFileView env translations locfile)
+
+                    _ <- case (extract (Grade._unGrades grades)) of
+                            (Grade.Unknown _) -> do
+                                runFunction  $ ffi "$(%1).removeAttr('disabled')" (input)
+                            (Grade.Known _ ) -> do
+                                void $ element input # set (attr "disabled") "true"
+
                     selectInputSection <- selectSection env win translations input select grades
                     _ <- element content # set children [locationFileView', selectInputSection, buttonContent]
                     return ()
@@ -139,6 +146,12 @@ sinkModel env@Env{..} win translations bModel = do
             Data (Item locfile grades) -> do
                 editingInput <- liftIO $ currentValue bEditingInput
                 editingSelect <- liftIO $ currentValue bEditingSelect
+
+                _ <- case (extract (Grade._unGrades grades)) of
+                        (Grade.Unknown _) -> do
+                            runFunction  $ ffi "$(%1).removeAttr('disabled')" (input)
+                        (Grade.Known _ ) -> do
+                            void $ element input # set (attr "disabled") "true"
 
                 when (not editingInput ) $ void $
                     element input # set value (Grade.showGrade grades)
@@ -204,7 +217,7 @@ mkGrades env (Grade.Grades grades') = do
 
 mkGrade :: Env -> (Int, Bool, Grade.Grade) -> UI Element
 mkGrade Env {..} (thisIndex, isCenter, grade) = do
-    let name   = Lens.view Grade.unGrade grade
+    let name   = Grade.showGrade' grade
     let option = UI.option # set value (show thisIndex) # set text name
     if isCenter then option # set UI.selected True else option
 
