@@ -152,34 +152,3 @@ read :: (MonadIO m, MonadThrow m) => MVar FilePath -> m (Either String Translati
 read file = liftIO $ withMVar file $ \f -> do
     getTranslation' f
 
-
-{-
-newtype Model = Model { unModel :: Data String Photographers }
-
-
-initalState :: Model
-initalState = Model NotAsked
-
-
---TODO could do some notification on save..
-write :: (MonadIO m, MonadThrow m) => MVar FilePath -> Photographers -> m ()
-write file photographers = liftIO $ withMVar file $ \f -> writePhotographers' f photographers
-
---TODO could handle error on write.
-writePhotographers :: (MonadIO m) => MVar FilePath -> Photographers -> m ThreadId
-writePhotographers file photographers = liftIO $ forkFinally (write file photographers ) $ \ _ -> return ()
-
-
-read :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler Model -> m (Either String Photographers)
-read file handle = liftIO $ withMVar file $ \f -> do
-        _ <- liftIO $ handle (Model Loading)
-        getPhotographers' f
-
-
-getPhotographers :: (MonadIO m, MonadThrow m) => MVar FilePath -> Handler Model -> m ThreadId
-getPhotographers file handle = liftIO $ forkFinally (read file handle) $ \case
-    Left e -> handle $ Model (Failure (show e))
-    Right x -> case x of
-            Left e' -> handle $ Model (Failure e')
-            Right s -> handle $ Model (Data s)
-            -}
