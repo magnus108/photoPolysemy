@@ -7,6 +7,7 @@ module Lib.Client.Location
     )
 where
 
+import           Data.Char
 import           Lib.Client.Utils
 import qualified Control.Lens                  as Lens
 
@@ -212,7 +213,8 @@ locationSection env@Env {..} win translations tabs bModel = mdo
 mkGrades :: Env -> Grade.Grades -> [UI Element]
 mkGrades env (Grade.Grades grades') = do
     let elems = ListZipper.iextend (\index grades'' -> (index, grades' == grades'', extract grades'')) grades'
-    map (mkGrade env) (ListZipper.toList elems)
+    let elems' = sortOn (\(_,_,g) -> fmap toLower (Grade.showGrade' g)) $ toList elems
+    map (mkGrade env) elems'
 
 
 mkGrade :: Env -> (Int, Bool, Grade.Grade) -> UI Element
