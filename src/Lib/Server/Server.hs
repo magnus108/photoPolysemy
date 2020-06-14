@@ -2,6 +2,8 @@ module Lib.Server.Server
     ( run
     ) where
 
+import           Reactive.Threepenny
+
 import System.FilePath
 import Graphics.UI.Threepenny.Core 
 import qualified Graphics.UI.Threepenny as UI
@@ -135,7 +137,8 @@ run port env@Env{..} translations bDoneshootingDir bBuild eGrades bLocationConfi
                                             hPhotographees
                                             tabs
 
-        UI.onChanges bTabs (view env win translations bDoneshootingDir bBuild eGrades bLocationConfigFile eSessions
+        liftIOLater $ onChange bTabs $ \tabs' -> runUI win $ do
+            (view env win translations bDoneshootingDir bBuild eGrades bLocationConfigFile eSessions
                                             eShootings
                                             eCameras
                                             eDump
@@ -149,5 +152,6 @@ run port env@Env{..} translations bDoneshootingDir bBuild eGrades bLocationConfi
                                             hDump
                                             hDumpDir
                                             hPhotographees
+                                            tabs'
                            )
 
