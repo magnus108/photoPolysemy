@@ -28,6 +28,7 @@ module Lib.Translation
     , doneshootingDirCounter
     , photographeeName
     , photographeeIdent
+    , photographeeSys
     , photographeePick
     , gradePick
     , newGrade
@@ -117,6 +118,7 @@ data Translation = Translation { _loading :: String
                                , _createPhotographee :: String
                                , _photographeeName :: String
                                , _photographeeIdent :: String
+                               , _photographeeSys :: String
                                , _photographeePick :: String
                                , _gradePick :: String
                                , _cameraTab :: String

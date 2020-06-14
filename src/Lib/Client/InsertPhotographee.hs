@@ -85,11 +85,13 @@ mkPhotographeeListItem Env {..} (thisIndex, isCenter, photographee) = do
 
 
 
-selectPhotographeeSection :: Env -> Window -> Translation -> Element -> Element -> Element -> Element -> Element -> Photographee.Photographees -> UI Element
-selectPhotographeeSection env _ translations input inputIdent select button selectGrade photographees' = do
+selectPhotographeeSection :: Env -> Window -> Translation -> Element -> Element -> Element -> Element -> Element -> Element -> Photographee.Photographees -> UI Element
+selectPhotographeeSection env _ translations input inputIdent inputSys select button selectGrade photographees' = do
     _ <- element input # set value (Photographee.toName photographees')
     _ <- element select # set children [] #+ (mkPhotographees env photographees')
     _ <- element inputIdent # set value (Photographee.toIdent photographees')
+    _ <- element inputSys # set value (Photographee.toSys photographees')
+
     content <-
         UI.div
         #. "section"
@@ -130,6 +132,20 @@ selectPhotographeeSection env _ translations input inputIdent select button sele
                         #+ [ UI.p
                            #. "control"
                            #+ [element inputIdent #. "input"]
+                        ]
+                        ]
+                ]
+           , UI.div
+                #. "field is-horizontal"
+                #+ [ UI.div #. "field-label is-normal"
+                    #+ [UI.label #. "label" #+ [Lens.views photographeeSys string translations]]
+                   , UI.div
+                    #. "field-body"
+                    #+ [ UI.div
+                        #. "field"
+                        #+ [ UI.p
+                           #. "control"
+                           #+ [element inputSys #. "input"]
                         ]
                         ]
                 ]
@@ -179,9 +195,11 @@ sinkModel env@Env{..} win translations bModel = do
     newPhotographee <- mkCreate env win translations
     inputPhotographee <- UI.input
     inputPhotographeeIdent <- UI.input
+    inputPhotographeeSys <- UI.input
     selectPhotographee <- UI.select
     bEditingInputPhotographee <- bEditing inputPhotographee
     bEditingInputPhotographeeIdent <- bEditing inputPhotographeeIdent
+    bEditingInputPhotographeeSys <- bEditing inputPhotographeeSys
     bEditingSelectPhotographee <- bEditing selectPhotographee
 
 
@@ -217,11 +235,13 @@ sinkModel env@Env{..} win translations bModel = do
                                     traceShowM g
                                     runFunction  $ ffi "$(%1).removeAttr('disabled')" (inputPhotographee)
                                     runFunction  $ ffi "$(%1).removeAttr('disabled')" (inputPhotographeeIdent)
+                                    runFunction  $ ffi "$(%1).removeAttr('disabled')" (inputPhotographeeSys)
                                 (Photographee.Known _ ) -> do
                                     void $ element inputPhotographee # set (attr "disabled") "true"
                                     void $ element inputPhotographeeIdent # set (attr "disabled") "true"
+                                    void $ element inputPhotographeeSys # set (attr "disabled") "true"
 
-                    selectInputPhotographeeSection <- selectPhotographeeSection env win translations inputPhotographee inputPhotographeeIdent selectPhotographee newPhotographee select (_photographees item')
+                    selectInputPhotographeeSection <- selectPhotographeeSection env win translations inputPhotographee inputPhotographeeIdent inputPhotographeeSys selectPhotographee newPhotographee select (_photographees item')
                     _ <- element content # set children [selectInputPhotographeeSection]
                     return ()
 
@@ -245,16 +265,18 @@ sinkModel env@Env{..} win translations bModel = do
             Data item' -> do
                 editingInputPhotographee <- liftIO $ currentValue bEditingInputPhotographee
                 editingInputPhotographeeIdent <- liftIO $ currentValue bEditingInputPhotographeeIdent
+                editingInputPhotographeeSys <- liftIO $ currentValue bEditingInputPhotographeeSys
                 editingSelectPhotographee <- liftIO $ currentValue bEditingSelectPhotographee
 
                 _ <- case (extract (Photographee.unPhotographees (_photographees item'))) of
-                            (Photographee.Unknown g) -> do
-                                traceShowM g
+                            (Photographee.Unknown _) -> do
                                 runFunction  $ ffi "$(%1).removeAttr('disabled')" (inputPhotographee)
                                 runFunction  $ ffi "$(%1).removeAttr('disabled')" (inputPhotographeeIdent)
+                                runFunction  $ ffi "$(%1).removeAttr('disabled')" (inputPhotographeeSys)
                             (Photographee.Known _ ) -> do
                                 void $ element inputPhotographee # set (attr "disabled") "true"
                                 void $ element inputPhotographeeIdent # set (attr "disabled") "true"
+                                void $ element inputPhotographeeSys # set (attr "disabled") "true"
 
                 when (not editingInputPhotographee ) $ void $
                     element inputPhotographee # set value (Photographee.toName (_photographees item'))
@@ -265,6 +287,9 @@ sinkModel env@Env{..} win translations bModel = do
                 when (not editingInputPhotographeeIdent) $ void $
                     element inputPhotographeeIdent # set value (Photographee.toIdent (_photographees item'))
 
+                when (not editingInputPhotographeeSys) $ void $
+                    element inputPhotographeeSys # set value (Photographee.toSys (_photographees item'))
+
                 editingSelect <- liftIO $ currentValue bEditingSelect
 
                 when (not editingSelect) $ void $ do
@@ -272,8 +297,8 @@ sinkModel env@Env{..} win translations bModel = do
                     element select # set children [] #+ options
 
 
-                when (not (editingSelectPhotographee || editingSelect || editingInputPhotographee || editingInputPhotographeeIdent )) $ void $ do
-                    selectInputPhotographeeSection <- selectPhotographeeSection env win translations inputPhotographee inputPhotographeeIdent selectPhotographee newPhotographee select (_photographees item')
+                when (not (editingSelectPhotographee || editingSelect || editingInputPhotographee || editingInputPhotographeeIdent  || editingInputPhotographeeSys)) $ void $ do
+                    selectInputPhotographeeSection <- selectPhotographeeSection env win translations inputPhotographee inputPhotographeeIdent inputPhotographeeSys selectPhotographee newPhotographee select (_photographees item')
                     _ <- element content # set children [ selectInputPhotographeeSection] 
                     return ()
 
@@ -281,10 +306,11 @@ sinkModel env@Env{..} win translations bModel = do
     let eNewPhotographee = Photographee.insert (Photographee.Unknown Photographee.empty) <$ UI.click newPhotographee
     let eInputPhotographee = Photographee.setName <$> UI.valueChange inputPhotographee
     let eInputPhotographeeIdent = Photographee.setIdent <$> UI.valueChange inputPhotographeeIdent
+    let eInputPhotographeeSys = Photographee.setSys <$> UI.valueChange inputPhotographeeSys
 
     let eSelect   = selectPhotographeeF <$> filterJust (selectionChange' selectPhotographee)
 
-    let allEventsPhotographee = concatenate' <$> unions' (eInputPhotographee :| [eNewPhotographee, eInputPhotographeeIdent, eSelect])
+    let allEventsPhotographee = concatenate' <$> unions' (eInputPhotographee :| [eNewPhotographee, eInputPhotographeeSys, eInputPhotographeeIdent, eSelect])
 
     let eSelectGrade = CLocation.selectGrade <$> filterJust (selectionChange' select)
 

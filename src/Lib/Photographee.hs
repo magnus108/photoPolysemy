@@ -4,6 +4,9 @@
 module Lib.Photographee
     ( Photographee(..)
     , Photographees(..)
+    , setSys
+    , toSys
+    , toSys'
     , toName'
     , toTea'
     , setName
@@ -91,6 +94,14 @@ tryFindById s (Photographees x) =
             Just xs -> Photographees xs
 
 
+setSys' :: String -> Photographee -> Photographee
+setSys' sys' (Unknown a) = Unknown $ photographee sys' (_name a) (_ident a)
+setSys' sys' (Known a) = Known $ photographee sys'  (_name a) (_ident a)
+
+setSys :: String -> Photographees -> Photographees
+setSys sys' (Photographees xs) = Photographees $ 
+    ListZipper.mapFocus (setSys' sys') xs
+
 
 setName' :: String -> Photographee -> Photographee
 setName' name' (Unknown a) = Unknown $ photographee (_tea a) name' (_ident a)
@@ -131,6 +142,14 @@ toIdent' (Known x) =  _ident x
 
 toIdent :: Photographees -> String
 toIdent (Photographees x) =  toIdent' ( extract x)
+
+
+toSys' :: Photographee -> String
+toSys' (Unknown x) = _tea x
+toSys' (Known x) =  _tea x
+
+toSys :: Photographees -> String
+toSys (Photographees x) =  toSys' ( extract x)
 
 
 
