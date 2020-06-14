@@ -3,6 +3,7 @@
 
 module Lib.Dump
     ( Dump(..)
+    , checkDumpFiles
     , DumpDir(..)
     , DumpModel(..)
     , DumpDirModel(..)
@@ -153,3 +154,34 @@ readDir file mCamerasFile =
 
 getDumpDir :: (MonadIO m, MonadThrow m) => MVar FilePath -> MVar FilePath -> m (Either String DumpDir)
 getDumpDir file mCamerasFile = liftIO $ readDir file mCamerasFile
+
+
+
+checkDumpFiles :: Dump -> Camera.Camera -> IO (Either String DumpDir)
+checkDumpFiles dump camera = do
+    let filepath = unDump dump
+    files <- try $ listDirectory filepath :: IO (Either SomeException [FilePath])
+    --traceShowM files
+    case files of
+        Left e -> return $ Left (show e ++ "problem med læsning af dump")
+        Right filess -> do
+                    validateDump <- mapM (\file ->  do
+                            if or [ isExtensionOf (fst (Camera.toExtension camera)) file
+                                , isExtensionOf (snd (Camera.toExtension camera)) file
+                                ] then
+                                    doesFileExist (filepath </> file -<.> "jpg") ||^ (doesFileExist (filepath </> file -<.> "JPG"))
+                            else if or [ isExtensionOf "JPG" file
+                                    , isExtensionOf "jpg" file
+                                    ] then
+                                            doesFileExist (filepath </> file -<.> (fst (Camera.toExtension camera)))
+                                            ||^ (doesFileExist (filepath </> file -<.> (snd (Camera.toExtension camera))))
+                            else
+                                return False
+                        ) filess
+
+                    let crs = filter (\x -> isExtensionOf (snd (Camera.toExtension camera)) x || isExtensionOf (fst (Camera.toExtension camera)) x) filess
+
+                    if and validateDump then
+                        return $ Right $ DumpDir crs
+                    else 
+                        return $ Left "Der er fejl med filer i dump"

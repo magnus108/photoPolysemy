@@ -8,6 +8,14 @@ module Lib.Server.Build
     , mkDoneshootingPathJpg
     ) where
 
+
+
+
+import System.FilePath
+import System.Directory (listDirectory)
+import Control.Exception
+import Control.Concurrent (withMVar)
+
 import qualified Data.String as String
 import qualified Data.List.Index
 import Data.Strings
@@ -152,10 +160,15 @@ entry mBuildFile item = do
 myShake :: MVar FilePath -> ShakeOptions -> String -> Main.Item -> IO ()
 myShake mBuildFile opts' time item = do
     let dumpDir = Lens.view Main.dumpDir item
-    if length (Dump.unDumpDir dumpDir) == 0 then
-        void $ Build.write mBuildFile (Build.NoBuild)
-    else
-        myShake' opts' time item
+    checkDump <- Dump.checkDumpFiles (Lens.view Main.dump item) (Lens.view Main.camera item)
+    case  checkDump of
+      Left _ ->
+            void $ Build.write mBuildFile (Build.NoBuild)
+      Right _ -> 
+            if length (Dump.unDumpDir dumpDir) == 0 then
+                void $ Build.write mBuildFile (Build.NoBuild)
+            else
+                myShake' opts' time item
 
 myShake' :: ShakeOptions -> String -> Main.Item -> IO ()
 myShake' opts' time item = shake opts' $ do
