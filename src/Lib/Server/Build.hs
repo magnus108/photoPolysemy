@@ -55,12 +55,12 @@ opts :: MVar FilePath -> Photographee.Photographee -> ShakeOptions
 opts mBuildFile photographee = shakeOptions
                     { shakeFiles = shakeDir
                     , shakeProgress = progress -- should change
-                    , shakeThreads = 1
+                    , shakeThreads = 5
                     , shakeColor = True
                     }
     where
         progress p = do
-            progressDisplay 0.05 (\s -> do
+            progressDisplay 0.1 (\s -> do
                 case s of
                     "" -> Build.write mBuildFile (Build.NoBuild)
                     x -> case String.words x of
