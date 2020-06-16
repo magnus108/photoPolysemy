@@ -8,8 +8,12 @@ module Lib.Server.Build
     , mkDoneshootingPathJpg
     ) where
 
+import Control.Concurrent
 
+import Utils.Mealy
 
+import Numeric.Extra
+import System.Time.Extra
 
 import System.FilePath
 import System.Directory (listDirectory)
@@ -59,6 +63,46 @@ shakeDir = "._build"
 getDate :: UTCTime -> String
 getDate = formatTime defaultTimeLocale "%Y - %m%d"
 
+
+message :: Mealy (Double, Progress) (Double, Progress) -> Mealy (Double, Progress) (Double, Int)
+message input = liftA2 (,) done todo
+    where
+        progress = snd <$> input
+        secs = fst <$> input
+        done = timeBuilt <$> progress
+        todo = countTodo <$> progress
+
+liftA2' :: Applicative m => m a -> m b -> (a -> b -> c) -> m c
+liftA2' a b f = liftA2 f a b
+
+
+myProgressProgram :: Int -> IO Progress -> IO ()
+myProgressProgram sample progress = do
+    time <- offsetTime
+    putStrLn "lol"
+    catchJust (\x -> if x == ThreadKilled then Just () else Nothing)
+        (loop time $ message echoMealy)
+        (const $ do t <- time; putStrLn (show t))
+        --(const $ do t <- time; disp $ "Finished in " ++ showDuration t)
+    where
+        loop :: IO Double -> Mealy (Double, Progress) (Double, Int) -> IO ()
+        loop time mealy = do
+            threadDelay sample
+            t <- time
+            p <- progress
+            putStrLn "lol2"
+            ((secs,perc), mealy) <- pure $ runMealy mealy (t, p)
+            putStrLn (show (div perc 6))
+            -- putStrLn _debug
+    --           let done = countSkipped p + countBuilt p
+--            let todo = done + countUnknown p + countTodo p
+--                disp $
+--                   "Running for " ++ showDurationSecs t ++ " [" ++ show done ++ "/" ++ show todo ++ "]" ++
+--                  ", predicted " ++ formatMessage secs perc ++
+--                 maybe "" (", Failure! " ++) (isFailure p)
+            loop time mealy
+
+
 opts :: MVar FilePath -> Photographee.Photographee -> ShakeOptions
 opts mBuildFile photographee = shakeOptions
                     { shakeFiles = shakeDir
@@ -68,13 +112,14 @@ opts mBuildFile photographee = shakeOptions
                     }
     where
         progress p = do
-            progressDisplay 0.1 (\s -> do
-                case s of
-                    "" -> Build.write mBuildFile (Build.NoBuild)
-                    x -> case String.words x of
-                            "Finished":_ -> Build.write mBuildFile (Build.DoneBuild photographee x)
-                            _ -> Build.write mBuildFile (Build.Building photographee x)
-                ) p
+            myProgressProgram 500000 p
+            --progressDisplay 0.1 (\s -> do
+             --   case s of
+              --      "" -> Build.write mBuildFile (Build.NoBuild)
+               ---     x -> case String.words x of
+                 --           "Finished":_ -> Build.write mBuildFile (Build.DoneBuild photographee x)
+                  --          _ -> Build.write mBuildFile (Build.Building photographee x)
+                --) p
 
 
 mkDoneshootingPath :: Int -> FilePath -> Main.Item -> FilePath
