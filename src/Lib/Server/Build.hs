@@ -70,7 +70,7 @@ message input = liftA2 (,) done todo
         progress = snd <$> input
         secs = fst <$> input
         done = timeBuilt <$> progress
-        todo = countTodo <$> progress
+        todo = countBuilt <$> progress
 
 liftA2' :: Applicative m => m a -> m b -> (a -> b -> c) -> m c
 liftA2' a b f = liftA2 f a b
@@ -90,9 +90,8 @@ myProgressProgram sample progress = do
             threadDelay sample
             t <- time
             p <- progress
-            putStrLn "lol2"
             ((secs,perc), mealy) <- pure $ runMealy mealy (t, p)
-            putStrLn (show (div perc 6))
+            putStrLn (show (div perc 8))
             -- putStrLn _debug
     --           let done = countSkipped p + countBuilt p
 --            let todo = done + countUnknown p + countTodo p
@@ -112,7 +111,7 @@ opts mBuildFile photographee = shakeOptions
                     }
     where
         progress p = do
-            myProgressProgram 500000 p
+            myProgressProgram 10000 p
             --progressDisplay 0.1 (\s -> do
              --   case s of
               --      "" -> Build.write mBuildFile (Build.NoBuild)
