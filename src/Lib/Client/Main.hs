@@ -126,7 +126,7 @@ sinkModel env@Env{..} win translations bModel = do
     select <- UI.select
     input <- UI.input #. "input"
     currentPhotographee <- UI.h1 #. "is-size-4"
-    inputSection <- UI.div #. "section" # set children [currentPhotographee, input ]
+    inputSection <- UI.div #. "section" # set children [currentPhotographee, input]
 
     selectSection <-
         UI.div

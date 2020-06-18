@@ -1,3 +1,4 @@
+{-# LANGUAGE ScopedTypeVariables #-}
 module Lib.Server.Build
     ( entry
     , getDate
@@ -8,6 +9,9 @@ module Lib.Server.Build
     , mkDoneshootingPathJpg
     ) where
 
+import Data.Char
+
+import Control.Exception
 import Control.Concurrent
 
 import Utils.Mealy
@@ -76,14 +80,10 @@ liftA2' :: Applicative m => m a -> m b -> (a -> b -> c) -> m c
 liftA2' a b f = liftA2 f a b
 
 
-myProgressProgram :: Int -> IO Progress -> IO ()
-myProgressProgram sample progress = do
+myProgressProgram :: Int -> MVar FilePath -> Photographee.Photographee -> IO Progress -> IO ()
+myProgressProgram sample mBuildFile photographee progress = do
     time <- offsetTime
-    putStrLn "lol"
-    catchJust (\x -> if x == ThreadKilled then Just () else Nothing)
-        (loop time $ message echoMealy)
-        (const $ do t <- time; putStrLn (show t))
-        --(const $ do t <- time; disp $ "Finished in " ++ showDuration t)
+    (loop time $ message echoMealy)
     where
         loop :: IO Double -> Mealy (Double, Progress) (Double, Int) -> IO ()
         loop time mealy = do
@@ -91,15 +91,7 @@ myProgressProgram sample progress = do
             t <- time
             p <- progress
             ((secs,perc), mealy) <- pure $ runMealy mealy (t, p)
-            putStrLn (show (div perc 8))
-            -- putStrLn _debug
-    --           let done = countSkipped p + countBuilt p
---            let todo = done + countUnknown p + countTodo p
---                disp $
---                   "Running for " ++ showDurationSecs t ++ " [" ++ show done ++ "/" ++ show todo ++ "]" ++
---                  ", predicted " ++ formatMessage secs perc ++
---                 maybe "" (", Failure! " ++) (isFailure p)
-            loop time mealy
+            Build.write mBuildFile (Build.Building photographee (show (div perc 8)))
 
 
 opts :: MVar FilePath -> Photographee.Photographee -> ShakeOptions
@@ -111,19 +103,12 @@ opts mBuildFile photographee = shakeOptions
                     }
     where
         progress p = do
-            myProgressProgram 10000 p
-            --progressDisplay 0.1 (\s -> do
-             --   case s of
-              --      "" -> Build.write mBuildFile (Build.NoBuild)
-               ---     x -> case String.words x of
-                 --           "Finished":_ -> Build.write mBuildFile (Build.DoneBuild photographee x)
-                  --          _ -> Build.write mBuildFile (Build.Building photographee x)
-                --) p
+            myProgressProgram 1000000 mBuildFile photographee p
 
 
 mkDoneshootingPath :: Int -> FilePath -> Main.Item -> FilePath
 mkDoneshootingPath index' file item =
-    Doneshooting.unDoneshooting doneshooting </> location </> extension </> grade </> sessionId ++ "." ++ tea ++ "." ++ shootingId ++ "." ++ photographerId ++ "." ++ no ++ (takeExtension file)
+    Doneshooting.unDoneshooting doneshooting </> location </> extension </> grade </> sessionId ++ "." ++ tea ++ "." ++ shootingId ++ "." ++ photographerId ++ "." ++ no ++ (toLower <$> (takeExtension file))
         where
             location = takeBaseName $ Location.unLocationFile $ Lens.view Main.location item
             session = Lens.view Main.session item
@@ -146,7 +131,7 @@ mkDoneshootingPath index' file item =
 
 mkDoneshootingPathJpg :: Int -> FilePath -> Main.Item -> FilePath
 mkDoneshootingPathJpg index' file item =
-    Doneshooting.unDoneshooting doneshooting </> location </> extension </> "_webshop" </> sessionId ++ "." ++ tea ++ "." ++ shootingId ++ "." ++ photographerId ++ "." ++ no ++ (takeExtension file)
+    Doneshooting.unDoneshooting doneshooting </> location </> extension </> "_webshop" </> sessionId ++ "." ++ tea ++ "." ++ shootingId ++ "." ++ photographerId ++ "." ++ no ++ (toLower <$> (takeExtension file))
         where
             location = takeBaseName $ Location.unLocationFile $ Lens.view Main.location item
             session = Lens.view Main.session item
@@ -167,7 +152,7 @@ mkDoneshootingPathJpg index' file item =
 
 
 mkDagsdatoPath :: FilePath -> String -> Main.Item -> FilePath
-mkDagsdatoPath file date item = dagsdato </> date ++ " - " ++ location </> grade </> (name ++ " - " ++ tea) </> file
+mkDagsdatoPath file date item = dagsdato </> date ++ " - " ++ location </> grade </> (name ++ " - " ++ tea) </> file -<.> (toLower <$> (takeExtension file))
         where
             dagsdato = Dagsdato.unDagsdato $ Lens.view Main.dagsdato item
             location = takeBaseName $ Location.unLocationFile $ Lens.view Main.location item
@@ -179,7 +164,7 @@ mkDagsdatoPath file date item = dagsdato </> date ++ " - " ++ location </> grade
 
 
 mkDagsdatoBackupPath :: FilePath -> String -> Main.Item -> FilePath
-mkDagsdatoBackupPath file date item = dagsdatoBackup </> date ++ " - " ++ location </> grade </> (name ++ " - " ++ tea) </> file
+mkDagsdatoBackupPath file date item = dagsdatoBackup </> date ++ " - " ++ location </> grade </> (name ++ " - " ++ tea) </> file -<.> (toLower <$> (takeExtension file))
         where
             dagsdatoBackup = DagsdatoBackup.unDagsdatoBackup $ Lens.view Main.dagsdatoBackup item
             location = takeBaseName $ Location.unLocationFile $ Lens.view Main.location item
@@ -197,8 +182,10 @@ entry mBuildFile item = do
 
     let photographees = Lens.view Main.photographees item
     let photographee = extract (Photographee.unPhotographees photographees)
-    myShake mBuildFile (opts mBuildFile photographee) date item
-
+    shaken <- try $ myShake mBuildFile (opts mBuildFile photographee) date item :: IO (Either SomeException ())
+    case shaken of
+        Left _ -> Build.write mBuildFile (Build.NoBuild)
+        Right _ -> Build.write mBuildFile (Build.DoneBuild photographee "")
 
 
 myShake :: MVar FilePath -> ShakeOptions -> String -> Main.Item -> IO ()

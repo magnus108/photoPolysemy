@@ -95,8 +95,8 @@ tryFindById s (Photographees x) =
 
 
 setSys' :: String -> Photographee -> Photographee
-setSys' sys' (Unknown a) = Unknown $ photographee sys' (_name a) (_ident a)
-setSys' sys' (Known a) = Known $ photographee sys'  (_name a) (_ident a)
+setSys' sys' (Unknown a) = Unknown $ photographee ("SYS_" ++ sys') (_name a) (_ident a)
+setSys' sys' (Known a) = Known $ photographee ("SYS_" ++ sys') (_name a) (_ident a)
 
 setSys :: String -> Photographees -> Photographees
 setSys sys' (Photographees xs) = Photographees $ 
@@ -145,8 +145,8 @@ toIdent (Photographees x) =  toIdent' ( extract x)
 
 
 toSys' :: Photographee -> String
-toSys' (Unknown x) = _tea x
-toSys' (Known x) =  _tea x
+toSys' (Unknown x) = drop 4 (_tea x)
+toSys' (Known x) =  drop 4 (_tea x)
 
 toSys :: Photographees -> String
 toSys (Photographees x) =  toSys' ( extract x)
