@@ -4,7 +4,6 @@ module Lib.Build
     ( Build(..)
     , Model(..)
     , writeBuild
-    , write
     , getBuild
     , toString
     , initalState

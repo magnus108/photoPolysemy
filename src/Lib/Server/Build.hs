@@ -2,17 +2,18 @@
 module Lib.Server.Build
     ( entry
     , getDate
-    , myShake'
     , mkDagsdatoBackupPath
     , mkDagsdatoPath
     , mkDoneshootingPath
     , mkDoneshootingPathJpg
     ) where
 
+import Control.Concurrent (threadDelay, killThread, forkIO)
+import qualified Control.Concurrent.Chan as Chan
+
 import Data.Char
 
 import Control.Exception
-import Control.Concurrent
 
 import Utils.Mealy
 
@@ -80,22 +81,40 @@ liftA2' :: Applicative m => m a -> m b -> (a -> b -> c) -> m c
 liftA2' a b f = liftA2 f a b
 
 
-myProgressProgram :: Int -> MVar FilePath -> Photographee.Photographee -> IO Progress -> IO ()
-myProgressProgram sample mBuildFile photographee progress = do
+myProgressProgram :: Int -> Chan.Chan Build.Build -> Photographee.Photographee -> IO Progress -> IO ()
+myProgressProgram sample c photographee progress = do
     time <- offsetTime
-    (loop time $ message echoMealy)
+    catchJust (\x -> if x == ThreadKilled then Just () else Nothing)
+        (loop time $ message echoMealy)
+        (const $ do t <- time
+                    p <- progress
+                    let todo = countBuilt p
+                    Chan.writeChan c (Build.DoneBuild photographee (show (div todo 8)))
+        )
     where
         loop :: IO Double -> Mealy (Double, Progress) (Double, Int) -> IO ()
         loop time mealy = do
             threadDelay sample
             t <- time
             p <- progress
-            ((secs,perc), mealy) <- pure $ runMealy mealy (t, p)
-            Build.write mBuildFile (Build.Building photographee (show (div perc 8)))
+            ((secs,todo), mealy) <- pure $ runMealy mealy (t, p)
+            let f = isFailure p
+            case f of
+                Nothing -> do
+                    Chan.writeChan c (Build.Building photographee (show (div todo 8)))
+                Just _ ->
+                    Chan.writeChan c (Build.NoBuild)
+            loop time mealy
 
 
-opts :: MVar FilePath -> Photographee.Photographee -> ShakeOptions
-opts mBuildFile photographee = shakeOptions
+receiveMessages mfile msgs = do
+    messages <- Chan.getChanContents msgs
+    forM_ messages $ \msg -> do
+        traceShowM msg
+        Build.writeBuild mfile msg
+
+opts :: Chan.Chan Build.Build -> Photographee.Photographee -> ShakeOptions
+opts  c photographee = shakeOptions
                     { shakeFiles = shakeDir
                     , shakeProgress = progress -- should change
                     , shakeThreads = 5
@@ -103,7 +122,7 @@ opts mBuildFile photographee = shakeOptions
                     }
     where
         progress p = do
-            myProgressProgram 1000000 mBuildFile photographee p
+            myProgressProgram 50000 c photographee p
 
 
 mkDoneshootingPath :: Int -> FilePath -> Main.Item -> FilePath
@@ -182,33 +201,23 @@ entry mBuildFile item = do
 
     let photographees = Lens.view Main.photographees item
     let photographee = extract (Photographee.unPhotographees photographees)
-    shaken <- try $ myShake mBuildFile (opts mBuildFile photographee) date item :: IO (Either SomeException ())
+
+    messages <- Chan.newChan
+    messageReceiver <- liftIO $ forkIO $ receiveMessages mBuildFile messages
+    shaken <- try $ myShake (opts messages photographee) date item :: IO (Either SomeException ())
+    killThread messageReceiver
     case shaken of
-        Left _ -> Build.write mBuildFile (Build.NoBuild)
-        Right _ -> Build.write mBuildFile (Build.DoneBuild photographee "")
+        Left _ -> Build.writeBuild mBuildFile (Build.NoBuild)
+        Right _ -> Build.writeBuild mBuildFile (Build.DoneBuild photographee (""))
 
 
-myShake :: MVar FilePath -> ShakeOptions -> String -> Main.Item -> IO ()
-myShake mBuildFile opts' time item = do
+myShake :: ShakeOptions -> String -> Main.Item -> IO ()
+myShake opts' time item = do
+    let dump = Lens.view Main.dump item
+    let root = Dump.unDump dump
     let dumpDir = Lens.view Main.dumpDir item
-    checkDump <- Dump.checkDumpFiles (Lens.view Main.dump item) (Lens.view Main.camera item)
-    case  checkDump of
-      Left _ ->
-            void $ Build.write mBuildFile (Build.NoBuild)
-      Right _ -> 
-            if length (Dump.unDumpDir dumpDir) == 0 then
-                void $ Build.write mBuildFile (Build.NoBuild)
-            else
-                myShake' opts' time item
-
-myShake' :: ShakeOptions -> String -> Main.Item -> IO ()
-myShake' opts' time item = shake opts' $ do
-
-        let dump = Lens.view Main.dump item
-        let dumpDir = Lens.view Main.dumpDir item
-
-        Data.List.Index.ifor_ (sort (Dump.unDumpDir dumpDir)) $ \ index' cr -> do
-            let root = Dump.unDump dump
+    let sortDir = sort (Dump.unDumpDir dumpDir)
+    let tmp = Data.List.Index.imap (\index' cr -> do 
             let index'' = index' + 1
             let jpg = cr -<.> "jpg"
 
@@ -220,19 +229,26 @@ myShake' opts' time item = shake opts' $ do
 
             let dagsdatoBackupCr = mkDagsdatoBackupPath cr time item
             let dagsdatoBackupJpg = mkDagsdatoBackupPath jpg time item
+            ((cr, (doneshootingCr,dagsdatoCr, dagsdatoBackupCr)), (jpg, (doneshootingJpg, dagsdatoJpg, dagsdatoBackupJpg)))
+            ) sortDir
+    case tmp of
+        [] -> error "empty"
+        xs -> do
+            shake opts' $ do
+                forM_ xs $ \ ((cr, (doneshootingCr,dagsdatoCr, dagsdatoBackupCr)),(jpg, (doneshootingJpg, dagsdatoJpg, dagsdatoBackupJpg))) -> do
 
-            want [doneshootingCr, doneshootingJpg, dagsdatoCr, dagsdatoJpg , dagsdatoBackupCr, dagsdatoBackupJpg]
+                    want [doneshootingCr, doneshootingJpg, dagsdatoCr, dagsdatoJpg , dagsdatoBackupCr, dagsdatoBackupJpg]
 
-            doneshootingCr %> copyFile' (root </> cr)
+                    doneshootingCr %> copyFile' (root </> cr)
 
-            doneshootingJpg %> copyFile' (root </> jpg)
+                    doneshootingJpg %> copyFile' (root </> jpg)
 
-            dagsdatoCr %> copyFile' (root </> cr)
+                    dagsdatoCr %> copyFile' (root </> cr)
 
-            dagsdatoJpg %> copyFile' (root </> jpg)
+                    dagsdatoJpg %> copyFile' (root </> jpg)
 
-            dagsdatoBackupCr %> copyFile' (root </> cr)
+                    dagsdatoBackupCr %> copyFile' (root </> cr)
 
-            dagsdatoBackupJpg %> copyFile' (root </> jpg)
+                    dagsdatoBackupJpg %> copyFile' (root </> jpg)
 
-            action $ removeFilesAfter root ["//*.CR3", "//*.JPG", "//*.cr3", "//*.jpg","//*.CR2","//*.cr2"]
+                    action $ removeFilesAfter root ["//*.CR3", "//*.JPG", "//*.cr3", "//*.jpg","//*.CR2","//*.cr2"]
