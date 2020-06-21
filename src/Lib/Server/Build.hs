@@ -20,7 +20,6 @@ import Utils.Mealy
 import Numeric.Extra
 import System.Time.Extra
 
-import System.FilePath
 import System.Directory (listDirectory)
 import Control.Exception
 import Control.Concurrent (withMVar)
@@ -48,7 +47,8 @@ import qualified Lib.DagsdatoBackup as DagsdatoBackup
 import qualified Lib.Camera as Camera
 
 import Development.Shake
-import Development.Shake.FilePath
+import Development.Shake.FilePath 
+import qualified Development.Shake.FilePath as FP
 
 import Data.Time.Format
 import Data.Time.Clock
@@ -127,7 +127,7 @@ opts  c photographee = shakeOptions
 
 mkDoneshootingPath :: Int -> FilePath -> Main.Item -> FilePath
 mkDoneshootingPath index' file item =
-    Doneshooting.unDoneshooting doneshooting </> location </> extension </> grade </> sessionId ++ "." ++ tea ++ "." ++ shootingId ++ "." ++ photographerId ++ "." ++ no ++ (toLower <$> (takeExtension file))
+    Doneshooting.unDoneshooting doneshooting </> location </> extension </> grade </> sessionId ++ "." ++ tea ++ "." ++ shootingId ++ "." ++ photographerId ++ "." ++ no ++ (toLower <$> (FP.takeExtension file))
         where
             location = takeBaseName $ Location.unLocationFile $ Lens.view Main.location item
             session = Lens.view Main.session item
@@ -150,7 +150,7 @@ mkDoneshootingPath index' file item =
 
 mkDoneshootingPathJpg :: Int -> FilePath -> Main.Item -> FilePath
 mkDoneshootingPathJpg index' file item =
-    Doneshooting.unDoneshooting doneshooting </> location </> extension </> "_webshop" </> sessionId ++ "." ++ tea ++ "." ++ shootingId ++ "." ++ photographerId ++ "." ++ no ++ (toLower <$> (takeExtension file))
+    Doneshooting.unDoneshooting doneshooting </> location </> extension </> "_webshop" </> sessionId ++ "." ++ tea ++ "." ++ shootingId ++ "." ++ photographerId ++ "." ++ no ++ (toLower <$> (FP.takeExtension file))
         where
             location = takeBaseName $ Location.unLocationFile $ Lens.view Main.location item
             session = Lens.view Main.session item
@@ -171,7 +171,7 @@ mkDoneshootingPathJpg index' file item =
 
 
 mkDagsdatoPath :: FilePath -> String -> Main.Item -> FilePath
-mkDagsdatoPath file date item = dagsdato </> date ++ " - " ++ location </> grade </> (name ++ " - " ++ tea) </> file -<.> (toLower <$> (takeExtension file))
+mkDagsdatoPath file date item = dagsdato </> date ++ " - " ++ location </> grade </> (name ++ " - " ++ tea) </> file -<.> (toLower <$> (FP.takeExtension file))
         where
             dagsdato = Dagsdato.unDagsdato $ Lens.view Main.dagsdato item
             location = takeBaseName $ Location.unLocationFile $ Lens.view Main.location item
@@ -183,7 +183,7 @@ mkDagsdatoPath file date item = dagsdato </> date ++ " - " ++ location </> grade
 
 
 mkDagsdatoBackupPath :: FilePath -> String -> Main.Item -> FilePath
-mkDagsdatoBackupPath file date item = dagsdatoBackup </> date ++ " - " ++ location </> grade </> (name ++ " - " ++ tea) </> file -<.> (toLower <$> (takeExtension file))
+mkDagsdatoBackupPath file date item = dagsdatoBackup </> date ++ " - " ++ location </> grade </> (name ++ " - " ++ tea) </> file -<.> (toLower <$> (FP.takeExtension file))
         where
             dagsdatoBackup = DagsdatoBackup.unDagsdatoBackup $ Lens.view Main.dagsdatoBackup item
             location = takeBaseName $ Location.unLocationFile $ Lens.view Main.location item
