@@ -15,7 +15,7 @@ module Lib.Doneshooting
     , initialState
     ) where
 
-
+import System.FilePath
 import Control.Exception
 import Control.Concurrent
 
@@ -23,9 +23,12 @@ import Lib.Data
 import Utils.Comonad
 import System.Directory
 
+import qualified Lib.Grade as Grade
 import qualified Lib.Camera as Camera
+import qualified Lib.Location as Location
 
 import Control.Lens
+import qualified Control.Lens as Lens
 
 newtype Doneshooting = Doneshooting { unDoneshooting :: FilePath }
     deriving (Eq, Ord, Show)
@@ -88,19 +91,23 @@ newtype DoneshootingDir = DoneshootingDir { unDoneshootingDir :: [FilePath] }
 
 
 
-getDoneshootingFiles :: Doneshooting -> Camera.Camera -> IO (Either String DoneshootingDir)
-getDoneshootingFiles doneshooting _= do
+getDoneshootingFiles :: Doneshooting -> Camera.Camera -> Location.LocationFile -> Grade.Grades -> IO (Either String DoneshootingDir)
+getDoneshootingFiles doneshooting camera loc grades = do
+    let location = takeBaseName $ Location.unLocationFile $ loc
+    let extension = snd $ Camera.toExtension camera
     let filepath = unDoneshooting doneshooting
-    files <- try $ listDirectory filepath :: IO (Either SomeException [FilePath])
+    let grade = Grade.showGrade grades
+    --mangler GRADE
+    files <- try $ listDirectory (filepath </> location </> extension </> grade ) :: IO (Either SomeException [FilePath])
     case files of
       Left _ -> return $ Left "could not read"
       Right files' ->
           return $ Right $ DoneshootingDir files'
 
 
-getDoneshootingDir' :: (MonadIO m, MonadThrow m) => Doneshooting -> Camera.Camera -> m (Either String DoneshootingDir)
-getDoneshootingDir' doneshooting camera = do
-    dir <- liftIO $ getDoneshootingFiles doneshooting camera
+getDoneshootingDir' :: (MonadIO m, MonadThrow m) => Doneshooting -> Camera.Camera -> Location.LocationFile -> Grade.Grades -> m (Either String DoneshootingDir)
+getDoneshootingDir' doneshooting camera loc grades = do
+    dir <- liftIO $ getDoneshootingFiles doneshooting camera loc grades
     return $ dir
 
 
@@ -114,18 +121,26 @@ initialStateDir :: DoneshootingDirModel
 initialStateDir = DoneshootingDirModel NotAsked
 
 
-readDir :: (MonadIO m, MonadThrow m) => MVar FilePath -> MVar FilePath -> m (Either String DoneshootingDir)
-readDir file mCamerasFile =
-    liftIO $ withMVar file $ \f -> do
-        cameras <- Camera.read mCamerasFile
-        case cameras of
-                Left x -> return $ Left x
-                Right cameras' -> do
-                    doneshootingPath <- getDoneshooting' f --TODO fix this shit
-                    case doneshootingPath of
-                            Left x -> return $ Left x
-                            Right ff -> getDoneshootingDir' ff (extract (Camera.unCameras cameras'))
+readDir :: (MonadIO m, MonadThrow m) => MVar FilePath -> MVar FilePath -> MVar FilePath -> MVar FilePath -> m (Either String DoneshootingDir)
+readDir file mCamerasFile mLocationConfigFile mGradesFile = do
+    grades <- Grade.getGrades mGradesFile 
+    case grades of
+        Left yyy -> return $ Left yyy
+        Right grades' -> do
+            loc <- Location.getLocationFile mLocationConfigFile
+            case loc of
+                Left xxx -> return $ Left xxx
+                Right loc' -> 
+                    liftIO $ withMVar file $ \f -> do
+                        cameras <- Camera.read mCamerasFile
+                        case cameras of
+                                Left x -> return $ Left x
+                                Right cameras' -> do
+                                    doneshootingPath <- getDoneshooting' f --TODO fix this shit
+                                    case doneshootingPath of
+                                            Left x -> return $ Left x
+                                            Right ff -> getDoneshootingDir' ff (extract (Camera.unCameras cameras')) loc' grades'
 
 
-getDoneshootingDir :: (MonadIO m, MonadThrow m) => MVar FilePath -> MVar FilePath -> m (Either String DoneshootingDir)
-getDoneshootingDir file mCamerasFile = liftIO $ return (Left "this feature is off") -- readDir file mCamerasFile
+getDoneshootingDir :: (MonadIO m, MonadThrow m) => MVar FilePath -> MVar FilePath -> MVar FilePath -> MVar FilePath -> m (Either String DoneshootingDir)
+getDoneshootingDir file mCamerasFile mLocationConfigFile mGradesFile = liftIO $ readDir file mCamerasFile mLocationConfigFile mGradesFile 

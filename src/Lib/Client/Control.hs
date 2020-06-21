@@ -16,6 +16,7 @@ import           Lib.Data
 import           Lib.Tab
 import qualified Lib.ControlModel as Model
 import qualified Lib.Grade as Grade
+import qualified Lib.Control as Control
 import qualified Lib.Doneshooting as Doneshooting
 import           Lib.App                        ( Env(..))
 import Lib.Client.Utils
@@ -27,9 +28,10 @@ mkControl env@Env{..} translations select model =
     case Lens.view Model.unModel model of
         NotAsked -> UI.p #+ [Lens.views starting string translations]
         Loading -> UI.p #+ [Lens.views loading string translations]
-        Failure _ -> do
+        Failure e -> do
             err <- UI.p #+ [Lens.views controlError string translations]
-            UI.div #. "section" # set children [err]
+            err' <- UI.p #+ [string e]
+            UI.div #. "section" # set children [err, err']
         Data item' -> do
             counter <- UI.div #. "section" #+ [ mkLabel (Lens.view doneshootingDirCounter translations)
                                 , UI.string (show $ Doneshooting.count (Lens.view Model.doneshootingDir item'))
@@ -38,6 +40,10 @@ mkControl env@Env{..} translations select model =
             let options = CLocation.mkGrades env (Lens.view Model.grades item')
             _ <- element select # set children [] #+ options
             selectGradeSection <- UI.div #. "section" #+ [UI.div #. "select" # set children [select]]
+
+            --BAD BRUh
+            lola <- liftIO $ Control.controlXMP item'
+
             UI.div # set children [counter, selectGradeSection]
 
 

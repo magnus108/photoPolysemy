@@ -7,7 +7,7 @@ module Lib.Control
     ) where
 
 import qualified Control.Lens as Lens
-import qualified Lib.Main as Main
+import qualified Lib.ControlModel as ControlModel
 import qualified Data.ByteString as BS
 import Data.ByteString.Char8 (unpack)
 import qualified Lib.Doneshooting as Doneshooting
@@ -60,20 +60,13 @@ data Error
 data Results = Results [Error]
 
 
-controlXMP :: Main.Item -> IO Results
+controlXMP :: ControlModel.Item -> IO Results
 controlXMP item' = do
-    let location = takeBaseName $ Location.unLocationFile $ Lens.view Main.location item'
-    let doneshootingDir = Doneshooting.unDoneshooting $ Lens.view Main.doneshooting item'
-    let grade = Grade.showGrade (Lens.view Main.grades item')
-    let camera = Lens.view Main.camera item'
-    let extension = snd $ Camera.toExtension camera
-    let name = takeBaseName location
-    let path = doneshootingDir </> name </> extension </> grade
-    dir <- try $ listDirectory path :: IO (Either SomeException [FilePath])
-    case dir of
-        Left _ -> return (Results [CouldNotReadDoneshootingDir])
-        Right _ -> do
-            return (Results [])
+    --let files = Lens.view doneshootingDir item'
+    --let filtered = groupOn (\f -> (splitOn "."  f) !! 1) $ filter (\f -> isExtensionOf ext f) (sort files)
+    --let studentAndCrs = fmap (\xx -> ((splitOn "." (xx !! 0)) !! 1 , xx)) filtered
+
+    return (Results [])
 
             {-
                     let filtered = groupOn (\f -> (splitOn "."  f) !! 1) $ filter (\f -> isExtensionOf ext f) (sort files)

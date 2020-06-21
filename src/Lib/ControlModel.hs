@@ -2,6 +2,7 @@
 module Lib.ControlModel
     ( mkModel
     , Model(..)
+    , Item(..)
     , doneshootingDir
     , grades
     , unModel

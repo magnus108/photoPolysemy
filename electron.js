@@ -2,6 +2,8 @@ const { app, BrowserWindow } = require('electron');
 const freeport = require('freeport');
 const spawn = require('child_process').spawn;
 const path = require('path');
+const waitOn = require('wait-on');
+
 
  // Time to wait for Threepenny server, milliseconds
 const timeout = 10000;
@@ -53,8 +55,10 @@ freeport((err, port) => {
       console.log(`Threepenny app exited with code ${code}`));
 
     // Wait until the Threepenny server is ready for connections.
-
-     createWindow();
+    waitOn({ resources: [url], timeout }, (err_) => {
+      if (err_) throw err_;
+      createWindow();
+    });
 
   });
 
