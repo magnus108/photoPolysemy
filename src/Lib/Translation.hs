@@ -3,6 +3,8 @@
 
 module Lib.Translation
     ( Translation(..)
+    , exactly1With5
+    , atleast5With1
     , controlError
     , doneBuild
     , building
@@ -137,6 +139,8 @@ data Translation = Translation { _loading :: String
                                , _building :: String
                                , _noBuild :: String
                                , _controlError :: String
+                               , _exactly1With5 :: String
+                               , _atleast5With1 :: String
                                }
     deriving (Show, Ord, Eq, Generic, ToJSON, FromJSON)
 

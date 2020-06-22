@@ -37,6 +37,7 @@ newtype Doneshooting = Doneshooting { unDoneshooting :: FilePath }
 
 
 newtype Model = Model { unModel :: Data String Doneshooting }
+    deriving (Show)
 
 makeLenses ''Model
 
@@ -84,7 +85,7 @@ getDoneshooting file = liftIO $ read file
 
 
 
-newtype DoneshootingDir = DoneshootingDir { unDoneshootingDir :: [FilePath] }
+newtype DoneshootingDir = DoneshootingDir { unDoneshootingDir :: ([FilePath], ([FilePath], FilePath))}
     deriving (Eq, Ord, Show)
     deriving (Generic)
     deriving (FromJSON, ToJSON)
@@ -98,11 +99,19 @@ getDoneshootingFiles doneshooting camera loc grades = do
     let filepath = unDoneshooting doneshooting
     let grade = Grade.showGrade grades
     --mangler GRADE
+    let path = filepath </> location </> extension </> grade 
+    isDir <- doesDirectoryExist path
     files <- try $ listDirectory (filepath </> location </> extension </> grade ) :: IO (Either SomeException [FilePath])
-    case files of
-      Left _ -> return $ Left "could not read"
-      Right files' ->
-          return $ Right $ DoneshootingDir files'
+    if not isDir then
+        return $ Left ("doesDirectoryExist "++ path)
+    else
+        case files of
+            Left e -> return $ Left ("could not read" ++ show e)
+            Right files' ->
+                return $ Right $ DoneshootingDir ( filter (\file' -> ("." ++ extension) == (takeExtension file')) files'
+                                                 , (filter (\file' -> ".xmp" == (takeExtension file')) files'
+                                                 , path)
+                                                 )
 
 
 getDoneshootingDir' :: (MonadIO m, MonadThrow m) => Doneshooting -> Camera.Camera -> Location.LocationFile -> Grade.Grades -> m (Either String DoneshootingDir)
@@ -112,9 +121,10 @@ getDoneshootingDir' doneshooting camera loc grades = do
 
 
 newtype DoneshootingDirModel = DoneshootingDirModel { unDoneshootingDirModel :: Data String DoneshootingDir }
+    deriving Show
 
 count :: DoneshootingDir -> Int
-count = length . unDoneshootingDir
+count = length . fst . unDoneshootingDir
 
 
 initialStateDir :: DoneshootingDirModel

@@ -239,8 +239,8 @@ sinkModel env@Env{..} win translations bModel = do
                     let options = CLocation.mkGrades env (Main._grades item')
                     element select # set children [] #+ options
 
-                when (not editingInput) $ void $
-                    element input # set value ident --- eh
+                --when (not editingInput) $ void $
+                    --element input # set value ident --- eh
 
                 when (not (editingInput || editingSelect )) $ void $ do
                     _ <- element content # set children [build' ,mkBuild, dumpFilesCounter', inputSection, selectSection, photographees']

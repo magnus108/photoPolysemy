@@ -16,6 +16,7 @@ import           Lib.Data
 import           Lib.Tab
 import qualified Lib.ControlModel as Model
 import qualified Lib.Grade as Grade
+import qualified Lib.Photographee as Photographee
 import qualified Lib.Control as Control
 import qualified Lib.Doneshooting as Doneshooting
 import           Lib.App                        ( Env(..))
@@ -31,6 +32,7 @@ mkControl env@Env{..} translations select model =
         Failure e -> do
             err <- UI.p #+ [Lens.views controlError string translations]
             err' <- UI.p #+ [string e]
+
             UI.div #. "section" # set children [err, err']
         Data item' -> do
             counter <- UI.div #. "section" #+ [ mkLabel (Lens.view doneshootingDirCounter translations)
@@ -43,8 +45,9 @@ mkControl env@Env{..} translations select model =
 
             --BAD BRUh
             lola <- liftIO $ Control.controlXMP item'
+            let ratings = (\x -> UI.div #. "section" #+ [UI.p #+ [string (Photographee.toName' (fst x))], string (Control.translationError (snd x) translations)]) <$> (Control._unResults lola)
 
-            UI.div # set children [counter, selectGradeSection]
+            UI.div # set children ([counter, selectGradeSection]) #+ ratings
 
 
 controlSection :: Env -> Window -> Translation -> Tabs -> Behavior Model.Model -> UI ()

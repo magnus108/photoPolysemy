@@ -15,6 +15,7 @@ module Lib.Photographee
     , insert
     , name
     , toName
+    , toIdent'
     , toIdent
     , photographee
     , ident

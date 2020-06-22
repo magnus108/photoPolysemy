@@ -90,7 +90,7 @@ view env@Env{..} win translation bDoneshootingDir bBuild bGrades bLocationConfig
             -- QUICK BADNESS
             return ()
         ControlTab -> do
-            let bModel = ControlModel.mkModel <$> bGrades <*> bDoneshootingDir
+            let bModel = ControlModel.mkModel <$> bGrades <*> bDoneshootingDir <*> bPhotographees
             controlSection env win translation tabs bModel
             return ()
 

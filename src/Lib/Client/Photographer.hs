@@ -65,6 +65,8 @@ photographersSection env@Env{..} win translations tabs bModel = do
                         when (file /= "") $ do
                             --TODO er det engentligt det her man vil?
                             parsePhotographers <- liftIO $ getPhotographers' file
+                            traceShowM parsePhotographers
+
                             forM_ parsePhotographers $ writePhotographers mPhotographersFile
 
                     err <- UI.p #+ [string e]
@@ -95,6 +97,7 @@ photographersSection env@Env{..} win translations tabs bModel = do
                     when (file /= "") $ do
                         --TODO er det engentligt det her man vil?
                         parsePhotographers <- liftIO $ getPhotographers' file
+                        traceShowM parsePhotographers
                         forM_ parsePhotographers $ writePhotographers mPhotographersFile
 
                 section <- UI.div #. "section" # set children [msg, err, picker]
@@ -129,7 +132,8 @@ photographersSection env@Env{..} win translations tabs bModel = do
                 Nothing -> return ()
                 Just item'  -> do
                     --Location.writeLocationFile mLocationConfigFile (location i)
-                    _ <- Photographer.writePhotographers mPhotographersFile item'
+                    what <- Photographer.writePhotographers mPhotographersFile item'
+                    traceShowM what
                     return ()
 
     tabs' <- mkElement "nav" #. "section" #+ [mkTabs env translations tabs]
