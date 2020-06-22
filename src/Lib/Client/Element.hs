@@ -51,7 +51,7 @@ mkShowOpenDialog options id' title' fx = do
 
     UI.on UI.click button $ \_ -> do
         callback <- ffiExport fx
-        runFunction $ ffi "require('electron').remote.dialog.showOpenDialog({properties: %2}, %1)" callback options
+        runFunction $ ffi "require('electron').remote.dialog.showOpenDialog({properties: %2}).then(result => %1(result.filePaths[0]))" callback options 
 
     return button
 
@@ -60,7 +60,7 @@ mkOpenFile :: String -> String -> FilePath -> UI Element
 mkOpenFile id' title' file = do
     button <- mkButton id' title'
     UI.on UI.click button $ \_ ->
-        runFunction $ ffi $ "require('electron').shell.openItem(" ++ show file ++ ")"
+        runFunction $ ffi $ "require('electron').shell.openPath(" ++ show file ++ ")"
     return button
 
 mkFileMaker :: String -> String -> (FilePath -> IO ()) -> UI Element
@@ -73,6 +73,6 @@ mkShowSaveDialog options id' title' fx = do
 
     UI.on UI.click button $ \_ -> do
         callback <- ffiExport fx
-        runFunction $ ffi "require('electron').remote.dialog.showSaveDialog({properties: %2}, %1)" callback options
+        runFunction $ ffi "require('electron').remote.dialog.showOpenDialog({properties: %2}).then(result => %1(result.filePaths[0]))" callback options 
 
     return button
