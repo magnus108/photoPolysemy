@@ -6,6 +6,7 @@ module Lib.Control
     , Results(..)
     ) where
 
+import Data.List.Extra
 import qualified Control.Lens as Lens
 import qualified Lib.ControlModel as ControlModel
 import qualified Data.ByteString as BS
@@ -62,9 +63,9 @@ data Results = Results [Error]
 
 controlXMP :: ControlModel.Item -> IO Results
 controlXMP item' = do
-    --let files = Lens.view doneshootingDir item'
-    --let filtered = groupOn (\f -> (splitOn "."  f) !! 1) $ filter (\f -> isExtensionOf ext f) (sort files)
-    --let studentAndCrs = fmap (\xx -> ((splitOn "." (xx !! 0)) !! 1 , xx)) filtered
+    let files = Lens.view ControlModel.doneshootingDir item'
+    let filtered = groupOn (\f -> (splitOn "."  f) !! 1) (Doneshooting.unDoneshootingDir files)
+    let studentAndCrs = fmap (\xx -> ((splitOn "." (xx !! 0)) !! 1 , xx)) filtered
 
     return (Results [])
 
