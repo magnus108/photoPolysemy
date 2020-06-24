@@ -70,16 +70,21 @@ controlXMP item' = do
     let root = snd $ snd files
     let crs = fst files
 
+    --SUPER HACK
+    let pairPhotographeeAndCr' = map (\photographee' ->  (photographee', filter (\file' -> isInfixOf ("SYS_" ++ (Photographee.toSys' photographee')) file') crs)) photographees'
+    let pairPhotographeeAndCr = filter (\x -> snd x /= []) pairPhotographeeAndCr' 
 
-    let pairPhotographeeAndCr = map (\photographee' ->  (photographee', filter (\file' -> isInfixOf (Photographee.toIdent' photographee') file') crs)) photographees'
+
     let pairPhotographeeAndCrAndXmp = 
             (\i -> do
-                (i, catMaybes $ map (\cr -> find (\xmp -> cr -<.> "xmp" == xmp) xmps) (snd i))
+                (i, catMaybes $ map (\cr -> find (\xmp -> (cr -<.> "xmp") == xmp) xmps) (snd i))
             ) <$> pairPhotographeeAndCr 
+
 
     parsedAndRdy <- mapM (\x -> do 
             rate <- mapM (\y -> parseRating (root </> y)) (snd x)
             return (fst x,rate)) pairPhotographeeAndCrAndXmp
+
 
     let gg = fmap (\i -> if (Rating.five `elem` (snd i)) then Nothing else Just (i, Exactly1With5)) parsedAndRdy
     let gg2 = fmap (\i -> if length (filter (\i' -> Rating.toInt i' > 1) (snd i)) > 5 then Nothing else Just (i, Atleast5With1)) parsedAndRdy
@@ -87,26 +92,3 @@ controlXMP item' = do
     let allErro = fmap (\i -> (fst (fst( fst i)), snd i)) $ catMaybes $ gg++gg2
     
     return (Results allErro)
-
-            {-
-                    gg <- mapM (\xxx -> do
-                            let xxxx = fst xxx
-                            only1with5' <- mapM (only1With5_) $ (fmap (\xxxx -> (path </> xxxx))) (snd xxx)
-                            let sum = 1 == (foldl (\ss acc -> ss + acc) 0 (only1with5'))
-                            atleast5With1' <- mapM (atleast5With1_) $ (fmap (\xxxx -> (path </> xxxx))) (snd xxx)
-                            let sum2 = 5 <= (foldl (\ss acc -> ss + acc) 0 (atleast5With1')) 
-                            return (xxxx, sum, sum2)
-                        ) studentAndCrs'
-
-         
-                    let yy = filter (\(xxxx, sum, sum2) -> not sum || not sum2 ) gg
-
-                    let abc = fmap (\(xxxx, sum, sum2) ->  if ((not sum) &&  (not sum2)) then
-                                    Errors xxxx [atleast5With1, exactly1With5]
-                                else if (not sum) then
-                                    Errors xxxx [atleast5With1]
-                                else 
-                                    Errors xxxx [exactly1With5] 
-                                ) yy
-                    return abc
--}
