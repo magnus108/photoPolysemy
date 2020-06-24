@@ -98,13 +98,16 @@ dumpFilesCounter _ _ translations dumpDir =
 ---------------------------------------------------------------------------------
 mainSection :: Env -> Window -> Translation -> Tabs -> Behavior Main.Model -> UI ()
 mainSection env@Env{..} win translations tabs bModel = do
-    view <- sinkModel env win translations bModel
+    (input, view) <- sinkModel env win translations bModel
 
     tabs' <- mkElement "nav" #. "section" #+ [mkTabs env translations tabs]
     navigation <- mkElement "footer" #. "section" #+ [mkNavigation env translations tabs]
 
     void $ UI.getBody win # set children [tabs', view, navigation]
-
+    liftIOLater $ do
+        model <- currentValue bModel
+        runUI win $ void $ do
+            UI.setFocus input
 
 
 setBuild :: Env -> Translation -> Element -> Session.Session -> UI ()
@@ -114,7 +117,7 @@ setBuild _ translations button session = do
 
 
 
-sinkModel :: Env -> Window -> Translation -> Behavior Main.Model -> UI Element
+sinkModel :: Env -> Window -> Translation -> Behavior Main.Model -> UI (Element, Element)
 sinkModel env@Env{..} win translations bModel = do
 
     mkBuild' <- mkButton "mkBuild" ""
@@ -126,7 +129,10 @@ sinkModel env@Env{..} win translations bModel = do
     select <- UI.select
     input <- UI.input #. "input"
     currentPhotographee <- UI.h1 #. "is-size-4"
-    inputSection <- UI.div #. "section" # set children [currentPhotographee, input]
+    
+    help <- string "Valgt: "
+    findHelp <- string "Søg: "
+    inputSection <- UI.div #. "section" # set children [help, currentPhotographee, findHelp, input]
 
     selectSection <-
         UI.div
@@ -239,11 +245,12 @@ sinkModel env@Env{..} win translations bModel = do
                     let options = CLocation.mkGrades env (Main._grades item')
                     element select # set children [] #+ options
 
-                --when (not editingInput) $ void $
-                    --element input # set value ident --- eh
+                when (not editingInput) $ void $
+                    element input # set value "" --- eh
 
                 when (not (editingInput || editingSelect )) $ void $ do
                     _ <- element content # set children [build' ,mkBuild, dumpFilesCounter', inputSection, selectSection, photographees']
+                    UI.setFocus input
                     return ()
 
 
@@ -272,6 +279,11 @@ sinkModel env@Env{..} win translations bModel = do
                         bModel
                 <@> findEvent
 
+    let enterKeydown = filterJust $ (\keycode -> if (keycode == 13) then Just () else Nothing) <$> (UI.keydown input)
+    let buildClick = seq <$> UI.click mkBuild'
+
+    let buildEvent = concatenate' <$> unions' (buildClick :| [fmap const enterKeydown])
+
     let ee4 = filterJust
                 $   fmap
                         (\m -> case toJust (Main._unModel m) of
@@ -279,7 +291,9 @@ sinkModel env@Env{..} win translations bModel = do
                             Just x -> Just (Main.Model (Data x))
                         )
                         bModel
-                <@ UI.click mkBuild'
+                <@ buildEvent
+
+
 
     _ <- onEvent ee4 $ \model -> do
         void $ liftIO $ do
@@ -308,4 +322,4 @@ sinkModel env@Env{..} win translations bModel = do
                     _ <- Grade.writeGrades mGradesFile (Main._grades item')
                     return ()
 
-    return content
+    return (input, content)
