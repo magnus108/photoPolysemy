@@ -87,7 +87,7 @@ controlXMP item' = do
 
 
     let gg = fmap (\i -> if (Rating.five `elem` (snd i)) then Nothing else Just (i, Exactly1With5)) parsedAndRdy
-    let gg2 = fmap (\i -> if length (filter (\i' -> Rating.toInt i' > 1) (snd i)) > 5 then Nothing else Just (i, Atleast5With1)) parsedAndRdy
+    let gg2 = fmap (\i -> if length (filter (\i' -> Rating.toInt i' >= 1) (snd i)) > 5 then Nothing else Just (i, Atleast5With1)) parsedAndRdy
 
     let allErro = fmap (\i -> (fst (fst( fst i)), snd i)) $ catMaybes $ gg++gg2
     
