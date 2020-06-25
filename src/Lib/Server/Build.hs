@@ -110,7 +110,6 @@ myProgressProgram sample c photographee progress = do
 receiveMessages mfile msgs = do
     messages <- Chan.getChanContents msgs
     forM_ messages $ \msg -> do
-        traceShowM msg
         Build.writeBuild mfile msg
 
 opts :: Chan.Chan Build.Build -> Photographee.Photographee -> ShakeOptions
@@ -122,7 +121,7 @@ opts  c photographee = shakeOptions
                     }
     where
         progress p = do
-            myProgressProgram 50000 c photographee p
+            myProgressProgram 500000 c photographee p
 
 
 mkDoneshootingPath :: Int -> FilePath -> Main.Item -> FilePath
