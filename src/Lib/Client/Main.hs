@@ -247,7 +247,7 @@ sinkModel env@Env{..} win translations bModel = do
 
                 when (not (editingInput || editingSelect )) $ void $ do
                     _ <- element content # set children [build' ,mkBuild, dumpFilesCounter', inputSection, selectSection, photographees']
-                    UI.setFocus input
+                    --UI.setFocus input
                     return ()
 
 
@@ -297,7 +297,7 @@ sinkModel env@Env{..} win translations bModel = do
             case toJust (Main._unModel model) of
                 Nothing -> return ()
                 Just item'  -> do
-                    SBuild.entry mBuildFile item' 
+                    SBuild.entry mBuildFile mDumpFile item' 
                     return ()
 
 

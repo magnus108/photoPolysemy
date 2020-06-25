@@ -193,8 +193,8 @@ mkDagsdatoBackupPath file date item = dagsdatoBackup </> date ++ " - " ++ locati
             tea   = Photographee.toTea' photographee
 
 
-entry :: MVar FilePath -> Main.Item -> IO ()
-entry mBuildFile item = do
+entry :: MVar FilePath -> MVar FilePath -> Main.Item -> IO ()
+entry mBuildFile mDumpFile item = do
     time <- getCurrentTime
     let date = getDate time
 
@@ -207,8 +207,11 @@ entry mBuildFile item = do
     killThread messageReceiver
     case shaken of
         Left _ -> Build.writeBuild mBuildFile (Build.NoBuild)
-        Right _ -> Build.writeBuild mBuildFile (Build.DoneBuild photographee (""))
-
+        Right _ -> do
+            Build.writeBuild mBuildFile (Build.DoneBuild photographee (""))
+            --HACK
+            let dump = Lens.view Main.dump item
+            Dump.writeDump mDumpFile dump
 
 myShake :: ShakeOptions -> String -> Main.Item -> IO ()
 myShake opts' time item = do
