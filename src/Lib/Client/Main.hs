@@ -105,7 +105,6 @@ mainSection env@Env{..} win translations tabs bModel = do
 
     void $ UI.getBody win # set children [tabs', view, navigation]
     liftIOLater $ do
-        model <- currentValue bModel
         runUI win $ void $ do
             UI.setFocus input
 
