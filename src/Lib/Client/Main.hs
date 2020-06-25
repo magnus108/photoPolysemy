@@ -298,6 +298,7 @@ sinkModel env@Env{..} win translations bModel = do
 
     _ <- onEvent ee4 $ \model -> do
         UI.setFocus (help) -- hack
+        element input # set value "" 
         void $ liftIO $ do
             case toJust (Main._unModel model) of
                 Nothing -> return ()
