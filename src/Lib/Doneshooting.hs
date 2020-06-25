@@ -102,16 +102,14 @@ getDoneshootingFiles doneshooting camera loc grades = do
     let path = filepath </> location </> extension </> grade 
     isDir <- doesDirectoryExist path
     files <- try $ listDirectory (filepath </> location </> extension </> grade ) :: IO (Either SomeException [FilePath])
-    if not isDir then
-        return $ Left ("doesDirectoryExist "++ path)
-    else
-        case files of
-            Left e -> return $ Left ("could not read" ++ show e)
-            Right files' ->
-                return $ Right $ DoneshootingDir ( filter (\file' -> ("." ++ extension) == (takeExtension file')) files'
-                                                 , (filter (\file' -> ".xmp" == (takeExtension file')) files'
-                                                 , path)
-                                                 )
+    case files of
+        Left e -> 
+            return $ Right $ DoneshootingDir ( [], ([] , path))
+        Right files' ->
+            return $ Right $ DoneshootingDir ( filter (\file' -> ("." ++ extension) == (takeExtension file')) files'
+                                                , (filter (\file' -> ".xmp" == (takeExtension file')) files'
+                                                , path)
+                                                )
 
 
 getDoneshootingDir' :: (MonadIO m, MonadThrow m) => Doneshooting -> Camera.Camera -> Location.LocationFile -> Grade.Grades -> m (Either String DoneshootingDir)

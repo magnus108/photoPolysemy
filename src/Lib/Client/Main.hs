@@ -104,9 +104,7 @@ mainSection env@Env{..} win translations tabs bModel = do
     navigation <- mkElement "footer" #. "section" #+ [mkNavigation env translations tabs]
 
     void $ UI.getBody win # set children [tabs', view, navigation]
-    liftIOLater $ do
-        runUI win $ void $ do
-            UI.setFocus input
+    UI.setFocus input
 
 
 setBuild :: Env -> Translation -> Element -> Session.Session -> UI ()
