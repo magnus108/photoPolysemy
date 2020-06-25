@@ -104,7 +104,9 @@ mainSection env@Env{..} win translations tabs bModel = do
     navigation <- mkElement "footer" #. "section" #+ [mkNavigation env translations tabs]
 
     void $ UI.getBody win # set children [tabs', view, navigation]
-    UI.setFocus input
+    liftIOLater $ do
+        runUI win $ void $ do
+            UI.setFocus input
 
 
 setBuild :: Env -> Translation -> Element -> Session.Session -> UI ()
@@ -146,6 +148,7 @@ sinkModel env@Env{..} win translations bModel = do
             ]
 
     photographees' <- UI.div
+    count <- UI.div
 
     bEditingInput <- bEditing input
     bEditingSelect  <- bEditing select
@@ -183,6 +186,7 @@ sinkModel env@Env{..} win translations bModel = do
                     _ <- setBuild env translations mkBuild' (Main._session item')
                     
                     dumpFilesCounter' <- dumpFilesCounter env win translations (Main._dumpDir item')
+                    _ <- element count # set children [dumpFilesCounter']
                     let options = CLocation.mkGrades env (Main._grades item')
                     _ <- element select # set children [] #+ options
 
@@ -192,8 +196,7 @@ sinkModel env@Env{..} win translations bModel = do
                     let ident = Photographee.toIdent (Main._photographees item')
                     let name = Photographee.toName (Main._photographees item')
                     _ <- element currentPhotographee # set text name
-                    --_ <- element input # set value ident
-                    _ <- element content # set children [build', mkBuild, dumpFilesCounter', inputSection, selectSection, photographees']
+                    _ <- element content # set children [build', mkBuild, count, inputSection, selectSection, photographees']
                     return ()
 
 
@@ -229,6 +232,7 @@ sinkModel env@Env{..} win translations bModel = do
                 _ <- element build' # set children [buildStatus]
 
                 dumpFilesCounter' <- dumpFilesCounter env win translations (Main._dumpDir item')
+                _ <- element count # set children [dumpFilesCounter']
                 photographeesList' <- photographeesList env win (Main._photographees item')
                 _ <- element photographees' # set children photographeesList'
 
@@ -243,11 +247,11 @@ sinkModel env@Env{..} win translations bModel = do
                     element select # set children [] #+ options
 
                 when (not editingInput) $ void $
-                    element input # set value "" --- eh
+                    element input # set value "" 
 
                 when (not (editingInput || editingSelect )) $ void $ do
-                    _ <- element content # set children [build' ,mkBuild, dumpFilesCounter', inputSection, selectSection, photographees']
-                    --UI.setFocus input
+                    _ <- element content # set children [build' ,mkBuild, count, inputSection, selectSection, photographees']
+                    UI.setFocus input
                     return ()
 
 
@@ -293,10 +297,11 @@ sinkModel env@Env{..} win translations bModel = do
 
 
     _ <- onEvent ee4 $ \model -> do
+        UI.setFocus (help) -- hack
         void $ liftIO $ do
             case toJust (Main._unModel model) of
                 Nothing -> return ()
-                Just item'  -> do
+                Just item'  -> do  
                     SBuild.entry mBuildFile mDumpFile item' 
                     return ()
 
