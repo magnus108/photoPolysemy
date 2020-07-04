@@ -116,9 +116,9 @@ shootingsSection env@Env{..} win translations tabs bModel = do
 mkShooting :: Env -> Translation -> (Shooting, Bool, Shootings) -> UI Element
 mkShooting Env{..} translations (shooting, isCenter, shootings)
     | isCenter = do
-        mkButton "idd" name #. "button is-selected" # set (attr "disabled") "true"
+        mkButton "idd" name #. "button is-selected is-success is-large" # set (attr "disabled") "true"
     | otherwise = do
-        button <- mkButton "idd" name
+        button <- mkButton "idd" name #. "button is-large"
         UI.on UI.click button $ \_ ->
                 writeShootings mShootingsFile shootings
         return button
