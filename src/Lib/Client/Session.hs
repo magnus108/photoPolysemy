@@ -4,6 +4,25 @@ module Lib.Client.Session
 
 
 import           Reactive.Threepenny
+import Graphics.UI.Threepenny.Core
+import qualified Graphics.UI.Threepenny as UI
+
+import Utils.Comonad
+
+import qualified Control.Lens as Lens
+
+import Lib.App
+import Lib.Translation
+import Lib.Data
+import Lib.Tab
+import Lib.Client.Tab
+import Lib.Session
+
+import Lib.Client.Element
+
+        {-
+
+import           Reactive.Threepenny
 import Data.Bitraversable
 
 import Graphics.UI.Threepenny.Core
@@ -176,3 +195,108 @@ mkSession Env{..} translations (Sessions sessions) session = do
             --TODO get rid of either by using extend
             forM_ (fmap Sessions (TZ.down (Right session) sessions)) $ writeSessions mSessionsFile
     return chooseButton
+    -}
+
+
+sessionsSection :: Env -> Window -> Translation -> Tabs -> Behavior Model -> UI ()
+sessionsSection env@Env{..} win translations tabs bModel = do
+
+    content <- UI.div #. "section"
+
+    liftIO $ do
+        model <- currentValue bModel
+        runUI win $ void $ do
+            case unModel model of
+                NotAsked -> do
+                    msg <- Lens.views starting string translations
+                    _ <- element content # set children [msg]
+                    return ()
+                Loading -> do
+                    msg <- Lens.views loading string translations
+                    _ <- element content # set children [msg]
+                    return ()
+                Failure e -> do
+                    err <- UI.p #+ [Lens.views sessionsError string translations]
+                    errMsg <- UI.p #+ [string e]
+                    picker <- mkFilePicker "sessionPicker" (Lens.view filePicker translations) $ \file ->
+                        when (file /= "") $ do
+                            --TODO er det engentligt det her man vil?
+                            parseSessions <- liftIO $ getSessions' file
+                            forM_ parseSessions $ writeSessions mSessionsFile
+
+                    child <- UI.div # set children [err, errMsg, picker]
+                    _ <- element content # set children [child]
+                    return ()
+
+                Data (Sessions sessions) -> do
+                        let currentSession = extract sessions
+                        let elems = sessions =>> \sessions'' -> let
+                                        thisSession = extract sessions''
+                                    in
+                                        ( thisSession
+                                        , thisSession == currentSession
+                                        , Sessions sessions''
+                                        )
+                        elems' <- forM elems $ mkSession env translations
+                        
+                        section <- UI.div #. "buttons has-addons" # set children (toList elems')
+                        _ <- element content # set children [section]
+                        return ()
+
+    liftIO $ onChange bModel $ \model -> runUI win $ do
+        case unModel model of
+            NotAsked -> do
+                msg <- Lens.views starting string translations
+                _ <- element content # set children [msg]
+                return ()
+            Loading -> do
+                msg <- Lens.views loading string translations
+                _ <- element content # set children [msg]
+                return ()
+            Failure e -> do
+                err <- UI.p #+ [Lens.views sessionsError string translations]
+                errMsg <- UI.p #+ [string e]
+                picker <- mkFilePicker "sessionPicker" (Lens.view filePicker translations) $ \file ->
+                    when (file /= "") $ do
+                        --TODO er det engentligt det her man vil?
+                        parseSessions <- liftIO $ getSessions' file
+                        forM_ parseSessions $ writeSessions mSessionsFile
+
+                child <- UI.div # set children [err, errMsg, picker]
+                _ <- element content # set children [child]
+                return ()
+
+            Data (Sessions sessions) -> do
+                        let currentSession = extract sessions
+                        let elems = sessions =>> \sessions'' -> let
+                                        thisSession = extract sessions''
+                                    in
+                                        ( thisSession
+                                        , thisSession == currentSession
+                                        , Sessions sessions''
+                                        )
+                        elems' <- forM elems $ mkSession env translations
+                        
+                        section <- UI.div #. "buttons has-addons" # set children (toList elems')
+                        _ <- element content # set children [section]
+                        return ()
+
+    tabs' <- mkElement "nav" #. "section" #+ [mkTabs env translations tabs]
+    navigation <- mkElement "footer" #. "section" #+ [mkNavigation env translations tabs]
+
+    view <- UI.div #+ fmap element [ content ]
+
+    void $ UI.getBody win # set children [tabs', view, navigation]
+
+
+mkSession :: Env -> Translation -> (Session, Bool, Sessions) -> UI Element
+mkSession Env{..} translations (session, isCenter, sessions)
+    | isCenter = do
+        let name = translationSession session translations
+        mkButton "idd" name #. "button is-selected is-success" # set (attr "disabled") "true"
+    | otherwise = do
+        let name = translationSession session translations
+        button <- mkButton "idd" name #. "button"
+        UI.on UI.click button $ \_ ->
+                writeSessions mSessionsFile sessions
+        return button

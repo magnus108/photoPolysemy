@@ -69,13 +69,8 @@ view env@Env{..} win translation bDoneshootingDir bBuild bGrades bLocationConfig
 
         MainTab -> do
             let bSession =
-                    fmap (\x -> (\(Session.Sessions sessions) ->
-                    case sessions of
-                            (TZ.TreeZipper (RT.Leaf y) _) -> do
-                                Data y
-                            (TZ.TreeZipper (RT.Branch _ _) _) -> do
-                                Failure "Session"
-                                ) =<< (Session.unModel x) ) bSessions
+                    fmap (\x -> (\(Session.Sessions sessions) -> extract sessions
+                                ) <$> (Session.unModel x) ) bSessions
 
 
             let bCamera = (\camerasData -> fmap (\(Camera.Cameras x) -> extract x) (Camera.unModel camerasData)) <$> bCameras

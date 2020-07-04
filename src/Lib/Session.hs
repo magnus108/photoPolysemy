@@ -21,6 +21,7 @@ module Lib.Session
 import Prelude hiding (toInteger)
 import qualified Control.Lens as Lens
 import Utils.TreeZipper
+import qualified Utils.ListZipper as ListZipper
 
 import Control.Concurrent
 
@@ -75,7 +76,7 @@ translationSession session = Lens.view translator
             School -> Translation.school
 
 
-newtype Sessions = Sessions { unSessions:: TreeZipper Decisions Session }
+newtype Sessions = Sessions { unSessions:: ListZipper.ListZipper Session }
     deriving (Eq, Ord, Show)
     deriving (Generic)
     deriving (FromJSON, ToJSON)
