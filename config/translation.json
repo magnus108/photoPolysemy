@@ -60,7 +60,8 @@
 ,"_doneBuild" : "Færdigt flyt"
 ,"_building" : "Bygger"
 ,"_noBuild" : "Intet byg"
-,"_controlError" : "Der er fejl med control program"
+,"_controlError" : "Der er fejl med kontrol program"
 ,"_exactly1With5" : "1 med 5"
 ,"_atleast5With1" : "5 med 1"
+,"_doneshootingEmpty" : "Doneshooting mappe tom"
 }

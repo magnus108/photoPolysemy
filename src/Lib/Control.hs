@@ -52,6 +52,7 @@ data Error
 
 
 newtype Results = Results { _unResults :: [(Photographee.Photographee, Error)] }
+    deriving Show
 
 --
 --TODO this is rediculose

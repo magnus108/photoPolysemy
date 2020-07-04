@@ -38,7 +38,8 @@ mkControl env@Env{..} translations select model =
             counter <- UI.div #. "section" #+ [ mkLabel (Lens.view doneshootingDirCounter translations)
                                 , UI.string (show $ Doneshooting.count (Lens.view Model.doneshootingDir item'))
                                 ]
-            
+
+
             let options = CLocation.mkGrades env (Lens.view Model.grades item')
             _ <- element select # set children [] #+ options
             selectGradeSection <- UI.div #. "section" #+ [UI.div #. "select" # set children [select]]
@@ -47,7 +48,22 @@ mkControl env@Env{..} translations select model =
             lola <- liftIO $ Control.controlXMP item'
             let ratings = (\x -> UI.div #. "section" #+ [UI.p #+ [string (Photographee.toName' (fst x))], string (Control.translationError (snd x) translations)]) <$> (Control._unResults lola)
 
-            UI.div # set children ([counter, selectGradeSection]) #+ ratings
+            status <- mkStatus translations lola (Lens.view Model.doneshootingDir item')
+
+            UI.div # set children ([counter, status, selectGradeSection]) #+ ratings
+
+
+mkStatus :: Translation -> Control.Results -> Doneshooting.DoneshootingDir -> UI Element
+mkStatus translations results dir =
+    case (Control._unResults results, Doneshooting.count dir) of
+      ([], 0) -> 
+          UI.div #. "section" #+ [UI.span #. "icon is-large has-text-warning" #+ [UI.italics #. "fas fa-3x fa-exclamation-triangle"]
+            , UI.div #+ [Lens.views doneshootingEmpty string translations]]
+      ([], _) -> 
+          UI.div #. "section" #+ [UI.span #. "icon is-large has-text-success" #+ [UI.italics #. "fas fa-3x fa-check-square"]]
+      (xs, _) -> 
+          UI.div #. "section" #+ [UI.span #. "icon is-large has-text-danger" #+ [UI.italics #. "fas fa-3x fa-ban"]
+            , UI.div #+ [Lens.views controlError string translations]]
 
 
 controlSection :: Env -> Window -> Translation -> Tabs -> Behavior Model.Model -> UI ()
