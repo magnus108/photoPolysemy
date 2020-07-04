@@ -118,9 +118,9 @@ camerasSection env@Env{..} win translations tabs bModel = do
 mkCamera :: Env -> Translation -> (Camera, Bool, Cameras) -> UI Element
 mkCamera Env{..} translations (camera, isCenter, cameras)
     | isCenter = do
-        mkButton "idd" name #. "button is-selected" # set (attr "disabled") "true"
+        mkButton "idd" name #. "button is-selected is-success is-large" # set (attr "disabled") "true"
     | otherwise = do
-        button <- mkButton "idd" name
+        button <- mkButton "idd" name #. "button is-large"
         UI.on UI.click button $ \_ ->
                 writeCameras mCamerasFile cameras
         return button
