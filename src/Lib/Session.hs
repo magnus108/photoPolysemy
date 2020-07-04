@@ -39,9 +39,9 @@ data Session
 
 
 toInteger :: Session -> Int
-toInteger KindergartenSingle = 10
-toInteger KindergartenGroup = 10
-toInteger School = 9
+toInteger KindergartenSingle = 12
+toInteger KindergartenGroup = 12
+toInteger School = 11
 
 
 data Decisions

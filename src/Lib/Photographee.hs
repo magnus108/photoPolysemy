@@ -7,6 +7,8 @@ module Lib.Photographee
     , setSys
     , toSys
     , toSys'
+    , toGrade
+    , toGrade'
     , toName'
     , toTea'
     , setName
@@ -50,7 +52,8 @@ import qualified Lib.Location as Location
 import qualified Lib.Grade as Grade
 
 data Photographee' = Photographee'
-    { _tea :: String --eller sys
+    { _grade :: String
+    , _tea :: String --eller sys
     , _name :: String
     , _ident :: String
     } deriving (Show, Eq, Generic, ToJSON, FromJSON)
@@ -85,19 +88,21 @@ lookup' s (Unknown a) = _ident a == s
 lookup' s (Known a) = _ident a == s 
 
 
-tryFindById :: String -> Photographees -> Photographees
-tryFindById s (Photographees x) = 
+tryFindById :: (String, Location.LocationFile) -> Photographees -> Photographees
+tryFindById (s, locationFile) (Photographees x) =
     let 
         found = ListZipper.findFirst (lookup' s) x
     in 
         case found of
-            Nothing -> Photographees x
-            Just xs -> Photographees xs
+            Nothing ->
+                Photographees (traceShow ("what:"++(show x)) x)
+            Just xs ->
+                Photographees (traceShow ("WHATH"++(show xs)) xs)
 
 
 setSys' :: String -> Photographee -> Photographee
-setSys' sys' (Unknown a) = Unknown $ photographee ("SYS_" ++ sys') (_name a) (_ident a)
-setSys' sys' (Known a) = Known $ photographee ("SYS_" ++ sys') (_name a) (_ident a)
+setSys' sys' (Unknown a) = Unknown $ photographee (_grade a) ("SYS_" ++ sys') (_name a) (_ident a)
+setSys' sys' (Known a) = Known $ photographee (_grade a) ("SYS_" ++ sys') (_name a) (_ident a)
 
 setSys :: String -> Photographees -> Photographees
 setSys sys' (Photographees xs) = Photographees $ 
@@ -105,8 +110,8 @@ setSys sys' (Photographees xs) = Photographees $
 
 
 setName' :: String -> Photographee -> Photographee
-setName' name' (Unknown a) = Unknown $ photographee (_tea a) name' (_ident a)
-setName' name' (Known a) = Known $ photographee (_tea a)  name' (_ident a)
+setName' name' (Unknown a) = Unknown $ photographee (_grade a) (_tea a) name' (_ident a)
+setName' name' (Known a) = Known $ photographee (_grade a) (_tea a)  name' (_ident a)
 
 setName :: String -> Photographees -> Photographees
 setName name' (Photographees xs) = Photographees $ 
@@ -114,8 +119,8 @@ setName name' (Photographees xs) = Photographees $
 
 
 setIdent' :: String -> Photographee -> Photographee
-setIdent' ident' (Unknown a) = Unknown $ photographee (_tea a) (_name a) ident'
-setIdent' ident' (Known a) = Known $ photographee (_tea a) (_name a) ident'
+setIdent' ident' (Unknown a) = Unknown $ photographee (_grade a) (_tea a) (_name a) ident'
+setIdent' ident' (Known a) = Known $ photographee (_grade a) (_tea a) (_name a) ident'
 
 
 setIdent :: String -> Photographees -> Photographees
@@ -153,16 +158,24 @@ toSys :: Photographees -> String
 toSys (Photographees x) =  toSys' ( extract x)
 
 
+toGrade' :: Photographee -> String
+toGrade' (Unknown x) = _grade x
+toGrade' (Known x) = _grade x
+
+toGrade :: Photographees -> String
+toGrade (Photographees x) =  toGrade' ( extract x)
+
+
 
 instance FromRecord PhotographeeData
 instance ToRecord PhotographeeData
 
-photographee :: String -> String -> String -> Photographee'
+photographee :: String -> String -> String -> String -> Photographee'
 photographee = Photographee'
 
 
 empty :: Photographee'
-empty = photographee "" "" "" 
+empty = photographee "" "" "" ""
 
 
 insert :: Photographee -> Photographees -> Photographees
@@ -185,8 +198,7 @@ fromGrade locationFile grades = do
     case locationData of
             Left _ -> return (Left "fejl")
             Right locData -> do
-                let photographees = Vector.filter (((Grade.showGrade grades) ==) . gradeData) locData
-                let zipper = ListZipper.fromList $ fmap (\x -> Known $ photographee (teaData x) (nameData x) (identData x)) $ Vector.toList photographees
+                let zipper = ListZipper.fromList $ fmap (\x -> Known $ photographee (gradeData x) (teaData x) (nameData x) (identData x)) $ Vector.toList locData
                 case zipper of
                     Nothing -> return (Left "fejl")
                     Just zs -> return (Right (Photographees zs))

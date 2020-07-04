@@ -3,6 +3,8 @@ module Lib.Client.Main
     , mkModel
     ) where
 
+import System.IO.Unsafe
+
 import Lib.Data
 import qualified Lib.Main as Main
 import qualified Lib.Server.Build as SBuild
@@ -57,8 +59,8 @@ mkModel location grades dump dumpDir photograhees session camera dagsdato shooti
                     <*> build'
 
 
-photographeesList :: Env -> Window -> Photographee.Photographees -> UI [Element]
-photographeesList env _ (Photographee.Photographees photographees') = do
+photographeesList :: Env -> Window -> Grade.Grades -> Photographee.Photographees -> UI [Element]
+photographeesList env _ grades (Photographee.Photographees photographees') = do
         let currentPhotographee = extract photographees'
         let elems = photographees' =>> \photographees''-> let
                         thisPhotographee = extract photographees''
@@ -68,7 +70,7 @@ photographeesList env _ (Photographee.Photographees photographees') = do
                         , Photographee.Photographees photographees''
                         )
 
-        let elems' = sortOn (\(a,_,_) -> fmap toLower (Photographee.toName' a)) $ toList elems
+        let elems' = filter (\(a,_,_) -> Grade.showGrade grades == Photographee.toGrade' a ) $ sortOn (\(a,_,_) -> fmap toLower (Photographee.toName' a)) $ toList elems
         mapM (mkPhotographee env) elems'
 
 
@@ -190,7 +192,7 @@ sinkModel env@Env{..} win translations bModel = do
                     let options = CLocation.mkGrades env (Main._grades item')
                     _ <- element select # set children [] #+ options
 
-                    photographeesList' <- photographeesList env win (Main._photographees item')
+                    photographeesList' <- photographeesList env win (Main._grades item') (Main._photographees item')
                     _ <- element photographees' # set children photographeesList'
 
                     let ident = Photographee.toIdent (Main._photographees item')
@@ -233,7 +235,7 @@ sinkModel env@Env{..} win translations bModel = do
 
                 dumpFilesCounter' <- dumpFilesCounter env win translations (Main._dumpDir item')
                 _ <- element count # set children [dumpFilesCounter']
-                photographeesList' <- photographeesList env win (Main._photographees item')
+                photographeesList' <- photographeesList env win (Main._grades item') (Main._photographees item')
                 _ <- element photographees' # set children photographeesList'
 
                 let ident = Photographee.toIdent (Main._photographees item')
@@ -257,10 +259,14 @@ sinkModel env@Env{..} win translations bModel = do
 
 
     let eSelectGrade = CLocation.selectGrade <$> filterJust (selectionChange' select)
-    let eFind = Photographee.tryFindById <$> UI.valueChange input
+    let lol = (\m s -> case toJust (Main._unModel m) of
+                            Nothing -> Nothing
+                            Just x -> Just $ Photographee.tryFindById (s, Main._location x)
+            ) <$> bModel <@> (UI.valueChange input)
+    
+    let findEvent = filterJust lol
 
     let gradeEvent = concatenate' <$> unions' (eSelectGrade :| [])
-    let findEvent = concatenate' <$> unions' (eFind :| [])
     let ee  = filterJust
                 $   fmap
                         (\m f -> case toJust (Main._unModel m) of
@@ -275,12 +281,13 @@ sinkModel env@Env{..} win translations bModel = do
                 $   fmap
                         (\m f -> case toJust (Main._unModel m) of
                             Nothing -> Nothing
-                            Just x -> Just $ Main.Model $ Data $ Lens.over Main.photographees f x
+                            Just x -> Just $ Main.Model $ Data $  Lens.over Main.photographees f x
                         )
                         bModel
                 <@> findEvent
 
     let enterKeydown = filterJust $ (\keycode -> if (keycode == 13) then Just () else Nothing) <$> (UI.keydown input)
+
     let buildClick = seq <$> UI.click mkBuild'
 
     let buildEvent = concatenate' <$> unions' (buildClick :| [fmap const enterKeydown])
@@ -312,8 +319,10 @@ sinkModel env@Env{..} win translations bModel = do
             case toJust (Main._unModel model) of
                 Nothing -> return ()
                 Just item'  -> do
-                    --Location.writeLocationFile mLocationConfigFile (location i)
+                    let thisGrade = Photographee.toGrade $ Main._photographees item'
+                    let found = Grade.findGrade thisGrade (Main._grades item')
                     _ <- Photographee.writePhotographees mPhotographeesFile (Main._photographees item')
+                    --_ <- Grade.writeGrades mGradesFile found
                     return ()
 
     _ <- onEvent ee $ \model -> do

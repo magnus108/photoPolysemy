@@ -5,6 +5,7 @@
 module Lib.Grade
     ( Grades(..)
     , Grade'(..)
+    , findGrade
     , showGrade'
     , Grade(..)
     , Model(..)
@@ -55,6 +56,10 @@ newtype Grades = Grades { _unGrades :: ListZipper Grade }
 
 makeLenses ''Grades
 
+findGrade :: String -> Grades -> Grades
+findGrade string grades = fromMaybe grades found
+    where
+        found = fmap Grades $ findFirst (\x -> (showGrade' x) == string) (_unGrades grades)
 
 extractGrade :: Grades -> Grade
 extractGrade = extract . (view unGrades)
