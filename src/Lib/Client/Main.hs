@@ -76,7 +76,7 @@ mkPhotographee :: Env -> (Photographee.Photographee, Bool, Photographee.Photogra
 mkPhotographee Env{..} (photographee, isCenter, photographees)
     | isCenter = do
         let name = Photographee.toName' photographee
-        UI.div #. "section" #+ [mkButton name name #. "button is-selected" # set (attr "disabled") "true"]
+        UI.div #. "section" #+ [mkButton name name #. "button is-success is-selected" # set (attr "disabled") "true"]
     | otherwise = do
         let name = Photographee.toName' photographee
         button <- mkButton name name
