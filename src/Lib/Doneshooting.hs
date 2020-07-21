@@ -28,7 +28,6 @@ import qualified Lib.Camera as Camera
 import qualified Lib.Location as Location
 
 import Control.Lens
-import qualified Control.Lens as Lens
 
 newtype Doneshooting = Doneshooting { unDoneshooting :: FilePath }
     deriving (Eq, Ord, Show)
@@ -100,10 +99,10 @@ getDoneshootingFiles doneshooting camera loc grades = do
     let grade = Grade.showGrade grades
     --mangler GRADE
     let path = filepath </> location </> extension </> grade 
-    isDir <- doesDirectoryExist path
+    _ <- doesDirectoryExist path
     files <- try $ listDirectory (filepath </> location </> extension </> grade ) :: IO (Either SomeException [FilePath])
     case files of
-        Left e -> 
+        Left _ ->
             return $ Right $ DoneshootingDir ( [], ([] , path))
         Right files' ->
             return $ Right $ DoneshootingDir ( filter (\file' -> ("." ++ extension) == (takeExtension file')) files'

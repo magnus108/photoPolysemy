@@ -61,7 +61,7 @@ mkStatus translations results dir =
             , UI.div #+ [Lens.views doneshootingEmpty string translations]]
       ([], _) -> 
           UI.div #. "section" #+ [UI.span #. "icon is-large has-text-success" #+ [UI.italics #. "fas fa-3x fa-check-square"]]
-      (xs, _) -> 
+      (_, _) -> 
           UI.div #. "section" #+ [UI.span #. "icon is-large has-text-danger" #+ [UI.italics #. "fas fa-3x fa-ban"]
             , UI.div #+ [Lens.views controlError string translations]]
 

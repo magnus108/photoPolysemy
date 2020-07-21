@@ -41,8 +41,6 @@ import Lib.Client.Photographer
 import Lib.Client.Control
 
 
-import qualified Utils.RoseTree as RT
-import qualified Utils.TreeZipper as TZ
 
 import Utils.ListZipper (focus)
 import Utils.Comonad

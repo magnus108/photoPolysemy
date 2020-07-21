@@ -20,7 +20,6 @@ module Lib.Session
 
 import Prelude hiding (toInteger)
 import qualified Control.Lens as Lens
-import Utils.TreeZipper
 import qualified Utils.ListZipper as ListZipper
 
 import Control.Concurrent

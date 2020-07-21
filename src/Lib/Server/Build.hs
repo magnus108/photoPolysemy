@@ -17,14 +17,9 @@ import Control.Exception
 
 import Utils.Mealy
 
-import Numeric.Extra
 import System.Time.Extra
 
-import System.Directory (listDirectory)
-import Control.Exception
-import Control.Concurrent (withMVar)
 
-import qualified Data.String as String
 import qualified Data.List.Index
 import Data.Strings
 
@@ -73,12 +68,10 @@ message :: Mealy (Double, Progress) (Double, Progress) -> Mealy (Double, Progres
 message input = liftA2 (,) done todo
     where
         progress = snd <$> input
-        secs = fst <$> input
+        _ = fst <$> input
         done = timeBuilt <$> progress
         todo = countBuilt <$> progress
 
-liftA2' :: Applicative m => m a -> m b -> (a -> b -> c) -> m c
-liftA2' a b f = liftA2 f a b
 
 
 myProgressProgram :: Int -> Chan.Chan Build.Build -> Photographee.Photographee -> IO Progress -> IO ()
@@ -86,7 +79,7 @@ myProgressProgram sample c photographee progress = do
     time <- offsetTime
     catchJust (\x -> if x == ThreadKilled then Just () else Nothing)
         (loop time $ message echoMealy)
-        (const $ do t <- time
+        (const $ do _ <- time
                     p <- progress
                     let todo = countBuilt p
                     Chan.writeChan c (Build.DoneBuild photographee (show (div todo 8)))
@@ -97,16 +90,16 @@ myProgressProgram sample c photographee progress = do
             threadDelay sample
             t <- time
             p <- progress
-            ((secs,todo), mealy) <- pure $ runMealy mealy (t, p)
+            ((_,todo), mealyy) <- pure $ runMealy mealy (t, p)
             let f = isFailure p
             case f of
                 Nothing -> do
                     Chan.writeChan c (Build.Building photographee (show (div todo 8)))
                 Just _ ->
                     Chan.writeChan c (Build.NoBuild)
-            loop time mealy
+            loop time mealyy
 
-
+receiveMessages :: MVar FilePath -> Chan.Chan Build.Build -> IO ()
 receiveMessages mfile msgs = do
     messages <- Chan.getChanContents msgs
     forM_ messages $ \msg -> do

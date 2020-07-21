@@ -64,4 +64,5 @@
 ,"_exactly1With5" : "1 med 5"
 ,"_atleast5With1" : "5 med 1"
 ,"_doneshootingEmpty" : "Doneshooting mappe tom"
+,"_couldNotReadDoneshootingDir": "Kunne ikke læse"
 }

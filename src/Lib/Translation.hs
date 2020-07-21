@@ -3,6 +3,7 @@
 
 module Lib.Translation
     ( Translation(..)
+    , couldNotReadDoneshootingDir
     , exactly1With5
     , doneshootingEmpty
     , atleast5With1
@@ -143,6 +144,7 @@ data Translation = Translation { _loading :: String
                                , _exactly1With5 :: String
                                , _atleast5With1 :: String
                                , _doneshootingEmpty :: String
+                               , _couldNotReadDoneshootingDir :: String
                                }
     deriving (Show, Ord, Eq, Generic, ToJSON, FromJSON)
 

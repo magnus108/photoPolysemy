@@ -3,9 +3,8 @@ module Lib.Control
     , Error(..)
     , translationError
     , parseRating
-    , _unResults
-    , Results(..)
     , between
+    , Results(..)
     ) where
 import qualified Lib.Translation as Translation --todo should not be here
 
@@ -20,11 +19,6 @@ import Data.ByteString.Char8 (unpack)
 import qualified Lib.Doneshooting as Doneshooting
 import qualified Lib.Rating as Rating
 import qualified Lib.Photographee as Photographee
-import qualified Lib.Grade as Grade
-import qualified Lib.Camera as Camera
-import qualified Lib.Location as Location
-import Control.Exception
-import System.Directory
 import System.FilePath
 
 
@@ -61,6 +55,7 @@ translationError err = Lens.view translator
     where translator = case err of
             Exactly1With5 -> Translation.exactly1With5
             Atleast5With1 -> Translation.atleast5With1
+            CouldNotReadDoneshootingDir -> Translation.couldNotReadDoneshootingDir
 
 
 count :: Eq a => a -> [a] -> Int

@@ -6,13 +6,13 @@ import Data.Maybe
 newtype Mealy i a = Mealy {runMealy :: i -> (a, Mealy i a)}
 
 instance Functor (Mealy i) where
-    fmap f (Mealy m) = Mealy $ \i -> case m i of
+    fmap f (Mealy mm) = Mealy $ \i -> case mm i of
         (x, m) -> (f x, fmap f m)
 
 instance Applicative (Mealy i) where
     pure x = let r = Mealy (const (x, r)) in r
-    Mealy mf <*> Mealy mx = Mealy $ \i -> case mf i of
-        (f, mf) -> case mx i of
+    Mealy mff  <*> Mealy mxx = Mealy $ \i -> case mff i of
+        (f, mf) -> case mxx i of
             (x, mx) -> (f x, mf <*> mx)
 
 echoMealy :: Mealy i i
@@ -20,7 +20,7 @@ echoMealy = Mealy (,echoMealy)
 
 
 scanMealy :: (a -> b -> a) -> a -> Mealy i b -> Mealy i a
-scanMealy f z (Mealy m) = Mealy $ \i -> case m i of
+scanMealy f z (Mealy mm) = Mealy $ \i -> case mm i of
     (x, m) -> let z2 = f z x in (z2, scanMealy f z2 m)
 
 
@@ -28,14 +28,14 @@ scanMealy f z (Mealy m) = Mealy $ \i -> case m i of
 -- MEALY UTILITIES
 
 oldMealy :: a -> Mealy i a -> Mealy i (a,a)
-oldMealy old = scanMealy (\(_,old) new -> (old,new)) (old,old)
+oldMealy oldd = scanMealy (\(_,old) new -> (old,new)) (oldd,oldd)
 
 latch :: Mealy i (Bool, a) -> Mealy i a
 latch s = fromJust <$> scanMealy f Nothing s
     where f old (b,v) = Just $ if b then fromMaybe v old else v
 
 iff :: Mealy i Bool -> Mealy i a -> Mealy i a -> Mealy i a
-iff c t f = (\c t f -> if c then t else f) <$> c <*> t <*> f
+iff cc tt ff = (\c t f -> if c then t else f) <$> cc <*> tt <*> ff
 
 -- decay'd division, compute a/b, with a decay of f
 -- r' is the new result, r is the last result
@@ -47,5 +47,5 @@ iff c t f = (\c t f -> if c then t else f) <$> c <*> t <*> f
 --
 -- both streams must only ever increase
 decay :: Double -> Mealy i Double -> Mealy i Double -> Mealy i Double
-decay f a b = scanMealy step 0 $ (,) <$> oldMealy 0 a <*> oldMealy 0 b
+decay f aa bb = scanMealy step 0 $ (,) <$> oldMealy 0 aa <*> oldMealy 0 bb
     where step r ((a,a'),(b,b')) = if isNaN r then a' / b' else ((r*b) + f*(a'-a)) / (b + f*(b'-b))

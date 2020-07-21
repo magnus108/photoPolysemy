@@ -289,7 +289,7 @@ build mgr mBuildFile _ handler = do
         (\e -> void $ do
             print e
             Build.getBuild mBuildFile >>= \case
-                Left e -> handler $ Build.Model (Failure (e ++ "Kunne ikke finde byg"))
+                Left e' -> handler $ Build.Model (Failure (e' ++ "Kunne ikke finde byg"))
                 Right s -> handler $ Build.Model (Data s)
         )
 
@@ -362,9 +362,7 @@ grades mgr mGradesFile mLocationConfigFile mPhotographeesFile mDoneshootingFile 
         mgr
         (dropFileName filepath)
         (\e -> eventPath e == filepath)
-        (\e -> void $ do
-            print e 
-            print "LOLA" 
+        (\_ -> void $ do
             _ <- Grade.getGrades mGradesFile >>= \case
                     Left e' -> handler $ Grade.Model $ Failure e'
                     Right s -> handler $ Grade.Model $ Data s

@@ -231,8 +231,7 @@ sinkModel env@Env{..} win translations bModel = do
 
 
                     _ <- case (extract (Photographee.unPhotographees (_photographees item'))) of
-                                (Photographee.Unknown g) -> do
-                                    traceShowM g
+                                (Photographee.Unknown _) -> do
                                     runFunction  $ ffi "$(%1).removeAttr('disabled')" (inputPhotographee)
                                     runFunction  $ ffi "$(%1).removeAttr('disabled')" (inputPhotographeeIdent)
                                     runFunction  $ ffi "$(%1).removeAttr('disabled')" (inputPhotographeeSys)

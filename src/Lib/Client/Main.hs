@@ -193,7 +193,7 @@ sinkModel env@Env{..} win translations bModel = do
                     photographeesList' <- photographeesList env win (Main._photographees item')
                     _ <- element photographees' # set children photographeesList'
 
-                    let ident = Photographee.toIdent (Main._photographees item')
+                    let _ = Photographee.toIdent (Main._photographees item')
                     let name = Photographee.toName (Main._photographees item')
                     _ <- element currentPhotographee # set text name
                     _ <- element content # set children [build', mkBuild, count, inputSection, selectSection, photographees']
@@ -236,7 +236,7 @@ sinkModel env@Env{..} win translations bModel = do
                 photographeesList' <- photographeesList env win (Main._photographees item')
                 _ <- element photographees' # set children photographeesList'
 
-                let ident = Photographee.toIdent (Main._photographees item')
+                let _ = Photographee.toIdent (Main._photographees item')
                 let name = Photographee.toName (Main._photographees item')
                 _ <- element currentPhotographee # set text name
 
@@ -298,7 +298,7 @@ sinkModel env@Env{..} win translations bModel = do
 
     _ <- onEvent ee4 $ \model -> do
         UI.setFocus (help) -- hack
-        element input # set value "" 
+        _ <- element input # set value "" 
         void $ liftIO $ do
             case toJust (Main._unModel model) of
                 Nothing -> return ()

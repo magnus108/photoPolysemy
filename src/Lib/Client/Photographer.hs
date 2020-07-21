@@ -33,8 +33,8 @@ mkPhotographers env (Photographer.Photographers photographers') = do
 
 mkPhotographerListItem :: Env -> (Int, Bool, Photographer.Photographer) -> UI Element
 mkPhotographerListItem Env {..} (thisIndex, isCenter, photographer) = do
-    let name   = Photographer._name photographer
-    let option = UI.option # set value (show thisIndex) # set text name
+    let name' = Photographer._name photographer
+    let option = UI.option # set value (show thisIndex) # set text name'
     if isCenter then option # set UI.selected True else option
 
 
@@ -65,7 +65,6 @@ photographersSection env@Env{..} win translations tabs bModel = do
                         when (file /= "") $ do
                             --TODO er det engentligt det her man vil?
                             parsePhotographers <- liftIO $ getPhotographers' file
-                            traceShowM parsePhotographers
 
                             forM_ parsePhotographers $ writePhotographers mPhotographersFile
 
@@ -75,8 +74,8 @@ photographersSection env@Env{..} win translations tabs bModel = do
                     return ()
 
                 Data (Photographers photographers) -> do
-                    element select # set children [] #+ (mkPhotographers env (Photographers photographers))
-                    element content # set children [selectContent]
+                    _ <- element select # set children [] #+ (mkPhotographers env (Photographers photographers))
+                    _ <- element content # set children [selectContent]
 
                     return ()
 
@@ -97,7 +96,6 @@ photographersSection env@Env{..} win translations tabs bModel = do
                     when (file /= "") $ do
                         --TODO er det engentligt det her man vil?
                         parsePhotographers <- liftIO $ getPhotographers' file
-                        traceShowM parsePhotographers
                         forM_ parsePhotographers $ writePhotographers mPhotographersFile
 
                 section <- UI.div #. "section" # set children [msg, err, picker]
@@ -132,8 +130,7 @@ photographersSection env@Env{..} win translations tabs bModel = do
                 Nothing -> return ()
                 Just item'  -> do
                     --Location.writeLocationFile mLocationConfigFile (location i)
-                    what <- Photographer.writePhotographers mPhotographersFile item'
-                    traceShowM what
+                    _ <- Photographer.writePhotographers mPhotographersFile item'
                     return ()
 
     tabs' <- mkElement "nav" #. "section" #+ [mkTabs env translations tabs]
@@ -153,14 +150,3 @@ selectPhotographeeF selected (Photographer.Photographers photographers') =
             else Nothing
         ) photographers'
 
-mkPhotographer :: Env -> (Photographer, Bool, Photographers) -> UI Element
-mkPhotographer Env{..} (photographer, isCenter, photographers)
-    | isCenter = do
-        let name' = _name photographer
-        mkButton name' name' #. "button is-selected" # set (attr "disabled") "true"
-    | otherwise = do
-        let name' = _name photographer
-        button <- mkButton name' name'
-        UI.on UI.click button $ \_ ->
-            writePhotographers mPhotographersFile photographers
-        return button
