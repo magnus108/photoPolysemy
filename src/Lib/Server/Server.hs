@@ -2,6 +2,7 @@ module Lib.Server.Server
     ( run
     ) where
 
+import Control.Concurrent (ThreadId, killThread)
 import           Reactive.Threepenny
 
 import System.FilePath
@@ -99,8 +100,8 @@ view env@Env{..} win translation bDoneshootingDir bBuild bGrades bLocationConfig
 
 
 
-run :: Int -> Env -> Translation -> UI.Behavior Doneshooting.DoneshootingDirModel -> UI.Behavior Build.Model -> UI.Behavior Grade.Model ->  UI.Behavior Location.Model -> UI.Behavior Session.Model -> UI.Behavior Shooting.Model -> UI.Behavior Camera.Model -> UI.Behavior Dump.DumpModel -> UI.Behavior Dump.DumpDirModel -> UI.Behavior Doneshooting.Model -> UI.Behavior Dagsdato.Model -> UI.Behavior DagsdatoBackup.Model -> UI.Event Tabs -> UI.Behavior (Photographer.Model) -> UI.Behavior (Photographee.Model) -> Handler (Grade.Model) -> Handler (Location.Model) -> Handler Dump.DumpModel -> Handler Dump.DumpDirModel -> Handler Photographee.Model -> IO ()
-run port env@Env{..} translations bDoneshootingDir bBuild eGrades bLocationConfigFile eSessions eShootings eCameras eDump bDumpDir eDoneshooting eDagsdato eDagsdatoBackup eTabs bPhotographers bPhotographees hGrades hLocationConfigFile hDump hDumpDir hPhotographees = do
+run :: Int -> Env -> Translation -> UI.Behavior Doneshooting.DoneshootingDirModel -> UI.Behavior Build.Model -> UI.Behavior Grade.Model ->  UI.Behavior Location.Model -> UI.Behavior Session.Model -> UI.Behavior Shooting.Model -> UI.Behavior Camera.Model -> UI.Behavior Dump.DumpModel -> UI.Behavior Dump.DumpDirModel -> UI.Behavior Doneshooting.Model -> UI.Behavior Dagsdato.Model -> UI.Behavior DagsdatoBackup.Model -> UI.Event Tabs -> UI.Behavior (Photographer.Model) -> UI.Behavior (Photographee.Model) -> Handler (Grade.Model) -> Handler (Location.Model) -> Handler Dump.DumpModel -> Handler Dump.DumpDirModel -> Handler Photographee.Model -> ThreadId -> IO ()
+run port env@Env{..} translations bDoneshootingDir bBuild eGrades bLocationConfigFile eSessions eShootings eCameras eDump bDumpDir eDoneshooting eDagsdato eDagsdatoBackup eTabs bPhotographers bPhotographees hGrades hLocationConfigFile hDump hDumpDir hPhotographees messageReceiver= do
     tabs <- withMVar mTabsFile $ \tabsFile -> getTabs tabsFile
 
     startGUI defaultConfig
@@ -150,4 +151,7 @@ run port env@Env{..} translations bDoneshootingDir bBuild eGrades bLocationConfi
                                             hPhotographees
                                             tabs'
                            )
+
+        UI.on UI.disconnect win $ const $ liftIO $ do
+            killThread messageReceiver
 

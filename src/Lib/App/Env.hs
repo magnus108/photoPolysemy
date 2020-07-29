@@ -18,6 +18,7 @@ import qualified Lib.Grade as Grade
 import qualified Lib.Photographee as Photographee
 import qualified Lib.Location as Location
 
+import qualified Lib.Main as Main
 
 data Action
     = ReadPhographers
@@ -64,6 +65,8 @@ data Action
     | SConfigLocationFile 
     | SGrades
     | SConfigCameras 
+    | SBuild
+    | MFcker Main.Item
 
         deriving Show
 

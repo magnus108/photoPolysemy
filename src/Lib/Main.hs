@@ -51,10 +51,10 @@ data Item = Item { _location :: Location.LocationFile
                  , _photographer :: Photographer.Photographer
                  , _dagsdatoBackup :: DagsdatoBackup.DagsdatoBackup
                  , _build :: Build.Build
-                 }
+                 } deriving Show
 
 makeLenses ''Item
 
-newtype Model = Model { _unModel :: Data String Item }
+newtype Model = Model { _unModel :: Data String Item } deriving Show
 
 makeLenses ''Model

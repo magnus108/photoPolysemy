@@ -305,7 +305,7 @@ sinkModel env@Env{..} win translations bModel = do
             case toJust (Main._unModel model) of
                 Nothing -> return ()
                 Just item'  -> do  
-                    SBuild.entry mBuildFile mDumpFile item' 
+                    _ <- Chan.writeChan chan ( MFcker (item'))
                     return ()
 
 

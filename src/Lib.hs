@@ -4,6 +4,7 @@ module Lib
     , runServer
     , main
     ) where
+import qualified Lib.Server.Build as SBuild
 import Lib.Data
 
 import Relude.Unsafe (fromJust)
@@ -114,7 +115,7 @@ runServer port env@Env{..} = do
     watchers <- newMVar mempty
     withManager $ \mgr -> do
         --Build
-        stopBuild <- build mgr mBuildFile watchers hBuild
+        stopBuild <- build env mgr mBuildFile watchers hBuild
 
         --Photographers
         stopConfigPhotographers <- configPhotographers env mgr mPhotographersFile watchers hPhotographers
@@ -190,9 +191,7 @@ runServer port env@Env{..} = do
 
         --Photographers
         bBuild <- UI.stepper Build.initalState eBuild
-        Build.getBuild mBuildFile >>= \case
-                Left e' -> hBuild $ Build.Model (Failure (e' ++ "Kunne ikke finde byg"))
-                Right s -> hBuild $ Build.Model (Data s)
+        Chan.writeChan chan SBuild
 
         --Photographers
         bPhotographers <- UI.stepper Photographer.initalState ePhotographers
@@ -255,15 +254,16 @@ runServer port env@Env{..} = do
         translations <- Translation.read mTranslationFile
         --VERY important this is here.. BADNESS FIX AT THE END
 
-        _ <- liftIO $ forkIO $ receiveMessages env hPhotographers hConfigDump hConfigDagsdato hConfigDagsdatoBackup hConfigDoneshooting hDirDoneshooting hCameras hShootings hSessions hGrades hPhotographees hLocationConfigFile hDumpDir hDirDagsdatoBackup  hDirDagsdato chan
+        receive <- liftIO $ forkIO $ receiveMessages env hPhotographers hConfigDump hConfigDagsdato hConfigDagsdatoBackup hConfigDoneshooting hDirDoneshooting hCameras hShootings hSessions hGrades hPhotographees hLocationConfigFile hDumpDir hDirDagsdatoBackup  hDirDagsdato hBuild chan
 
-        Server.run port env (fromJust (rightToMaybe translations)) bDoneshootingDir bBuild bGrades bLocationConfigFile bSessions bShootings bCameras bDump bDumpDir bDoneshooting bDagsdato bDagsdatoBackup eTabs bPhotographers bPhotographees hGrades hLocationConfigFile hConfigDump hDumpDir hPhotographees
+        Server.run port env (fromJust (rightToMaybe translations)) bDoneshootingDir bBuild bGrades bLocationConfigFile bSessions bShootings bCameras bDump bDumpDir bDoneshooting bDagsdato bDagsdatoBackup eTabs bPhotographers bPhotographees hGrades hLocationConfigFile hConfigDump hDumpDir hPhotographees receive
 
 
-receiveMessages :: Env -> Handler Photographer.Model -> Handler Dump.DumpModel -> Handler Dagsdato.Model -> Handler DagsdatoBackup.Model -> Handler Doneshooting.Model -> Handler Doneshooting.DoneshootingDirModel -> Handler Camera.Model -> Handler Shooting.Model -> Handler Session.Model -> Handler Grade.Model -> Handler Photographee.Model -> Handler Location.Model -> Handler Dump.DumpDirModel -> Handler () -> Handler () -> Chan.Chan App.Action -> IO ()
-receiveMessages Env{..} hPhotographers hConfigDump hConfigDagsdato hConfigDagsdatoBackup hConfigDoneshooting  hDirDoneshooting  hCameras hShootings  hSessions hGrades hPhotographees hLocationConfigFile  hDumpDir hDirDagsdatoBackup hDirDagsdato msgs = do
+receiveMessages :: Env -> Handler Photographer.Model -> Handler Dump.DumpModel -> Handler Dagsdato.Model -> Handler DagsdatoBackup.Model -> Handler Doneshooting.Model -> Handler Doneshooting.DoneshootingDirModel -> Handler Camera.Model -> Handler Shooting.Model -> Handler Session.Model -> Handler Grade.Model -> Handler Photographee.Model -> Handler Location.Model -> Handler Dump.DumpDirModel -> Handler () -> Handler () -> Handler Build.Model -> Chan.Chan App.Action -> IO ()
+receiveMessages Env{..} hPhotographers hConfigDump hConfigDagsdato hConfigDagsdatoBackup hConfigDoneshooting  hDirDoneshooting  hCameras hShootings  hSessions hGrades hPhotographees hLocationConfigFile  hDumpDir hDirDagsdatoBackup hDirDagsdato hBuild msgs = do
     messages <- Chan.getChanContents msgs
     forM_ messages $ \msg -> do
+        traceShowM "msg"
         traceShowM msg
         case msg of
             ReadPhographers ->
@@ -404,13 +404,21 @@ receiveMessages Env{..} hPhotographers hConfigDump hConfigDagsdato hConfigDagsda
                 getDoneshootingDir mDoneshootingFile mCamerasFile mLocationConfigFile mGradesFile >>= \case
                     Left e' -> hDirDoneshooting $ DoneshootingDirModel (Failure e')
                     Right s -> hDirDoneshooting $ DoneshootingDirModel (Data s)
+            SBuild -> do
+                Build.getBuild mBuildFile >>= \case
+                    Left e' -> hBuild $ Build.Model (Failure (e' ++ "Kunne ikke finde byg"))
+                    Right s -> hBuild $ Build.Model (Data s)
+
+            MFcker i ->
+                SBuild.entry mBuildFile mDumpFile i
+
 
 
 type WatchMap = MVar (HashMap String StopListening)
 
 
-build :: WatchManager -> MVar FilePath -> WatchMap -> Handler Build.Model -> IO StopListening
-build mgr mBuildFile _ handler = do
+build :: Env -> WatchManager -> MVar FilePath -> WatchMap -> Handler Build.Model -> IO StopListening
+build env mgr mBuildFile _ handler = do
     filepath <- readMVar mBuildFile
     watchDir
         mgr
@@ -418,9 +426,7 @@ build mgr mBuildFile _ handler = do
         (\e -> eventPath e == filepath)
         (\e -> void $ do
             print e
-            Build.getBuild mBuildFile >>= \case
-                Left e' -> handler $ Build.Model (Failure (e' ++ "Kunne ikke finde byg"))
-                Right s -> handler $ Build.Model (Data s)
+            Chan.writeChan (chan env) SBuild
         )
 
 
@@ -580,7 +586,7 @@ dirDoneshooting env mgr mDoneshootingFile mCamerasFile mLocationConfigFile mGrad
             ---BADNESS
                 mgr
                 (unDoneshooting path)
-                (const True)
+                (\e -> (takeExtension (eventPath e)) /= ".tmp")
                 (\e -> do
                     print e 
                     Chan.writeChan (chan env) ReadDoneshootingDir
