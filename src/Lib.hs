@@ -198,95 +198,70 @@ runServer port env@Env{..} = do
         bPhotographers <- UI.stepper Photographer.initalState ePhotographers
         Chan.writeChan chan ReadPhographers
 
-
-
         --Dump
         bDump <- UI.stepper Dump.initalState eConfigDump
-        _ <- Dump.getDump mDumpFile >>= \case
-                Left e' -> hConfigDump $ Dump.DumpModel (Failure e')
-                Right s -> hConfigDump $ Dump.DumpModel (Data s)
+        Chan.writeChan chan ReadDump
+
 
         --Dagsdato
         bDagsdato <- UI.stepper Dagsdato.initialState eConfigDagsdato
-        _ <- Dagsdato.getDagsdato mDagsdatoFile >>= \case
-                Left e' -> hConfigDagsdato $ Dagsdato.Model (Failure e')
-                Right s -> hConfigDagsdato $ Dagsdato.Model (Data s)
+        Chan.writeChan chan ReadDagsdato
+
 
         --DagsdatoBackup
         bDagsdatoBackup <- UI.stepper DagsdatoBackup.initialState eConfigDagsdatoBackup
-        _ <- DagsdatoBackup.getDagsdatoBackup mDagsdatoBackupFile  >>= \case
-                Left e' -> hConfigDagsdatoBackup $ DagsdatoBackup.Model (Failure e')
-                Right s -> hConfigDagsdatoBackup $ DagsdatoBackup.Model (Data s)
+        Chan.writeChan chan ReadDagsdatoBackup
 
         -- Doneshooting
         bDoneshooting <- UI.stepper Doneshooting.initialState eConfigDoneshooting
-        _ <- Doneshooting.getDoneshooting mDoneshootingFile >>= \case
-            Left e' -> hConfigDoneshooting $ Doneshooting.Model (Failure e')
-            Right s -> hConfigDoneshooting $ Doneshooting.Model (Data s)
+        Chan.writeChan chan ReadDoneshooting
+
 
         bDoneshootingDir <- UI.stepper Doneshooting.initialStateDir eDirDoneshooting
-        _ <- Doneshooting.getDoneshootingDir mDoneshootingFile mCamerasFile mLocationConfigFile mGradesFile >>= \case
-            Left e' -> hDirDoneshooting $ Doneshooting.DoneshootingDirModel (Failure e')
-            Right s -> hDirDoneshooting $ Doneshooting.DoneshootingDirModel (Data s)
-
+        Chan.writeChan chan ReadDoneshootingDir
 
         -- Cameras
         bCameras <- UI.stepper Camera.initalState eCameras
-        _ <- Camera.getCameras mCamerasFile >>= \case
-            Left e' -> hCameras $ Camera.Model (Failure e')
-            Right s -> hCameras $ Camera.Model (Data s)
+        Chan.writeChan chan ReadCamera
 
+    
         -- Shootings
         bShootings <- UI.stepper Shooting.initialState eShootings
-        _ <- Shooting.getShootings mShootingsFile >>= \case
-            Left e' -> hShootings $ Shooting.Model (Failure e')
-            Right s -> hShootings $ Shooting.Model (Data s)
+        Chan.writeChan chan ReadShooting
 
         -- Sessions
         bSessions <- UI.stepper Session.initialState eSessions
-        _ <- Session.getSessions mSessionsFile >>= \case
-            Left e' -> hSessions $ Session.Model (Failure e')
-            Right s -> hSessions $ Session.Model (Data s)
+        Chan.writeChan chan ReadSessions
 
         -- Grades
-
         bGrades <- UI.stepper Grade.initialState eGrades
-        _ <- Grade.getGrades mGradesFile >>= \case
-                    Left e' -> hGrades $ Grade.Model $ Failure e'
-                    Right s -> hGrades $ Grade.Model $ Data s
+        Chan.writeChan chan ReadGrades
+
 
         -- Photographees this is REAL BAD AS it does not wrk with bLocationConfigFile as expected
         bPhotographees <- UI.stepper Photographee.initialState ePhotographees
-        _ <- Photographee.getPhotographees mPhotographeesFile >>= \case
-            Left e' -> hPhotographees $ Photographee.Model (Failure e')
-            Right s -> hPhotographees $ Photographee.Model (Data s)
-
+        Chan.writeChan chan ReadPhographees
 
 
         -- Location
         bLocationConfigFile <- UI.stepper Location.initialState eLocationConfigFile
-        _ <- Location.getLocationFile mLocationConfigFile >>= \case
-            Left e' -> hLocationConfigFile $ Location.Model (Failure e')
-            Right s -> hLocationConfigFile $ Location.Model (Data s)
+        Chan.writeChan chan ReadLocation
 
         -- DumpDir
         bDumpDir <- UI.stepper Dump.initalStateDir eDumpDir
-        _ <- Dump.getDumpDir mDumpFile mCamerasFile >>= \case
-                Left e' -> hDumpDir $ DumpDirModel (Failure e')
-                Right s -> hDumpDir $ DumpDirModel (Data s)
+        Chan.writeChan chan ReadDumpDir
 
 
         translations <- Translation.read mTranslationFile
         --VERY important this is here.. BADNESS FIX AT THE END
-        --
 
-        _ <- liftIO $ forkIO $ receiveMessages env hPhotographers chan
+        _ <- liftIO $ forkIO $ receiveMessages env hPhotographers hConfigDump hConfigDagsdato hConfigDagsdatoBackup hConfigDoneshooting hDirDoneshooting hCameras hShootings hSessions hGrades hPhotographees hLocationConfigFile hDumpDir chan
 
         Server.run port env (fromJust (rightToMaybe translations)) bDoneshootingDir bBuild bGrades bLocationConfigFile bSessions bShootings bCameras bDump bDumpDir bDoneshooting bDagsdato bDagsdatoBackup eTabs bPhotographers bPhotographees hGrades hLocationConfigFile hConfigDump hDumpDir hPhotographees
 
 
-receiveMessages :: Env -> Handler Photographer.Model -> Chan.Chan App.Action -> IO ()
-receiveMessages Env{..} hPhotographers msgs = do
+receiveMessages :: Env -> Handler Photographer.Model -> Handler Dump.DumpModel -> Handler Dagsdato.Model -> Handler DagsdatoBackup.Model -> Handler Doneshooting.Model -> Handler Doneshooting.DoneshootingDirModel -> Handler Camera.Model -> Handler Shooting.Model -> Handler Session.Model -> Handler Grade.Model -> Handler Photographee.Model -> Handler Location.Model -> Handler Dump.DumpDirModel -> Chan.Chan App.Action -> IO ()
+receiveMessages Env{..} hPhotographers hConfigDump hConfigDagsdato hConfigDagsdatoBackup hConfigDoneshooting  hDirDoneshooting  hCameras hShootings  hSessions hGrades hPhotographees hLocationConfigFile  hDumpDir msgs = do
     messages <- Chan.getChanContents msgs
     forM_ messages $ \msg -> do
         traceShowM msg
@@ -298,6 +273,65 @@ receiveMessages Env{..} hPhotographers msgs = do
 
             WritePhographers photographers' ->
                 Photographer.writePhotographers mPhotographersFile photographers'
+
+            ReadDump ->
+                Dump.getDump mDumpFile >>= \case
+                    Left e' -> hConfigDump $ Dump.DumpModel (Failure e')
+                    Right s -> hConfigDump $ Dump.DumpModel (Data s)
+
+            ReadDagsdato ->
+                Dagsdato.getDagsdato mDagsdatoFile >>= \case
+                        Left e' -> hConfigDagsdato $ Dagsdato.Model (Failure e')
+                        Right s -> hConfigDagsdato $ Dagsdato.Model (Data s)
+
+            ReadDagsdatoBackup ->
+                DagsdatoBackup.getDagsdatoBackup mDagsdatoBackupFile  >>= \case
+                        Left e' -> hConfigDagsdatoBackup $ DagsdatoBackup.Model (Failure e')
+                        Right s -> hConfigDagsdatoBackup $ DagsdatoBackup.Model (Data s)
+
+            ReadDoneshooting ->
+                Doneshooting.getDoneshooting mDoneshootingFile >>= \case
+                    Left e' -> hConfigDoneshooting $ Doneshooting.Model (Failure e')
+                    Right s -> hConfigDoneshooting $ Doneshooting.Model (Data s)
+
+            ReadDoneshootingDir ->
+                Doneshooting.getDoneshootingDir mDoneshootingFile mCamerasFile mLocationConfigFile mGradesFile >>= \case
+                    Left e' -> hDirDoneshooting $ Doneshooting.DoneshootingDirModel (Failure e')
+                    Right s -> hDirDoneshooting $ Doneshooting.DoneshootingDirModel (Data s)
+
+            ReadCamera ->
+                    Camera.getCameras mCamerasFile >>= \case
+                        Left e' -> hCameras $ Camera.Model (Failure e')
+                        Right s -> hCameras $ Camera.Model (Data s)
+            ReadShooting ->
+                Shooting.getShootings mShootingsFile >>= \case
+                    Left e' -> hShootings $ Shooting.Model (Failure e')
+                    Right s -> hShootings $ Shooting.Model (Data s)
+
+            ReadSessions ->
+                Session.getSessions mSessionsFile >>= \case
+                    Left e' -> hSessions $ Session.Model (Failure e')
+                    Right s -> hSessions $ Session.Model (Data s)
+
+            ReadGrades ->
+                Grade.getGrades mGradesFile >>= \case
+                    Left e' -> hGrades $ Grade.Model $ Failure e'
+                    Right s -> hGrades $ Grade.Model $ Data s
+
+            ReadPhographees ->
+                Photographee.getPhotographees mPhotographeesFile >>= \case
+                    Left e' -> hPhotographees $ Photographee.Model (Failure e')
+                    Right s -> hPhotographees $ Photographee.Model (Data s)
+
+            ReadLocation ->
+                Location.getLocationFile mLocationConfigFile >>= \case
+                        Left e' -> hLocationConfigFile $ Location.Model (Failure e')
+                        Right s -> hLocationConfigFile $ Location.Model (Data s)
+
+            ReadDumpDir ->
+                 Dump.getDumpDir mDumpFile mCamerasFile >>= \case
+                        Left e' -> hDumpDir $ DumpDirModel (Failure e')
+                        Right s -> hDumpDir $ DumpDirModel (Data s)
 
 
 type WatchMap = MVar (HashMap String StopListening)

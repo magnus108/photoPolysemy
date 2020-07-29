@@ -37,6 +37,7 @@ getDump' = readJSONFile'
 
 
 newtype DumpModel = DumpModel { unModel :: Data String Dump }
+    deriving (Show)
 
 
 initalState :: DumpModel

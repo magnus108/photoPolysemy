@@ -25,6 +25,7 @@ newtype Dagsdato = Dagsdato { unDagsdato :: FilePath }
 
 
 newtype Model = Model { unModel :: Data String Dagsdato }
+    deriving (Show)
 
 makeLenses ''Model
 

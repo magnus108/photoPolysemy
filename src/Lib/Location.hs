@@ -34,6 +34,7 @@ writeLocationFile' = writeJSONFile
 
 
 newtype Model = Model { unModel :: Data String LocationFile }
+    deriving Show
 
 
 makeLenses ''Model

@@ -24,6 +24,7 @@ newtype DagsdatoBackup = DagsdatoBackup { unDagsdatoBackup :: FilePath }
     deriving (FromJSON, ToJSON)
 
 newtype Model = Model { unModel :: Data String DagsdatoBackup }
+    deriving (Show)
 
 makeLenses ''Model
 
