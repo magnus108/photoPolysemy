@@ -1,11 +1,22 @@
 {-# LANGUAGE DeriveAnyClass #-}
 module Lib.App.Env
        ( Env(..)
+       , Action(..)
        ) where
 
 
+import qualified Control.Concurrent.Chan as Chan
+import qualified Lib.Photographer as Photographer
+
+
+data Action
+    = ReadPhographers
+    | WritePhographers Photographer.Photographers
+        deriving Show
+
 data Env = Env
     { serverRoot :: FilePath
+    , chan :: Chan.Chan Action
     , mLocationConfigFile :: MVar FilePath
     , mPhotographersFile :: MVar FilePath
     , mSessionsFile :: MVar FilePath

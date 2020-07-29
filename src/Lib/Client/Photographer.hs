@@ -3,6 +3,9 @@ module Lib.Client.Photographer
     , Data(..)
     ) where
 
+import Lib.App (Action(..))
+import qualified Control.Concurrent.Chan as Chan
+
 import Lib.Client.Utils
 
 import Graphics.UI.Threepenny.Core
@@ -66,7 +69,8 @@ photographersSection env@Env{..} win translations tabs bModel = do
                             --TODO er det engentligt det her man vil?
                             parsePhotographers <- liftIO $ getPhotographers' file
 
-                            forM_ parsePhotographers $ writePhotographers mPhotographersFile
+                            forM_ parsePhotographers $ do
+                                Chan.writeChan chan . WritePhographers
 
                     err <- UI.p #+ [string e]
                     section <- UI.div #. "section" # set children [msg,err, picker]
@@ -96,7 +100,8 @@ photographersSection env@Env{..} win translations tabs bModel = do
                     when (file /= "") $ do
                         --TODO er det engentligt det her man vil?
                         parsePhotographers <- liftIO $ getPhotographers' file
-                        forM_ parsePhotographers $ writePhotographers mPhotographersFile
+                        forM_ parsePhotographers $ do
+                            Chan.writeChan chan . WritePhographers
 
                 section <- UI.div #. "section" # set children [msg, err, picker]
                 _ <- element content # set children [section]
@@ -130,7 +135,7 @@ photographersSection env@Env{..} win translations tabs bModel = do
                 Nothing -> return ()
                 Just item'  -> do
                     --Location.writeLocationFile mLocationConfigFile (location i)
-                    _ <- Photographer.writePhotographers mPhotographersFile item'
+                    _ <- Chan.writeChan chan (WritePhographers item')
                     return ()
 
     tabs' <- mkElement "nav" #. "section" #+ [mkTabs env translations tabs]

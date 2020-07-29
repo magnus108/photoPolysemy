@@ -16,8 +16,11 @@ import System.FilePath
 import Control.Concurrent.MVar (modifyMVar_)
 import qualified Data.HashMap.Strict as HashMap
 import System.FSNotify
+import qualified Control.Concurrent.Chan as Chan
 
-import Lib.App (Env(..))
+import qualified Lib.App as App
+
+import Lib.App (Env(..),Action(..))
 import Lib.Config (Config (..), loadConfig)
 import Lib.Tab (Tabs, getTabs)
 import Lib.Photographer (getPhotographers)
@@ -46,11 +49,14 @@ import qualified Lib.Server.Server as Server
 
 import Graphics.UI.Threepenny (newEvent, Handler)
 
+import Control.Concurrent (forkIO) 
 
 mkEnv :: FilePath -> Config -> IO Env
 mkEnv root' Config{..} = do
     let root = root' </> "config"
     let serverRoot = root'
+
+    chan <- Chan.newChan
 
     mPhotographersFile <- newMVar (root </> photographersFile)
     mGradesFile <- newMVar (root </> gradesFile)
@@ -190,9 +196,8 @@ runServer port env@Env{..} = do
 
         --Photographers
         bPhotographers <- UI.stepper Photographer.initalState ePhotographers
-        _ <- getPhotographers mPhotographersFile >>= \case
-                Left e' -> hPhotographers $ Photographer.Model (Failure e')
-                Right s -> hPhotographers $ Photographer.Model (Data s)
+        Chan.writeChan chan ReadPhographers
+
 
 
         --Dump
@@ -273,7 +278,26 @@ runServer port env@Env{..} = do
 
         translations <- Translation.read mTranslationFile
         --VERY important this is here.. BADNESS FIX AT THE END
+        --
+
+        _ <- liftIO $ forkIO $ receiveMessages env hPhotographers chan
+
         Server.run port env (fromJust (rightToMaybe translations)) bDoneshootingDir bBuild bGrades bLocationConfigFile bSessions bShootings bCameras bDump bDumpDir bDoneshooting bDagsdato bDagsdatoBackup eTabs bPhotographers bPhotographees hGrades hLocationConfigFile hConfigDump hDumpDir hPhotographees
+
+
+receiveMessages :: Env -> Handler Photographer.Model -> Chan.Chan App.Action -> IO ()
+receiveMessages Env{..} hPhotographers msgs = do
+    messages <- Chan.getChanContents msgs
+    forM_ messages $ \msg -> do
+        traceShowM msg
+        case msg of
+            ReadPhographers ->
+                getPhotographers mPhotographersFile >>= \case
+                        Left e' -> hPhotographers $ Photographer.Model (Failure e')
+                        Right s -> hPhotographers $ Photographer.Model (Data s)
+
+            WritePhographers photographers' ->
+                Photographer.writePhotographers mPhotographersFile photographers'
 
 
 type WatchMap = MVar (HashMap String StopListening)
