@@ -8,6 +8,8 @@ module Lib.Server.Build
     , mkDoneshootingPathJpg
     ) where
 
+import qualified Lib.App as App
+
 import Control.Concurrent (threadDelay, killThread, forkIO)
 import qualified Control.Concurrent.Chan as Chan
 
@@ -74,7 +76,7 @@ message input = liftA2 (,) done todo
 
 
 
-myProgressProgram :: Int -> Chan.Chan Build.Build -> Photographee.Photographee -> IO Progress -> IO ()
+myProgressProgram :: Int -> Chan.Chan App.Action -> Photographee.Photographee -> IO Progress -> IO ()
 myProgressProgram sample c photographee progress = do
     time <- offsetTime
     catchJust (\x -> if x == ThreadKilled then Just () else Nothing)
@@ -82,7 +84,7 @@ myProgressProgram sample c photographee progress = do
         (const $ do _ <- time
                     p <- progress
                     let todo = countBuilt p
-                    Chan.writeChan c (Build.DoneBuild photographee (show (div todo 8)))
+                    Chan.writeChan c (App.BuilderMessage (Build.DoneBuild photographee (show (div todo 8))))
         )
     where
         loop :: IO Double -> Mealy (Double, Progress) (Double, Int) -> IO ()
@@ -94,18 +96,13 @@ myProgressProgram sample c photographee progress = do
             let f = isFailure p
             case f of
                 Nothing -> do
-                    Chan.writeChan c (Build.Building photographee (show (div todo 8)))
+                    Chan.writeChan c (App.BuilderMessage (Build.Building photographee (show (div todo 8))))
                 Just _ ->
-                    Chan.writeChan c (Build.NoBuild)
+                    Chan.writeChan c (App.BuilderMessage (Build.NoBuild))
             loop time mealyy
 
-receiveMessages :: MVar FilePath -> Chan.Chan Build.Build -> IO ()
-receiveMessages mfile msgs = do
-    messages <- Chan.getChanContents msgs
-    forM_ messages $ \msg -> do
-        Build.writeBuild mfile msg
 
-opts :: Chan.Chan Build.Build -> Photographee.Photographee -> ShakeOptions
+opts :: Chan.Chan App.Action -> Photographee.Photographee -> ShakeOptions
 opts  c photographee = shakeOptions
                     { shakeFiles = shakeDir
                     , shakeProgress = progress -- should change
@@ -186,25 +183,23 @@ mkDagsdatoBackupPath file date item = dagsdatoBackup </> date ++ " - " ++ locati
             tea   = Photographee.toTea' photographee
 
 
-entry :: MVar FilePath -> MVar FilePath -> Main.Item -> IO ()
-entry mBuildFile mDumpFile item = do
+entry :: Chan.Chan App.Action -> MVar FilePath -> MVar FilePath -> Main.Item -> IO ()
+entry messages mBuildFile mDumpFile item = do
     time <- getCurrentTime
     let date = getDate time
 
     let photographees = Lens.view Main.photographees item
     let photographee = extract (Photographee.unPhotographees photographees)
 
-    messages <- Chan.newChan
-    messageReceiver <- liftIO $ forkIO $ receiveMessages mBuildFile messages
     shaken <- try $ myShake (opts messages photographee) date item :: IO (Either SomeException ())
-    killThread messageReceiver
     case shaken of
-        Left _ -> Build.writeBuild mBuildFile (Build.NoBuild)
+        Left _ -> 
+            Chan.writeChan messages (App.BuilderMessage (Build.NoBuild))
         Right _ -> do
-            Build.writeBuild mBuildFile (Build.DoneBuild photographee (""))
+            Chan.writeChan messages (App.BuilderMessage (Build.DoneBuild photographee ("")))
             --HACK
             let dump = Lens.view Main.dump item
-            Dump.writeDump mDumpFile dump
+            Chan.writeChan messages (App.WriteDump dump)
 
 myShake :: ShakeOptions -> String -> Main.Item -> IO ()
 myShake opts' time item = do

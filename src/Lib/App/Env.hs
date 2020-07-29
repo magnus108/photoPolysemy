@@ -5,6 +5,7 @@ module Lib.App.Env
        ) where
 
 
+import qualified Lib.Build as Build
 import qualified Control.Concurrent.Chan as Chan
 import qualified Lib.Photographer as Photographer
 import qualified Lib.Dump as Dump
@@ -67,6 +68,7 @@ data Action
     | SConfigCameras 
     | SBuild
     | MFcker Main.Item
+    | BuilderMessage Build.Build
 
         deriving Show
 

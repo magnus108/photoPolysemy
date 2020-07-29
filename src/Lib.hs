@@ -410,7 +410,10 @@ receiveMessages Env{..} hPhotographers hConfigDump hConfigDagsdato hConfigDagsda
                     Right s -> hBuild $ Build.Model (Data s)
 
             MFcker i ->
-                SBuild.entry mBuildFile mDumpFile i
+                SBuild.entry msgs mBuildFile mDumpFile i
+
+            BuilderMessage msg ->
+                Build.writeBuild mBuildFile msg
 
 
 
