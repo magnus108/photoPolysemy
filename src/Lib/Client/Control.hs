@@ -2,6 +2,8 @@ module Lib.Client.Control
     ( controlSection
     ) where
 
+import Lib.App (Action(..))
+import qualified Control.Concurrent.Chan as Chan
 
 import Graphics.UI.Threepenny.Core
 import qualified Graphics.UI.Threepenny as UI
@@ -85,7 +87,8 @@ controlSection env@Env{..} win translation tabs bModel = do
             case toJust (Lens.view Model.unModel model) of
                 Nothing -> return ()
                 Just item'  -> do
-                    _ <- Grade.writeGrades mGradesFile (Lens.view Model.grades item')
+                    _ <- 
+                        Chan.writeChan chan $ WriteGrades (Lens.view Model.grades item')
                     return ()
 
 

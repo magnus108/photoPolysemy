@@ -1,6 +1,8 @@
 module Lib.Client.Doneshooting
     ( doneshootingSection
     ) where
+import Lib.App (Action(..))
+import qualified Control.Concurrent.Chan as Chan
 
 import Graphics.UI.Threepenny.Core
 import qualified Graphics.UI.Threepenny as UI
@@ -29,7 +31,7 @@ mkDoneshooting Env{..} translations model = do
                        [ mkFolderPicker "doneshootingPicker" (Lens.view folderPicker translations) $ \folder ->
                             when (folder /= "") $
                                 -- todo: handle bad input
-                                void $ writeDoneshooting mDoneshootingFile (Doneshooting folder)
+                                void $ Chan.writeChan chan (WriteDoneshooting  (Doneshooting folder))
                         ]
                     ]
 
@@ -39,7 +41,7 @@ mkDoneshooting Env{..} translations model = do
                         [mkFolderPicker "doneshootingPicker" (Lens.view folderPicker translations) $ \folder ->
                             when (folder /= "") $
                                 -- todo: handle bad input
-                                void $ writeDoneshooting mDoneshootingFile (Doneshooting folder)
+                                void $ Chan.writeChan chan (WriteDoneshooting  (Doneshooting folder))
                         ]
                    ]
 

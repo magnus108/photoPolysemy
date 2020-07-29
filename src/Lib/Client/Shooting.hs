@@ -2,6 +2,9 @@ module Lib.Client.Shooting
     ( shootingsSection
     ) where
 
+import Lib.App (Action(..))
+import qualified Control.Concurrent.Chan as Chan
+
 import           Reactive.Threepenny
 
 import Graphics.UI.Threepenny.Core
@@ -46,7 +49,8 @@ shootingsSection env@Env{..} win translations tabs bModel = do
                         when (file /= "") $ do
                             --TODO er det engentligt det her man vil?
                             parseShootings <- liftIO $ getShootings' file
-                            forM_ parseShootings $ writeShootings mShootingsFile
+                            forM_ parseShootings $ 
+                                Chan.writeChan chan . WriteShooting
 
                     section <- UI.div #. "section" # set children [err, err', picker]
                     _ <- element content # set children [section]
@@ -84,7 +88,8 @@ shootingsSection env@Env{..} win translations tabs bModel = do
                         when (file /= "") $ do
                             --TODO er det engentligt det her man vil?
                             parseShootings <- liftIO $ getShootings' file
-                            forM_ parseShootings $ writeShootings mShootingsFile
+                            forM_ parseShootings $ 
+                                Chan.writeChan chan . WriteShooting
 
                     section <- UI.div #. "section" # set children [err, err', picker]
                     _ <- element content # set children [section]
@@ -119,7 +124,7 @@ mkShooting Env{..} translations (shooting, isCenter, shootings)
     | otherwise = do
         button <- mkButton "idd" name #. "button is-large"
         UI.on UI.click button $ \_ ->
-                writeShootings mShootingsFile shootings
+                liftIO $ Chan.writeChan chan (WriteShooting shootings)
         return button
     where
         translator = case shooting of

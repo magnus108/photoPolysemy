@@ -2,6 +2,8 @@ module Lib.Client.DagsdatoBackup
     ( dagsdatoBackupSection
     ) where
 
+import Lib.App (Action(..))
+import qualified Control.Concurrent.Chan as Chan
 
 import Graphics.UI.Threepenny.Core
 import qualified Graphics.UI.Threepenny as UI
@@ -30,7 +32,7 @@ mkDagsdatoBackup Env{..} translations model = do
                        [ mkFolderPicker "dagsdatoBackupPicker" (Lens.view folderPicker translations) $ \folder ->
                             when (folder /= "") $
                                 -- todo: handle bad input
-                                void $ writeDagsdatoBackup mDagsdatoBackupFile (DagsdatoBackup folder)
+                                void $ Chan.writeChan chan (WriteDagsdatoBackup (DagsdatoBackup folder))
                         ]
                     ]
 
@@ -40,7 +42,7 @@ mkDagsdatoBackup Env{..} translations model = do
                         [mkFolderPicker "dagsdatoPicker" (Lens.view folderPicker translations) $ \folder ->
                             when (folder /= "") $
                                 -- todo: handle bad input
-                                void $ writeDagsdatoBackup mDagsdatoBackupFile (DagsdatoBackup folder)
+                                void $ Chan.writeChan chan (WriteDagsdatoBackup (DagsdatoBackup folder))
                         ]
                    ]
 

@@ -278,21 +278,32 @@ receiveMessages Env{..} hPhotographers hConfigDump hConfigDagsdato hConfigDagsda
                 Dump.getDump mDumpFile >>= \case
                     Left e' -> hConfigDump $ Dump.DumpModel (Failure e')
                     Right s -> hConfigDump $ Dump.DumpModel (Data s)
+            WriteDump dir -> 
+                writeDump mDumpFile dir
 
             ReadDagsdato ->
                 Dagsdato.getDagsdato mDagsdatoFile >>= \case
                         Left e' -> hConfigDagsdato $ Dagsdato.Model (Failure e')
                         Right s -> hConfigDagsdato $ Dagsdato.Model (Data s)
 
+            WriteDagsdato dagsdato' ->
+                writeDagsdato mDagsdatoFile dagsdato'
+
             ReadDagsdatoBackup ->
                 DagsdatoBackup.getDagsdatoBackup mDagsdatoBackupFile  >>= \case
                         Left e' -> hConfigDagsdatoBackup $ DagsdatoBackup.Model (Failure e')
                         Right s -> hConfigDagsdatoBackup $ DagsdatoBackup.Model (Data s)
 
+            WriteDagsdatoBackup dagsdatoBackup' ->
+                writeDagsdatoBackup mDagsdatoBackupFile dagsdatoBackup'
+
             ReadDoneshooting ->
                 Doneshooting.getDoneshooting mDoneshootingFile >>= \case
                     Left e' -> hConfigDoneshooting $ Doneshooting.Model (Failure e')
                     Right s -> hConfigDoneshooting $ Doneshooting.Model (Data s)
+
+            WriteDoneshooting dir ->
+                writeDoneshooting mDoneshootingFile dir
 
             ReadDoneshootingDir ->
                 Doneshooting.getDoneshootingDir mDoneshootingFile mCamerasFile mLocationConfigFile mGradesFile >>= \case
@@ -303,30 +314,49 @@ receiveMessages Env{..} hPhotographers hConfigDump hConfigDagsdato hConfigDagsda
                     Camera.getCameras mCamerasFile >>= \case
                         Left e' -> hCameras $ Camera.Model (Failure e')
                         Right s -> hCameras $ Camera.Model (Data s)
+
+            WriteCamera cameras' ->
+                Camera.writeCameras mCamerasFile cameras'
+
             ReadShooting ->
                 Shooting.getShootings mShootingsFile >>= \case
                     Left e' -> hShootings $ Shooting.Model (Failure e')
                     Right s -> hShootings $ Shooting.Model (Data s)
+
+            WriteShooting shootings' ->
+                Shooting.writeShootings mShootingsFile shootings'
 
             ReadSessions ->
                 Session.getSessions mSessionsFile >>= \case
                     Left e' -> hSessions $ Session.Model (Failure e')
                     Right s -> hSessions $ Session.Model (Data s)
 
+            WriteSessions sessions' ->
+                Session.writeSessions mSessionsFile sessions'
+
             ReadGrades ->
                 Grade.getGrades mGradesFile >>= \case
                     Left e' -> hGrades $ Grade.Model $ Failure e'
                     Right s -> hGrades $ Grade.Model $ Data s
+
+            WriteGrades grades' ->
+                Grade.writeGrades mGradesFile grades'
 
             ReadPhographees ->
                 Photographee.getPhotographees mPhotographeesFile >>= \case
                     Left e' -> hPhotographees $ Photographee.Model (Failure e')
                     Right s -> hPhotographees $ Photographee.Model (Data s)
 
+            WritePhotographees photographees' ->
+                Photographee.writePhotographees mPhotographeesFile photographees'
+
             ReadLocation ->
                 Location.getLocationFile mLocationConfigFile >>= \case
                         Left e' -> hLocationConfigFile $ Location.Model (Failure e')
                         Right s -> hLocationConfigFile $ Location.Model (Data s)
+
+            WriteLocation loc -> 
+                Location.writeLocationFile  mLocationConfigFile loc
 
             ReadDumpDir ->
                  Dump.getDumpDir mDumpFile mCamerasFile >>= \case

@@ -7,6 +7,9 @@ module Lib.Client.Location
     )
 where
 
+import Lib.App (Action(..))
+import qualified Control.Concurrent.Chan as Chan
+
 import           Data.Char
 import           Lib.Client.Utils
 import qualified Control.Lens                  as Lens
@@ -107,7 +110,8 @@ sinkModel env@Env{..} win translations bModel = do
                     --      $ \file -> when (file /= "") $ void $ Location.writeLocationFile mLocationConfigFile (Location.LocationFile file)
 
                     pick <- mkFilePicker "locationFilePicker" (Lens.view pickLocation translations)
-                                    $ \file -> when (file /= "") $ void $ Location.writeLocationFile  mLocationConfigFile (Location.LocationFile file)
+                                    $ \file -> when (file /= "") $ void $ 
+                                        Chan.writeChan chan (WriteLocation (Location.LocationFile file))
 
                     pickers <- UI.div #. "buttons has-addons" # set children [pick] -- , make]
 
@@ -190,7 +194,7 @@ sinkModel env@Env{..} win translations bModel = do
                 Nothing -> return ()
                 Just item'  -> do
                     --Location.writeLocationFile mLocationConfigFile (location i)
-                    _ <- Grade.writeGrades mGradesFile (grades item')
+                    _ <- Chan.writeChan chan (WriteGrades (grades item'))
                     return ()
 
     return (input, content)
@@ -244,7 +248,8 @@ locationFileView Env {..} translations locationFile = do
      --       $ \file -> when (file /= "") $ void $ Location.writeLocationFile mLocationConfigFile (Location.LocationFile file)
 
     let pick = mkFilePicker "locationFilePicker" (Lens.view pickLocation translations)
-                    $ \file -> when (file /= "") $ void $ Location.writeLocationFile  mLocationConfigFile (Location.LocationFile file)
+                    $ \file -> when (file /= "") $ void $ do
+                        Chan.writeChan chan (WriteLocation (Location.LocationFile file))
 
     let pickers = UI.div #. "buttons has-addons" #+ [pick] --, make]
 

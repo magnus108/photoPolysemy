@@ -2,6 +2,8 @@ module Lib.Client.Session
     ( sessionsSection
     ) where
 
+import Lib.App (Action(..))
+import qualified Control.Concurrent.Chan as Chan
 
 import           Reactive.Threepenny
 import Graphics.UI.Threepenny.Core
@@ -115,7 +117,8 @@ sessionsSection env@Env{..} win translations tabs bModel = do
                     when (file /= "") $ do
                         --TODO er det engentligt det her man vil?
                         parseSessions <- liftIO $ getSessions' file
-                        forM_ parseSessions $ writeSessions mSessionsFile
+                        forM_ parseSessions $ 
+                            Chan.writeChan chan . WriteSessions
 
                 child <- UI.div # set children [err, err', picker]
                 _ <- element content # set children [child]
@@ -173,7 +176,8 @@ mkParent Env{..} translations (Sessions sessions) = do
     chooseButton <- mkButton "idd" name
     UI.on UI.click chooseButton $ \_ ->
             --TODO get rid of either by using extend
-            forM_ (fmap Sessions (TZ.up sessions)) $ writeSessions mSessionsFile
+            forM_ (fmap Sessions (TZ.up sessions)) $ 
+                Chan.writeChan chan . WriteSessions
     UI.div #. "buttons addons" #+ [element chooseButton]
 
 
@@ -182,7 +186,8 @@ mkDecision Env{..} translations (Sessions sessions) decision = do
     let name = translationDecision decision translations
     chooseButton <- mkButton "idd" name
     UI.on UI.click chooseButton $ \_ ->
-            forM_ (fmap Sessions (TZ.down (Left decision) sessions)) $ writeSessions mSessionsFile
+            forM_ (fmap Sessions (TZ.down (Left decision) sessions)) $ 
+                Chan.writeChan chan . WriteSessions
     return chooseButton
 
 
@@ -193,7 +198,8 @@ mkSession Env{..} translations (Sessions sessions) session = do
     chooseButton <- mkButton "idd" name
     UI.on UI.click chooseButton $ \_ ->
             --TODO get rid of either by using extend
-            forM_ (fmap Sessions (TZ.down (Right session) sessions)) $ writeSessions mSessionsFile
+            forM_ (fmap Sessions (TZ.down (Right session) sessions)) $ do
+                Chan.writeChan chan . WriteSessions
     return chooseButton
     -}
 
@@ -222,7 +228,8 @@ sessionsSection env@Env{..} win translations tabs bModel = do
                         when (file /= "") $ do
                             --TODO er det engentligt det her man vil?
                             parseSessions <- liftIO $ getSessions' file
-                            forM_ parseSessions $ writeSessions mSessionsFile
+                            forM_ parseSessions $ 
+                                Chan.writeChan chan . WriteSessions
 
                     child <- UI.div # set children [err, errMsg, picker]
                     _ <- element content # set children [child]
@@ -260,7 +267,8 @@ sessionsSection env@Env{..} win translations tabs bModel = do
                     when (file /= "") $ do
                         --TODO er det engentligt det her man vil?
                         parseSessions <- liftIO $ getSessions' file
-                        forM_ parseSessions $ writeSessions mSessionsFile
+                        forM_ parseSessions $ 
+                            Chan.writeChan chan . WriteSessions
 
                 child <- UI.div # set children [err, errMsg, picker]
                 _ <- element content # set children [child]
@@ -298,5 +306,5 @@ mkSession Env{..} translations (session, isCenter, sessions)
         let name = translationSession session translations
         button <- mkButton "idd" name #. "button"
         UI.on UI.click button $ \_ ->
-                writeSessions mSessionsFile sessions
+                liftIO $ Chan.writeChan chan (WriteSessions sessions)
         return button

@@ -2,6 +2,8 @@ module Lib.Client.Dump
     ( dumpSection
     ) where
 
+import Lib.App (Action(..))
+import qualified Control.Concurrent.Chan as Chan
 
 import Graphics.UI.Threepenny.Core
 import qualified Graphics.UI.Threepenny as UI
@@ -32,7 +34,7 @@ mkDump Env{..} translations model = do
                        [ mkFolderPicker "dumpPicker" (Lens.view folderPicker translations) $ \folder ->
                             when (folder /= "") $
                                 -- todo: handle bad input
-                                void $ writeDump mDumpFile (Dump folder)
+                                void $ Chan.writeChan chan ( WriteDump (Dump folder))
                         ]
                     ]
 
@@ -42,7 +44,7 @@ mkDump Env{..} translations model = do
                         [mkFolderPicker "dumpPicker" (Lens.view folderPicker translations) $ \folder ->
                             when (folder /= "") $
                                 -- todo: handle bad input
-                                void $ writeDump mDumpFile (Dump folder)
+                                void $ Chan.writeChan chan ( WriteDump (Dump folder))
                         ]
                    ]
 

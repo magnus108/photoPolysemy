@@ -2,6 +2,9 @@ module Lib.Client.Dagsdato
     ( dagsdatoSection
     ) where
 
+import Lib.App (Action(..))
+import qualified Control.Concurrent.Chan as Chan
+
 import Graphics.UI.Threepenny.Core
 import qualified Graphics.UI.Threepenny as UI
 
@@ -29,7 +32,8 @@ mkDagsdato Env{..} translations model = do
                        [ mkFolderPicker "dagsdatoPicker" (Lens.view folderPicker translations) $ \folder ->
                             when (folder /= "") $
                                 -- todo: handle bad input
-                                void $ writeDagsdato mDagsdatoFile (Dagsdato folder)
+                                void $ do
+                                    Chan.writeChan chan (WriteDagsdato (Dagsdato folder))
                         ]
                     ]
 
@@ -39,7 +43,7 @@ mkDagsdato Env{..} translations model = do
                         [mkFolderPicker "dagsdatoPicker" (Lens.view folderPicker translations) $ \folder ->
                             when (folder /= "") $
                                 -- todo: handle bad input
-                                void $ writeDagsdato mDagsdatoFile (Dagsdato folder)
+                                void $ Chan.writeChan chan (WriteDagsdato (Dagsdato folder))
                         ]
                    ]
 

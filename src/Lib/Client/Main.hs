@@ -3,6 +3,8 @@ module Lib.Client.Main
     , mkModel
     ) where
 
+import Lib.App (Action(..))
+import qualified Control.Concurrent.Chan as Chan
 import Lib.Data
 import qualified Lib.Main as Main
 import qualified Lib.Server.Build as SBuild
@@ -81,7 +83,7 @@ mkPhotographee Env{..} (photographee, isCenter, photographees)
         let name = Photographee.toName' photographee
         button <- mkButton name name
         UI.on UI.click button $ \_ ->
-            Photographee.writePhotographees mPhotographeesFile photographees
+            liftIO $ Chan.writeChan chan ( WritePhotographees photographees)
         UI.div #. "section" #+ [element button]
 
 
@@ -313,7 +315,8 @@ sinkModel env@Env{..} win translations bModel = do
                 Nothing -> return ()
                 Just item'  -> do
                     --Location.writeLocationFile mLocationConfigFile (location i)
-                    _ <- Photographee.writePhotographees mPhotographeesFile (Main._photographees item')
+                    --
+                    _ <- Chan.writeChan chan ( WritePhotographees (Main._photographees item'))
                     return ()
 
     _ <- onEvent ee $ \model -> do
@@ -322,7 +325,7 @@ sinkModel env@Env{..} win translations bModel = do
                 Nothing -> return ()
                 Just item'  -> do
                     --Location.writeLocationFile mLocationConfigFile (location i)
-                    _ <- Grade.writeGrades mGradesFile (Main._grades item')
+                    _ <- Chan.writeChan chan (WriteGrades ( Main._grades item'))
                     return ()
 
     return (input, content)

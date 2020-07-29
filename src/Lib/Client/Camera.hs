@@ -2,6 +2,8 @@ module Lib.Client.Camera
     ( camerasSection
     ) where
 
+import Lib.App (Action(..))
+import qualified Control.Concurrent.Chan as Chan
 
 import           Reactive.Threepenny
 import Graphics.UI.Threepenny.Core
@@ -45,7 +47,8 @@ camerasSection env@Env{..} win translations tabs bModel = do
                         when (file /= "") $ do
                             --TODO er det engentligt det her man vil?
                             parseCameras <- liftIO $ getCameras' file
-                            forM_ parseCameras $ writeCameras mCamerasFile
+                            forM_ parseCameras $ 
+                                Chan.writeChan chan . WriteCamera
 
                     section <- UI.div # set children [err, errMsg, picker]
 
@@ -84,7 +87,8 @@ camerasSection env@Env{..} win translations tabs bModel = do
                     when (file /= "") $ do
                         --TODO er det engentligt det her man vil?
                         parseCameras <- liftIO $ getCameras' file
-                        forM_ parseCameras $ writeCameras mCamerasFile
+                        forM_ parseCameras $ do
+                                Chan.writeChan chan . WriteCamera
 
                 section <- UI.div # set children [err, errMsg, picker]
                 _ <- element content # set children [section]
@@ -122,7 +126,7 @@ mkCamera Env{..} translations (camera, isCenter, cameras)
     | otherwise = do
         button <- mkButton "idd" name #. "button is-large"
         UI.on UI.click button $ \_ ->
-                writeCameras mCamerasFile cameras
+                liftIO $ Chan.writeChan chan (WriteCamera cameras)
         return button
     where
         translator = case camera of

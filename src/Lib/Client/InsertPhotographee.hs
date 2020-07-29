@@ -5,6 +5,8 @@ module Lib.Client.InsertPhotographee
     , unModel
     , location
     ) where
+import Lib.App (Action(..))
+import qualified Control.Concurrent.Chan as Chan
 
 import Lib.Data
 
@@ -341,7 +343,7 @@ sinkModel env@Env{..} win translations bModel = do
                 Nothing -> return ()
                 Just item'  -> do
                     --Location.writeLocationFile mLocationConfigFile (location i)
-                    _ <- Photographee.writePhotographees mPhotographeesFile (_photographees item')
+                    _ <- Chan.writeChan chan (WritePhotographees (_photographees item'))
                     return ()
 
 
@@ -351,7 +353,7 @@ sinkModel env@Env{..} win translations bModel = do
                 Nothing -> return ()
                 Just item'  -> do
                     --Location.writeLocationFile mLocationConfigFile (location i)
-                    _ <- Grade.writeGrades mGradesFile (_grades item')
+                    _ <- Chan.writeChan chan (WriteGrades (_grades item'))
                     return ()
 
     return content
