@@ -186,7 +186,7 @@ fromGrade locationFile grades = do
             Left _ -> return (Left "fejl")
             Right locData -> do
                 let photographees = Vector.filter (((Grade.showGrade grades) ==) . gradeData) locData
-                let zipper = ListZipper.fromList $ fmap (\x -> Known $ photographee (teaData x) (nameData x) (identData x)) $ Vector.toList photographees
+                let zipper = ListZipper.fromList $ fmap (\x -> Known $ photographee (teaData x) (nameData x) (identData x)) $ sortOn nameData $ Vector.toList photographees
                 case zipper of
                     Nothing -> return (Left "fejl")
                     Just zs -> return (Right (Photographees zs))

@@ -58,6 +58,13 @@ data Action
 
     | ReadDumpDir
     | WriteDumpDir Dump.DumpDir
+
+    | SDirDagsdatoBackup
+    | SDirDagsdato
+    | SConfigLocationFile 
+    | SGrades
+    | SConfigCameras 
+
         deriving Show
 
 data Env = Env

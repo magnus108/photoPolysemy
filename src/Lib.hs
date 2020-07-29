@@ -117,41 +117,41 @@ runServer port env@Env{..} = do
         stopBuild <- build mgr mBuildFile watchers hBuild
 
         --Photographers
-        stopConfigPhotographers <- configPhotographers mgr mPhotographersFile watchers hPhotographers
+        stopConfigPhotographers <- configPhotographers env mgr mPhotographersFile watchers hPhotographers
 
         --Grades
-        stopGrades <- grades mgr mGradesFile mLocationConfigFile mPhotographeesFile mDoneshootingFile mCamerasFile watchers hGrades hDirDoneshooting
+        stopGrades <- grades env mgr mGradesFile mLocationConfigFile mPhotographeesFile mDoneshootingFile mCamerasFile watchers hGrades hDirDoneshooting
 
         --Grades
-        stopPhotographees <- photographees mgr mPhotographeesFile watchers hPhotographees
+        stopPhotographees <- photographees env mgr mPhotographeesFile watchers hPhotographees
 
         --Dump
-        stopConfigDump <- configDump mgr mDumpFile mCamerasFile watchers hConfigDump hDumpDir
-        stopDirDump <- dirDump mgr mDumpFile mCamerasFile watchers hDumpDir
+        stopConfigDump <- configDump env mgr mDumpFile mCamerasFile watchers hConfigDump hDumpDir
+        stopDirDump <- dirDump env mgr mDumpFile mCamerasFile watchers hDumpDir
 
         --Dagsdato
-        stopConfigDagsdato <- configDagsdato mgr mDagsdatoFile watchers hConfigDagsdato hDirDagsdato
-        stopDirDagsdato <- dirDagsdato mgr mDagsdatoFile watchers hDirDagsdato
+        stopConfigDagsdato <- configDagsdato env mgr mDagsdatoFile watchers hConfigDagsdato hDirDagsdato
+        stopDirDagsdato <- dirDagsdato env mgr mDagsdatoFile watchers hDirDagsdato
 
         --Dagsdato backup
-        stopConfigDagsdatoBackup <- configDagsdatoBackup mgr mDagsdatoBackupFile watchers hConfigDagsdatoBackup hDirDagsdatoBackup
-        stopDirDagsdatoBackup <- dirDagsdatoBackup mgr mDagsdatoBackupFile watchers hDirDagsdatoBackup
+        stopConfigDagsdatoBackup <- configDagsdatoBackup env mgr mDagsdatoBackupFile watchers hConfigDagsdatoBackup hDirDagsdatoBackup
+        stopDirDagsdatoBackup <- dirDagsdatoBackup env mgr mDagsdatoBackupFile watchers hDirDagsdatoBackup
 
         --Doneshooting
-        stopConfigDoneshooting <- configDoneshooting mgr mDoneshootingFile mCamerasFile mLocationConfigFile mGradesFile watchers hConfigDoneshooting hDirDoneshooting
-        stopDirDoneshooting <- dirDoneshooting mgr mDoneshootingFile mCamerasFile mLocationConfigFile mGradesFile watchers hDirDoneshooting
+        stopConfigDoneshooting <- configDoneshooting env mgr mDoneshootingFile mCamerasFile mLocationConfigFile mGradesFile watchers hConfigDoneshooting hDirDoneshooting
+        stopDirDoneshooting <- dirDoneshooting env mgr mDoneshootingFile mCamerasFile mLocationConfigFile mGradesFile watchers hDirDoneshooting
 
         --Cameras
-        stopConfigCameras <- configCameras mgr mCamerasFile mLocationConfigFile mDumpFile mDoneshootingFile mGradesFile watchers hCameras hDumpDir hDirDoneshooting
+        stopConfigCameras <- configCameras env mgr mCamerasFile mLocationConfigFile mDumpFile mDoneshootingFile mGradesFile watchers hCameras hDumpDir hDirDoneshooting
 
         --Shootings
-        stopConfigShootings <- configShootings mgr mShootingsFile watchers hShootings
+        stopConfigShootings <- configShootings env mgr mShootingsFile watchers hShootings
 
         --Sessions
-        stopConfigSessions <- configSessions mgr mSessionsFile watchers hSessions
+        stopConfigSessions <- configSessions env mgr mSessionsFile watchers hSessions
 
         --Location
-        stopConfigLocationFile <- configLocationFile mgr mDoneshootingFile mCamerasFile mLocationConfigFile mGradesFile watchers hLocationConfigFile hDirDoneshooting
+        stopConfigLocationFile <- configLocationFile env mgr mDoneshootingFile mCamerasFile mLocationConfigFile mGradesFile watchers hLocationConfigFile hDirDoneshooting
 
         --Tabs
         stopConfigTab <- configTab mgr mTabsFile watchers hTab
@@ -255,13 +255,13 @@ runServer port env@Env{..} = do
         translations <- Translation.read mTranslationFile
         --VERY important this is here.. BADNESS FIX AT THE END
 
-        _ <- liftIO $ forkIO $ receiveMessages env hPhotographers hConfigDump hConfigDagsdato hConfigDagsdatoBackup hConfigDoneshooting hDirDoneshooting hCameras hShootings hSessions hGrades hPhotographees hLocationConfigFile hDumpDir chan
+        _ <- liftIO $ forkIO $ receiveMessages env hPhotographers hConfigDump hConfigDagsdato hConfigDagsdatoBackup hConfigDoneshooting hDirDoneshooting hCameras hShootings hSessions hGrades hPhotographees hLocationConfigFile hDumpDir hDirDagsdatoBackup  hDirDagsdato chan
 
         Server.run port env (fromJust (rightToMaybe translations)) bDoneshootingDir bBuild bGrades bLocationConfigFile bSessions bShootings bCameras bDump bDumpDir bDoneshooting bDagsdato bDagsdatoBackup eTabs bPhotographers bPhotographees hGrades hLocationConfigFile hConfigDump hDumpDir hPhotographees
 
 
-receiveMessages :: Env -> Handler Photographer.Model -> Handler Dump.DumpModel -> Handler Dagsdato.Model -> Handler DagsdatoBackup.Model -> Handler Doneshooting.Model -> Handler Doneshooting.DoneshootingDirModel -> Handler Camera.Model -> Handler Shooting.Model -> Handler Session.Model -> Handler Grade.Model -> Handler Photographee.Model -> Handler Location.Model -> Handler Dump.DumpDirModel -> Chan.Chan App.Action -> IO ()
-receiveMessages Env{..} hPhotographers hConfigDump hConfigDagsdato hConfigDagsdatoBackup hConfigDoneshooting  hDirDoneshooting  hCameras hShootings  hSessions hGrades hPhotographees hLocationConfigFile  hDumpDir msgs = do
+receiveMessages :: Env -> Handler Photographer.Model -> Handler Dump.DumpModel -> Handler Dagsdato.Model -> Handler DagsdatoBackup.Model -> Handler Doneshooting.Model -> Handler Doneshooting.DoneshootingDirModel -> Handler Camera.Model -> Handler Shooting.Model -> Handler Session.Model -> Handler Grade.Model -> Handler Photographee.Model -> Handler Location.Model -> Handler Dump.DumpDirModel -> Handler () -> Handler () -> Chan.Chan App.Action -> IO ()
+receiveMessages Env{..} hPhotographers hConfigDump hConfigDagsdato hConfigDagsdatoBackup hConfigDoneshooting  hDirDoneshooting  hCameras hShootings  hSessions hGrades hPhotographees hLocationConfigFile  hDumpDir hDirDagsdatoBackup hDirDagsdato msgs = do
     messages <- Chan.getChanContents msgs
     forM_ messages $ \msg -> do
         traceShowM msg
@@ -363,6 +363,48 @@ receiveMessages Env{..} hPhotographers hConfigDump hConfigDagsdato hConfigDagsda
                         Left e' -> hDumpDir $ DumpDirModel (Failure e')
                         Right s -> hDumpDir $ DumpDirModel (Data s)
 
+            SDirDagsdatoBackup -> hDirDagsdatoBackup ()
+            SDirDagsdato -> hDirDagsdato ()
+
+            SConfigLocationFile -> do
+                filepath' <- readMVar mLocationConfigFile
+                locationFile <- Location.getLocationFile' filepath'
+                grades' <- mapM Photographee.parseGrades locationFile
+                let grades'' = either (const (Grade.Grades (ListZipper [] (Grade.Unknown (Grade.Grade' "")) []))) id (join grades')
+                _ <- Location.getLocationFile mLocationConfigFile >>= \case
+                    Left e' -> hLocationConfigFile $ Location.Model (Failure e')
+                    Right s -> hLocationConfigFile $ Location.Model (Data s)
+
+                getDoneshootingDir mDoneshootingFile mCamerasFile mLocationConfigFile mGradesFile >>= \case
+                    Left e' -> hDirDoneshooting $ DoneshootingDirModel (Failure e')
+                    Right s -> hDirDoneshooting $ DoneshootingDirModel (Data s)
+
+                void $ Grade.writeGrades mGradesFile grades''
+
+            SGrades -> do
+                _ <- Grade.getGrades mGradesFile >>= \case
+                        Left e' -> hGrades $ Grade.Model $ Failure e'
+                        Right s -> hGrades $ Grade.Model $ Data s
+                
+                Photographee.reloadPhotographees mGradesFile mLocationConfigFile mPhotographeesFile
+
+                getDoneshootingDir mDoneshootingFile mCamerasFile mLocationConfigFile mGradesFile >>= \case
+                    Left e' -> hDirDoneshooting $ DoneshootingDirModel (Failure e')
+                    Right s -> hDirDoneshooting $ DoneshootingDirModel (Data s)
+
+            SConfigCameras -> do
+                _ <- Camera.getCameras mCamerasFile >>= \case
+                    Left e' -> hCameras $ Camera.Model (Failure e')
+                    Right s -> hCameras $ Camera.Model (Data s)
+
+                getDumpDir mDumpFile mCamerasFile >>= \case
+                    Left e' -> hDumpDir $ DumpDirModel (Failure e')
+                    Right s -> hDumpDir $ DumpDirModel (Data s)
+
+                getDoneshootingDir mDoneshootingFile mCamerasFile mLocationConfigFile mGradesFile >>= \case
+                    Left e' -> hDirDoneshooting $ DoneshootingDirModel (Failure e')
+                    Right s -> hDirDoneshooting $ DoneshootingDirModel (Data s)
+
 
 type WatchMap = MVar (HashMap String StopListening)
 
@@ -397,8 +439,8 @@ configTab mgr mTabsFile _ handler = do
         )
 
 
-configLocationFile :: WatchManager -> MVar FilePath -> MVar FilePath -> MVar FilePath -> MVar FilePath ->  WatchMap -> Handler Location.Model -> Handler (Doneshooting.DoneshootingDirModel) -> IO StopListening
-configLocationFile mgr mDoneshootingFile mCamerasFile mLocationConfigFile mGradesFile _ handler handleDonshootingDir = do
+configLocationFile :: Env -> WatchManager -> MVar FilePath -> MVar FilePath -> MVar FilePath -> MVar FilePath ->  WatchMap -> Handler Location.Model -> Handler (Doneshooting.DoneshootingDirModel) -> IO StopListening
+configLocationFile env mgr mDoneshootingFile mCamerasFile mLocationConfigFile mGradesFile _ handler handleDonshootingDir = do
     filepath <- readMVar mLocationConfigFile
     watchDir
         mgr
@@ -407,25 +449,13 @@ configLocationFile mgr mDoneshootingFile mCamerasFile mLocationConfigFile mGrade
         (\e -> do
             --TODO madness of baddness
             print e
-            filepath' <- readMVar mLocationConfigFile
-            locationFile <- Location.getLocationFile' filepath'
-            grades' <- mapM Photographee.parseGrades locationFile
-            let grades'' = either (const (Grade.Grades (ListZipper [] (Grade.Unknown (Grade.Grade' "")) []))) id (join grades')
-            _ <- Location.getLocationFile mLocationConfigFile >>= \case
-                Left e' -> handler $ Location.Model (Failure e')
-                Right s -> handler $ Location.Model (Data s)
-
-            getDoneshootingDir mDoneshootingFile mCamerasFile mLocationConfigFile mGradesFile >>= \case
-                Left e' -> handleDonshootingDir $ DoneshootingDirModel (Failure e')
-                Right s -> handleDonshootingDir $ DoneshootingDirModel (Data s)
-
-            void $ Grade.writeGrades mGradesFile grades''
+            Chan.writeChan (chan env) SConfigLocationFile
         )`catch` (\( _ :: SomeException ) -> return $ return () ) --TODO this sucks
 
 
 -- der skal skydes et lag in herimellem der kan lytte på locationen
-photographees :: WatchManager -> MVar FilePath -> WatchMap -> Handler Photographee.Model -> IO StopListening
-photographees mgr mPhotographeesFile _ handler = do
+photographees :: Env -> WatchManager -> MVar FilePath -> WatchMap -> Handler Photographee.Model -> IO StopListening
+photographees env mgr mPhotographeesFile _ handler = do
     filepath <- readMVar mPhotographeesFile
     watchDir
         mgr
@@ -433,43 +463,34 @@ photographees mgr mPhotographeesFile _ handler = do
         (\e -> eventPath e == filepath)
         (\e -> void $ do
             print e
-            Photographee.getPhotographees mPhotographeesFile >>= \case
-                Left e' -> handler $ Photographee.Model (Failure e')
-                Right s -> handler $ Photographee.Model (Data s)
+            Chan.writeChan (chan env) ReadPhographees
         )`catch` (\( _ :: SomeException ) -> do
             -- ikke helt nok for den skal jo også laves på ny hvis den mangler
-            handler $ Photographee.Model (Failure "Der er en fejl med Photographees")
+            ----------------------------------------------------- handler $ Photographee.Model (Failure "Der er en fejl med Photographees")
             return $ return () ) --TODO this sucks
 
 
 -- der skal skydes et lag in herimellem der kan lytte på locationen
-grades :: WatchManager -> MVar FilePath -> MVar FilePath -> MVar FilePath -> MVar FilePath -> MVar FilePath -> WatchMap -> Handler Grade.Model -> Handler DoneshootingDirModel -> IO StopListening
-grades mgr mGradesFile mLocationConfigFile mPhotographeesFile mDoneshootingFile mCamerasFile watchMap handler handleDonshootingDir = do
+grades :: Env -> WatchManager -> MVar FilePath -> MVar FilePath -> MVar FilePath -> MVar FilePath -> MVar FilePath -> WatchMap -> Handler Grade.Model -> Handler DoneshootingDirModel -> IO StopListening
+grades env mgr mGradesFile mLocationConfigFile mPhotographeesFile mDoneshootingFile mCamerasFile watchMap handler handleDonshootingDir = do
     filepath <- readMVar mGradesFile
     watchDir
         mgr
         (dropFileName filepath)
         (\e -> eventPath e == filepath)
         (\_ -> void $ do
-            _ <- Grade.getGrades mGradesFile >>= \case
-                    Left e' -> handler $ Grade.Model $ Failure e'
-                    Right s -> handler $ Grade.Model $ Data s
-            Photographee.reloadPhotographees mGradesFile mLocationConfigFile mPhotographeesFile
-
-            getDoneshootingDir mDoneshootingFile mCamerasFile mLocationConfigFile mGradesFile >>= \case
-                Left e' -> handleDonshootingDir $ DoneshootingDirModel (Failure e')
-                Right s -> handleDonshootingDir $ DoneshootingDirModel (Data s)
+            Chan.writeChan (chan env) SGrades
 
             modifyMVar_ watchMap $ \ h -> do
                 h HashMap.! "stopDirDoneshooting"
-                stopDirDoneshooting <- dirDoneshooting mgr mDoneshootingFile mCamerasFile mLocationConfigFile mGradesFile watchMap handleDonshootingDir
+                stopDirDoneshooting <- dirDoneshooting env mgr mDoneshootingFile mCamerasFile mLocationConfigFile mGradesFile watchMap handleDonshootingDir
                 return $ HashMap.insert "stopDirDoneshooting" stopDirDoneshooting  h
 
         )`catch` (\( _ :: SomeException ) -> return $ return () ) --TODO this sucks
 
 
-configPhotographers :: WatchManager -> MVar FilePath -> WatchMap -> Handler Photographer.Model -> IO StopListening
-configPhotographers mgr mFilepath _ handler = do
+configPhotographers :: Env -> WatchManager -> MVar FilePath -> WatchMap -> Handler Photographer.Model -> IO StopListening
+configPhotographers env mgr mFilepath _ handler = do
     filepath <- readMVar mFilepath
     watchDir
         mgr
@@ -480,14 +501,12 @@ configPhotographers mgr mFilepath _ handler = do
         --TODO SPAWNER THREAD SOM IKKE DØR
         (\e -> void $ do
             print e 
-            getPhotographers mFilepath >>= \case
-                Left e' -> handler $ Photographer.Model (Failure e')
-                Right s -> handler $ Photographer.Model (Data s)
+            Chan.writeChan (chan env) ReadPhographers
         )`catch` (\( _ :: SomeException ) -> return $ return () ) --TODO this sucks
 
 
-configSessions :: WatchManager -> MVar FilePath -> WatchMap -> Handler Session.Model -> IO StopListening
-configSessions mgr mSessionsFile _ handler = do
+configSessions :: Env -> WatchManager -> MVar FilePath -> WatchMap -> Handler Session.Model -> IO StopListening
+configSessions env mgr mSessionsFile _ handler = do
     filepath <- readMVar mSessionsFile
     watchDir
         mgr
@@ -495,14 +514,12 @@ configSessions mgr mSessionsFile _ handler = do
         (\e -> eventPath e == filepath)
         (\e -> do
             print e 
-            Session.getSessions mSessionsFile >>= \case
-                    Left e' -> handler $ Session.Model (Failure e')
-                    Right s -> handler $ Session.Model (Data s)
+            Chan.writeChan (chan env) ReadSessions
         )`catch` (\( _ :: SomeException ) -> return $ return () ) --TODO this sucks
 
 
-configCameras :: WatchManager -> MVar FilePath -> MVar FilePath -> MVar FilePath -> MVar FilePath -> MVar FilePath -> WatchMap -> Handler Camera.Model -> Handler (Dump.DumpDirModel) -> Handler (Doneshooting.DoneshootingDirModel) -> IO StopListening
-configCameras mgr mCamerasFile mLocationConfigFile mDumpFile mDoneshootingFile mGradesFile _ handler handleDumpDir handleDonshootingDir = do
+configCameras :: Env -> WatchManager -> MVar FilePath -> MVar FilePath -> MVar FilePath -> MVar FilePath -> MVar FilePath -> WatchMap -> Handler Camera.Model -> Handler (Dump.DumpDirModel) -> Handler (Doneshooting.DoneshootingDirModel) -> IO StopListening
+configCameras env mgr mCamerasFile mLocationConfigFile mDumpFile mDoneshootingFile mGradesFile _ handler handleDumpDir handleDonshootingDir = do
     filepath <- readMVar mCamerasFile
     watchDir
         mgr
@@ -510,23 +527,14 @@ configCameras mgr mCamerasFile mLocationConfigFile mDumpFile mDoneshootingFile m
         (\e -> eventPath e == filepath)
         (\e -> do
             print e
-            _ <- Camera.getCameras mCamerasFile >>= \case
-                Left e' -> handler $ Camera.Model (Failure e')
-                Right s -> handler $ Camera.Model (Data s)
 
-            getDumpDir mDumpFile mCamerasFile >>= \case
-                Left e' -> handleDumpDir $ DumpDirModel (Failure e')
-                Right s -> handleDumpDir $ DumpDirModel (Data s)
-
-            getDoneshootingDir mDoneshootingFile mCamerasFile mLocationConfigFile mGradesFile >>= \case
-                Left e' -> handleDonshootingDir $ DoneshootingDirModel (Failure e')
-                Right s -> handleDonshootingDir $ DoneshootingDirModel (Data s)
+            Chan.writeChan (chan env) SConfigCameras
 
         )`catch` (\( _ :: SomeException ) -> return $ return () ) --TODO this sucks
 
 
-configShootings :: WatchManager -> MVar FilePath -> WatchMap -> Handler Shooting.Model -> IO StopListening
-configShootings mgr mShootingsFile _ handler = do
+configShootings :: Env -> WatchManager -> MVar FilePath -> WatchMap -> Handler Shooting.Model -> IO StopListening
+configShootings env mgr mShootingsFile _ handler = do
     filepath <- readMVar mShootingsFile
     watchDir
         mgr
@@ -534,14 +542,12 @@ configShootings mgr mShootingsFile _ handler = do
         (\e -> eventPath e == filepath)
         (\e -> do
             print e
-            Shooting.getShootings mShootingsFile >>= \case
-                Left e' -> handler $ Shooting.Model (Failure e')
-                Right s -> handler $ Shooting.Model (Data s)
+            Chan.writeChan (chan env) ReadShooting
         )`catch` (\( _ :: SomeException ) -> return $ return () ) --TODO this sucks
 
 
-configDoneshooting :: WatchManager -> MVar FilePath -> MVar FilePath -> MVar FilePath -> MVar FilePath -> WatchMap -> Handler Doneshooting.Model -> Handler Doneshooting.DoneshootingDirModel -> IO StopListening
-configDoneshooting mgr mDoneshootingFile mCamerasFile mLocationConfigFile mGradesFile watchMap handler handleDonshootingDir = do
+configDoneshooting :: Env -> WatchManager -> MVar FilePath -> MVar FilePath -> MVar FilePath -> MVar FilePath -> WatchMap -> Handler Doneshooting.Model -> Handler Doneshooting.DoneshootingDirModel -> IO StopListening
+configDoneshooting env mgr mDoneshootingFile mCamerasFile mLocationConfigFile mGradesFile watchMap handler handleDonshootingDir = do
     filepath <- readMVar mDoneshootingFile
     watchDir
         mgr
@@ -549,20 +555,18 @@ configDoneshooting mgr mDoneshootingFile mCamerasFile mLocationConfigFile mGrade
         (\e -> eventPath e == filepath)
         (\e -> do
             print e
-            _ <- Doneshooting.getDoneshooting mDoneshootingFile >>= \case
-                Left e' -> handler $ Doneshooting.Model (Failure e')
-                Right s -> handler $ Doneshooting.Model (Data s)
+            Chan.writeChan (chan env) ReadDoneshooting
             -- TODO these two are related
             modifyMVar_ watchMap $ \ h -> do
                 h HashMap.! "stopDirDoneshooting"
-                stopDirDoneshooting <- dirDoneshooting mgr mDoneshootingFile mCamerasFile mLocationConfigFile mGradesFile watchMap handleDonshootingDir
+                stopDirDoneshooting <- dirDoneshooting env mgr mDoneshootingFile mCamerasFile mLocationConfigFile mGradesFile watchMap handleDonshootingDir
                 return $ HashMap.insert "stopDirDoneshooting" stopDirDoneshooting  h
         )`catch` (\( _ :: SomeException ) -> return $ return () ) --TODO this sucks
 
 
 
-dirDoneshooting :: WatchManager -> MVar FilePath -> MVar FilePath -> MVar FilePath -> MVar FilePath -> WatchMap -> Handler Doneshooting.DoneshootingDirModel -> IO StopListening
-dirDoneshooting mgr mDoneshootingFile mCamerasFile mLocationConfigFile mGradesFile _ handler = do
+dirDoneshooting :: Env -> WatchManager -> MVar FilePath -> MVar FilePath -> MVar FilePath -> MVar FilePath -> WatchMap -> Handler Doneshooting.DoneshootingDirModel -> IO StopListening
+dirDoneshooting env mgr mDoneshootingFile mCamerasFile mLocationConfigFile mGradesFile _ handler = do
     doneshootingFile <- readMVar mDoneshootingFile
     doneshootingPath <- getDoneshooting' doneshootingFile
     case doneshootingPath of
@@ -579,14 +583,12 @@ dirDoneshooting mgr mDoneshootingFile mCamerasFile mLocationConfigFile mGradesFi
                 (const True)
                 (\e -> do
                     print e 
-                    getDoneshootingDir mDoneshootingFile mCamerasFile mLocationConfigFile mGradesFile >>= \case
-                        Left e' -> handler $ Doneshooting.DoneshootingDirModel (Failure e')
-                        Right s -> handler $ Doneshooting.DoneshootingDirModel (Data s)
+                    Chan.writeChan (chan env) ReadDoneshootingDir
                 ) `catch` (\( _ :: SomeException ) -> return $ return () ) --TODO this sucks
 
 
-configDump :: WatchManager -> MVar FilePath -> MVar FilePath -> WatchMap -> Handler (Dump.DumpModel) -> Handler (Dump.DumpDirModel) -> IO StopListening
-configDump mgr mDumpFile mCamerasFile watchMap handler handleDumpDir = do
+configDump :: Env -> WatchManager -> MVar FilePath -> MVar FilePath -> WatchMap -> Handler (Dump.DumpModel) -> Handler (Dump.DumpDirModel) -> IO StopListening
+configDump env mgr mDumpFile mCamerasFile watchMap handler handleDumpDir = do
     filepath <- readMVar mDumpFile
     watchDir
         mgr
@@ -597,19 +599,18 @@ configDump mgr mDumpFile mCamerasFile watchMap handler handleDumpDir = do
         --TODO SPAWNER THREAD SOM IKKE DØR
         (\e -> do
             print e
-            _ <- Dump.getDump mDumpFile >>= \case
-                Left e' -> handler $ Dump.DumpModel (Failure e')
-                Right s -> handler $ Dump.DumpModel (Data s)
+
+            Chan.writeChan (chan env) ReadDump
 
             modifyMVar_ watchMap $ \ h -> do
                 h HashMap.! "stopDirDump"
-                stopDirDump <- dirDump mgr mDumpFile mCamerasFile watchMap handleDumpDir
+                stopDirDump <- dirDump env mgr mDumpFile mCamerasFile watchMap handleDumpDir
                 return $ HashMap.insert "stopDirDump" stopDirDump h
         )  `catch` (\( _ :: SomeException ) -> return $ return () ) --TODO this sucks
 
 
-dirDump :: WatchManager -> MVar FilePath -> MVar FilePath -> WatchMap -> Handler Dump.DumpDirModel -> IO StopListening
-dirDump mgr mDump mCamerasFile _ handler = do
+dirDump :: Env -> WatchManager -> MVar FilePath -> MVar FilePath -> WatchMap -> Handler Dump.DumpDirModel -> IO StopListening
+dirDump env mgr mDump mCamerasFile _ handler = do
     dumpFile <- readMVar mDump
     dumpPath <- getDump' dumpFile
     case dumpPath of
@@ -621,14 +622,12 @@ dirDump mgr mDump mCamerasFile _ handler = do
             (const True)
             (\e -> do
                 print e
-                getDumpDir mDump mCamerasFile >>= \case
-                    Left e' -> handler $ Dump.DumpDirModel (Failure e')
-                    Right s -> handler $ Dump.DumpDirModel (Data s)
+                Chan.writeChan (chan env) ReadDumpDir
             )`catch` (\( _ :: SomeException ) -> return $ return () ) --TODO this sucks
 
 
-configDagsdato :: WatchManager -> MVar FilePath -> WatchMap -> Handler (Dagsdato.Model) -> Handler () -> IO StopListening
-configDagsdato mgr mDagsdatoFile watchMap handler handleDagsdatoDir = do
+configDagsdato :: Env -> WatchManager -> MVar FilePath -> WatchMap -> Handler (Dagsdato.Model) -> Handler () -> IO StopListening
+configDagsdato env mgr mDagsdatoFile watchMap handler handleDagsdatoDir = do
     filepath <- readMVar mDagsdatoFile
     watchDir
         mgr
@@ -636,20 +635,18 @@ configDagsdato mgr mDagsdatoFile watchMap handler handleDagsdatoDir = do
         (\e -> eventPath e == filepath)
         (\e -> do
             print e
-            _ <- Dagsdato.getDagsdato mDagsdatoFile >>= \case
-                    Left e' -> handler $ Dagsdato.Model (Failure e')
-                    Right s -> handler $ Dagsdato.Model (Data s)
+            Chan.writeChan (chan env) ReadDagsdato
             modifyMVar_ watchMap $ \ h -> do
                 h HashMap.! "stopDirDagsdato"
-                stopDirDagsdato <- dirDagsdato mgr mDagsdatoFile watchMap handleDagsdatoDir
+                stopDirDagsdato <- dirDagsdato env mgr mDagsdatoFile watchMap handleDagsdatoDir
                 return $ HashMap.insert "stopDirDagsdato" stopDirDagsdato h
         )`catch` (\( _ :: SomeException ) -> return $ return () ) --TODO this sucks
 
 
 
 
-dirDagsdato :: WatchManager -> MVar FilePath -> WatchMap -> Handler () -> IO StopListening
-dirDagsdato mgr mDagsdatoFile _ handler = do
+dirDagsdato :: Env ->  WatchManager -> MVar FilePath -> WatchMap -> Handler () -> IO StopListening
+dirDagsdato env mgr mDagsdatoFile _ handler = do
     dagsdatoFile <- readMVar mDagsdatoFile
     dagsdatoPath <- getDagsdato' dagsdatoFile
     case dagsdatoPath of
@@ -659,12 +656,15 @@ dirDagsdato mgr mDagsdatoFile _ handler = do
                 mgr
                 (unDagsdato path)
                 (const True)
-                (\e -> print e >> handler ())
+                (\e -> do
+                    print e
+                    Chan.writeChan (chan env) SDirDagsdato
+                )
                     `catch` (\( _ :: SomeException ) -> return $ return () ) --TODO this sucks
 
 
-configDagsdatoBackup :: WatchManager -> MVar FilePath -> WatchMap -> Handler DagsdatoBackup.Model -> Handler () -> IO StopListening
-configDagsdatoBackup mgr mDagsdatoBackupFile watchMap handler handleDagsdatoBackupDir = do
+configDagsdatoBackup :: Env -> WatchManager -> MVar FilePath -> WatchMap -> Handler DagsdatoBackup.Model -> Handler () -> IO StopListening
+configDagsdatoBackup env mgr mDagsdatoBackupFile watchMap handler handleDagsdatoBackupDir = do
     filepath <- readMVar mDagsdatoBackupFile
     watchDir
         mgr
@@ -672,19 +672,19 @@ configDagsdatoBackup mgr mDagsdatoBackupFile watchMap handler handleDagsdatoBack
         (\e -> eventPath e == filepath)
         (\e -> do
             print e
-            _ <- DagsdatoBackup.getDagsdatoBackup mDagsdatoBackupFile  >>= \case
-                    Left e' -> handler $ DagsdatoBackup.Model (Failure e')
-                    Right s -> handler $ DagsdatoBackup.Model (Data s)
+
+            Chan.writeChan (chan env) ReadDagsdatoBackup
+
             modifyMVar_ watchMap $ \ h -> do
                 h HashMap.! "stopDirDagsdatoBackup"
-                stopDirDagsdatoBackup <- dirDagsdatoBackup mgr mDagsdatoBackupFile watchMap handleDagsdatoBackupDir
+                stopDirDagsdatoBackup <- dirDagsdatoBackup env mgr mDagsdatoBackupFile watchMap handleDagsdatoBackupDir
                 return $ HashMap.insert "stopDirDagsdatoBackup" stopDirDagsdatoBackup h
         )`catch` (\( _ :: SomeException ) -> return $ return () ) --TODO this sucks
 
 
 
-dirDagsdatoBackup :: WatchManager -> MVar FilePath -> WatchMap -> Handler () -> IO StopListening
-dirDagsdatoBackup mgr mDagsdatoBackupFile _ handler = do
+dirDagsdatoBackup :: Env -> WatchManager -> MVar FilePath -> WatchMap -> Handler () -> IO StopListening
+dirDagsdatoBackup env mgr mDagsdatoBackupFile _ handler = do
     dagsdatoBackupFile <- readMVar mDagsdatoBackupFile
     dagsdatoBackupPath <- getDagsdatoBackup' dagsdatoBackupFile
     case dagsdatoBackupPath of
@@ -693,8 +693,10 @@ dirDagsdatoBackup mgr mDagsdatoBackupFile _ handler = do
             mgr
             (unDagsdatoBackup path)
             (const True)
-            (\e -> print e >> handler ())
-                `catch` (\( _ :: SomeException ) -> return $ return () ) --TODO this sucks
+            (\e -> do
+                print e
+                Chan.writeChan (chan env) SDirDagsdatoBackup
+            ) `catch` (\( _ :: SomeException ) -> return $ return () ) --TODO this sucks
 
 
 main :: Int -> FilePath -> IO ()
