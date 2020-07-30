@@ -207,20 +207,23 @@ myShake opts' time item = do
     let root = Dump.unDump dump
     let dumpDir = Lens.view Main.dumpDir item
     let sortDir = sort (Dump.unDumpDir dumpDir)
-    let tmp = Data.List.Index.imap (\index' cr -> do 
-            let index'' = index' + 1
-            let jpg = cr -<.> "jpg"
+    let tmp = case sortDir  of
+            [] -> error "empty"
+            xss ->  Data.List.Index.imap (\index' cr -> do 
+                let index'' = index' + 1
+                let jpg = cr -<.> "jpg"
 
-            let doneshootingCr = mkDoneshootingPath index'' cr item
-            let doneshootingJpg = mkDoneshootingPathJpg index'' jpg item
+                let doneshootingCr = mkDoneshootingPath index'' cr item
+                let doneshootingJpg = mkDoneshootingPathJpg index'' jpg item
 
-            let dagsdatoCr = mkDagsdatoPath cr time item
-            let dagsdatoJpg = mkDagsdatoPath jpg time item
+                let dagsdatoCr = mkDagsdatoPath cr time item
+                let dagsdatoJpg = mkDagsdatoPath jpg time item
 
-            let dagsdatoBackupCr = mkDagsdatoBackupPath cr time item
-            let dagsdatoBackupJpg = mkDagsdatoBackupPath jpg time item
-            ((cr, (doneshootingCr,dagsdatoCr, dagsdatoBackupCr)), (jpg, (doneshootingJpg, dagsdatoJpg, dagsdatoBackupJpg)))
-            ) sortDir
+                let dagsdatoBackupCr = mkDagsdatoBackupPath cr time item
+                let dagsdatoBackupJpg = mkDagsdatoBackupPath jpg time item
+                ((cr, (doneshootingCr,dagsdatoCr, dagsdatoBackupCr)), (jpg, (doneshootingJpg, dagsdatoJpg, dagsdatoBackupJpg)))
+                ) xss
+
     case tmp of
         [] -> error "empty"
         xs -> do

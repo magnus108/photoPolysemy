@@ -6,7 +6,7 @@ module Lib.Translation
     , couldNotReadDoneshootingDir
     , exactly1With5
     , doneshootingEmpty
-    , atleast5With1
+    , atleast8With1
     , controlError
     , doneBuild
     , building
@@ -142,7 +142,7 @@ data Translation = Translation { _loading :: String
                                , _noBuild :: String
                                , _controlError :: String
                                , _exactly1With5 :: String
-                               , _atleast5With1 :: String
+                               , _atleast8With1 :: String
                                , _doneshootingEmpty :: String
                                , _couldNotReadDoneshootingDir :: String
                                }

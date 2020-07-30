@@ -65,7 +65,6 @@ read file = liftIO $ withMVar file $ \f -> do
           Left e -> return $ Left e
           Right string -> do
                 isDir <- doesDirectoryExist (unDump string)
-                traceShowM isDir
                 if isDir then
                     return $ Right string
                 else
@@ -95,7 +94,6 @@ getDumpFiles :: Dump -> Camera.Camera -> IO (Either String DumpDir)
 getDumpFiles dump camera = do
     let filepath = unDump dump
     --traceShowM filepath
-    traceShowM filepath
     files <- try $ listDirectory filepath :: IO (Either SomeException [FilePath])
     --traceShowM files
     case files of

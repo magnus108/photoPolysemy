@@ -263,7 +263,6 @@ receiveMessages :: Env -> WatchManager -> WatchMap -> Handler Photographer.Model
 receiveMessages env@Env{..} mgr watchMap hPhotographers hConfigDump hConfigDagsdato hConfigDagsdatoBackup hConfigDoneshooting  hDirDoneshooting  hCameras hShootings  hSessions hGrades hPhotographees hLocationConfigFile  hDumpDir hDirDagsdatoBackup hDirDagsdato hBuild msgs = do
     messages <- Chan.getChanContents msgs
     forM_ messages $ \msg -> do
-        traceShowM "msg"
         traceShowM msg
         case msg of
             ReadPhographers ->

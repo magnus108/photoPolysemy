@@ -87,12 +87,15 @@ lookup' s (Known a) = _ident a == s
 
 tryFindById :: String -> Photographees -> Photographees
 tryFindById s (Photographees x) = 
-    let 
-        found = ListZipper.findFirst (lookup' s) x
-    in 
-        case found of
-            Nothing -> Photographees x
-            Just xs -> Photographees xs
+    if s == "" then 
+        Photographees x
+    else 
+        let 
+            found = ListZipper.findFirst (lookup' s) x
+        in 
+            case found of
+                Nothing -> Photographees x
+                Just xs -> Photographees xs
 
 
 setSys' :: String -> Photographee -> Photographee
@@ -188,7 +191,7 @@ fromGrade locationFile grades = do
                 let photographees = Vector.filter (((Grade.showGrade grades) ==) . gradeData) locData
                 let zipper = ListZipper.fromList $ fmap (\x -> Known $ photographee (teaData x) (nameData x) (identData x)) $ sortOn nameData $ Vector.toList photographees
                 case zipper of
-                    Nothing -> return (Left "fejl")
+                    Nothing -> return (Right (Photographees (ListZipper.ListZipper [] (Unknown empty) [] )))
                     Just zs -> return (Right (Photographees zs))
 
 

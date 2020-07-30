@@ -48,7 +48,7 @@ mkControl env@Env{..} translations select model =
 
             --BAD BRUh
             lola <- liftIO $ Control.controlXMP item'
-            let ratings = (\x -> UI.div #. "section" #+ [UI.p #+ [string (Photographee.toName' (fst x))], string (Control.translationError (snd x) translations)]) <$> (Control._unResults lola)
+            let ratings = (\x -> UI.div #. "section" #+ [UI.p #+ [string (Photographee.toSys' (fst x)), string " ", string (Photographee.toName' (fst x))], string (Control.translationError (snd x) translations)]) <$> (Control._unResults lola)
 
             status <- mkStatus translations lola (Lens.view Model.doneshootingDir item')
 
