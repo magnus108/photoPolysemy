@@ -254,13 +254,13 @@ runServer port env@Env{..} = do
         translations <- Translation.read mTranslationFile
         --VERY important this is here.. BADNESS FIX AT THE END
 
-        receive <- liftIO $ forkIO $ receiveMessages env hPhotographers hConfigDump hConfigDagsdato hConfigDagsdatoBackup hConfigDoneshooting hDirDoneshooting hCameras hShootings hSessions hGrades hPhotographees hLocationConfigFile hDumpDir hDirDagsdatoBackup  hDirDagsdato hBuild chan
+        receive <- liftIO $ forkIO $ receiveMessages env mgr watchers hPhotographers hConfigDump hConfigDagsdato hConfigDagsdatoBackup hConfigDoneshooting hDirDoneshooting hCameras hShootings hSessions hGrades hPhotographees hLocationConfigFile hDumpDir hDirDagsdatoBackup  hDirDagsdato hBuild chan
 
         Server.run port env (fromJust (rightToMaybe translations)) bDoneshootingDir bBuild bGrades bLocationConfigFile bSessions bShootings bCameras bDump bDumpDir bDoneshooting bDagsdato bDagsdatoBackup eTabs bPhotographers bPhotographees hGrades hLocationConfigFile hConfigDump hDumpDir hPhotographees receive
 
 
-receiveMessages :: Env -> Handler Photographer.Model -> Handler Dump.DumpModel -> Handler Dagsdato.Model -> Handler DagsdatoBackup.Model -> Handler Doneshooting.Model -> Handler Doneshooting.DoneshootingDirModel -> Handler Camera.Model -> Handler Shooting.Model -> Handler Session.Model -> Handler Grade.Model -> Handler Photographee.Model -> Handler Location.Model -> Handler Dump.DumpDirModel -> Handler () -> Handler () -> Handler Build.Model -> Chan.Chan App.Action -> IO ()
-receiveMessages Env{..} hPhotographers hConfigDump hConfigDagsdato hConfigDagsdatoBackup hConfigDoneshooting  hDirDoneshooting  hCameras hShootings  hSessions hGrades hPhotographees hLocationConfigFile  hDumpDir hDirDagsdatoBackup hDirDagsdato hBuild msgs = do
+receiveMessages :: Env -> WatchManager -> WatchMap -> Handler Photographer.Model -> Handler Dump.DumpModel -> Handler Dagsdato.Model -> Handler DagsdatoBackup.Model -> Handler Doneshooting.Model -> Handler Doneshooting.DoneshootingDirModel -> Handler Camera.Model -> Handler Shooting.Model -> Handler Session.Model -> Handler Grade.Model -> Handler Photographee.Model -> Handler Location.Model -> Handler Dump.DumpDirModel -> Handler () -> Handler () -> Handler Build.Model -> Chan.Chan App.Action -> IO ()
+receiveMessages env@Env{..} mgr watchMap hPhotographers hConfigDump hConfigDagsdato hConfigDagsdatoBackup hConfigDoneshooting  hDirDoneshooting  hCameras hShootings  hSessions hGrades hPhotographees hLocationConfigFile  hDumpDir hDirDagsdatoBackup hDirDagsdato hBuild msgs = do
     messages <- Chan.getChanContents msgs
     forM_ messages $ \msg -> do
         traceShowM "msg"
@@ -274,10 +274,20 @@ receiveMessages Env{..} hPhotographers hConfigDump hConfigDagsdato hConfigDagsda
             WritePhographers photographers' ->
                 Photographer.writePhotographers mPhotographersFile photographers'
 
-            ReadDump ->
+            ReadDump -> do 
                 Dump.getDump mDumpFile >>= \case
                     Left e' -> hConfigDump $ Dump.DumpModel (Failure e')
                     Right s -> hConfigDump $ Dump.DumpModel (Data s)
+
+                Dump.getDumpDir mDumpFile mCamerasFile >>= \case
+                        Left e' -> hDumpDir $ DumpDirModel (Failure e')
+                        Right s -> hDumpDir $ DumpDirModel (Data s)
+
+                modifyMVar_ watchMap $ \ h -> do
+                    h HashMap.! "stopDirDump"
+                    stopDirDump <- dirDump env mgr mDumpFile mCamerasFile watchMap hDumpDir
+                    return $ HashMap.insert "stopDirDump" stopDirDump h
+
             WriteDump dir -> 
                 writeDump mDumpFile dir
 
@@ -608,13 +618,7 @@ configDump env mgr mDumpFile mCamerasFile watchMap handler handleDumpDir = do
         --TODO SPAWNER THREAD SOM IKKE DØR
         (\e -> do
             print e
-
             Chan.writeChan (chan env) ReadDump
-
-            modifyMVar_ watchMap $ \ h -> do
-                h HashMap.! "stopDirDump"
-                stopDirDump <- dirDump env mgr mDumpFile mCamerasFile watchMap handleDumpDir
-                return $ HashMap.insert "stopDirDump" stopDirDump h
         )  `catch` (\( _ :: SomeException ) -> return $ return () ) --TODO this sucks
 
 
