@@ -419,7 +419,14 @@ receiveMessages env@Env{..} mgr watchMap hPhotographers hConfigDump hConfigDagsd
                     Right s -> hBuild $ Build.Model (Data s)
 
             MFcker i ->
-                SBuild.entry msgs mBuildFile mDumpFile i
+                --DANGEROUS 
+                --DANGEROUS 
+                --DANGEROUS 
+                --DANGEROUS 
+                --DANGEROUS 
+                --DANGEROUS 
+                --DANGEROUS 
+                void $ forkIO $ SBuild.entry msgs mBuildFile mDumpFile i
 
             BuilderMessage msg ->
                 Build.writeBuild mBuildFile msg
