@@ -162,7 +162,7 @@ photographee = Photographee'
 
 
 empty :: Photographee'
-empty = photographee "" "" "" 
+empty = photographee "Tom" "Tom" "Tom" 
 
 
 insert :: Photographee -> Photographees -> Photographees

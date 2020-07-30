@@ -94,36 +94,9 @@ selectPhotographeeSection env _ translations input inputIdent inputSys select bu
     _ <- element inputIdent # set value (Photographee.toIdent photographees')
     _ <- element inputSys # set value (Photographee.toSys photographees')
 
-    content <-
-        UI.div
-        #. "section"
-        #+ [ 
-
-           UI.div
-                #. "field is-horizontal"
-                #+ [ UI.div #. "field-label is-normal"
-                    #+ [UI.label #. "label" #+ [Lens.views gradePick string translations]]
-                   , UI.div
-                    #. "field-body"
-                    #+ [ UI.div
-                        #. "field"
-                        #+ [ UI.p #. "control" #+ [UI.div #. "select" #+ [element selectGrade]]]
-                       ]]
-           ,UI.div
-                #. "field is-horizontal"
-                #+ [ UI.div #. "field-label is-normal"
-                    #+ [UI.label #. "label" #+ [Lens.views photographeeName string translations]]
-                   , UI.div
-                    #. "field-body"
-                    #+ [ UI.div
-                        #. "field"
-                        #+ [ UI.p
-                            #. "control"
-                            #+ [element input #. "input"]
-                        ]
-                ]
-                ]
-           , UI.div
+    let ok = case (extract (Photographee.unPhotographees photographees')) of
+            (Photographee.Unknown _) -> []
+            (Photographee.Known _) -> [UI.div
                 #. "field is-horizontal"
                 #+ [ UI.div #. "field-label is-normal"
                     #+ [UI.label #. "label" #+ [Lens.views photographeeIdent string translations]]
@@ -136,8 +109,38 @@ selectPhotographeeSection env _ translations input inputIdent inputSys select bu
                            #+ [element inputIdent #. "input"]
                         ]
                         ]
+                ]]
+    content <-
+        UI.div
+        #. "section"
+        #+ ([ 
+
+           UI.div
+                #. "field is-horizontal"
+                #+ [ UI.div #. "field-label is-normal"
+                    #+ [UI.label #. "label" #+ [Lens.views gradePick string translations]]
+                   , UI.div
+                    #. "field-body"
+                    #+ [ UI.div
+                        #. "field"
+                        #+ [ UI.p #. "control" #+ [UI.div #. "select" #+ [element selectGrade]]]
+                       ]]
+                     ] ++
+           [UI.div
+                #. "field is-horizontal"
+                #+ [ UI.div #. "field-label is-normal"
+                    #+ [UI.label #. "label" #+ [Lens.views photographeeName string translations]]
+                   , UI.div
+                    #. "field-body"
+                    #+ [ UI.div
+                        #. "field"
+                        #+ [ UI.p
+                            #. "control"
+                            #+ [element input #. "input"]
+                        ]
                 ]
-           , UI.div
+                ]]++
+            [UI.div
                 #. "field is-horizontal"
                 #+ [ UI.div #. "field-label is-normal"
                     #+ [UI.label #. "label" #+ [Lens.views photographeeSys string translations]]
@@ -172,7 +175,7 @@ selectPhotographeeSection env _ translations input inputIdent inputSys select bu
                         #. "field"
                         #+ [ UI.p #. "control" #+ [element button]]
                        ]]
-            ]
+            ])
 
     return content
 
