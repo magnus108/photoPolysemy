@@ -126,6 +126,8 @@ sinkModel env@Env{..} win translations bModel = do
 
     build' <- UI.div #. "section"
 
+    photographerName <- UI.p #. "section has-text-info"
+
     content <- UI.div
     select <- UI.select
     input <- UI.input #. "input"
@@ -177,6 +179,7 @@ sinkModel env@Env{..} win translations bModel = do
 
                 Data item' -> do
                     buildStatus <- UI.string $ Build.toString (Main._build item') translations
+                    _ <- element photographerName # set text (Lens.view Photographer.tid (Main._photographer item'))
                     _ <- element build' # set children [buildStatus]
                     _ <- case (Main._build item') of
                             (Build.DoneBuild _ _) -> do
@@ -198,7 +201,7 @@ sinkModel env@Env{..} win translations bModel = do
                     let _ = Photographee.toIdent (Main._photographees item')
                     let name = Photographee.toName (Main._photographees item')
                     _ <- element currentPhotographee # set text name
-                    _ <- element content # set children [build', mkBuild, count, inputSection, selectSection, photographees']
+                    _ <- element content # set children [photographerName, build', mkBuild, count, inputSection, selectSection, photographees']
                     return ()
 
 
@@ -227,6 +230,7 @@ sinkModel env@Env{..} win translations bModel = do
                         (Build.NoBuild) -> 
                             runFunction  $ ffi "$(%1).removeAttr('disabled')" (mkBuild')
 
+                _ <- element photographerName # set text (Lens.view Photographer.tid (Main._photographer item'))
                 editingInput <- liftIO $ currentValue bEditingInput
                 editingSelect <- liftIO $ currentValue bEditingSelect
 
@@ -252,7 +256,7 @@ sinkModel env@Env{..} win translations bModel = do
                     element input # set value "" 
 
                 when (not (editingInput || editingSelect )) $ void $ do
-                    _ <- element content # set children [build' ,mkBuild, count, inputSection, selectSection, photographees']
+                    _ <- element content # set children [photographerName, build' ,mkBuild, count, inputSection, selectSection, photographees']
                     UI.setFocus input
                     return ()
 
