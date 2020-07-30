@@ -638,7 +638,11 @@ dirDump env mgr mDump mCamerasFile _ handler = do
         watchDir
             mgr
             (unDump path)
-            (const True)
+            (\e -> case e of
+                Added _ _ _ -> True
+                Removed _ _ _ -> True
+                _ -> False
+            )
             (\e -> do
                 print e
                 Chan.writeChan (chan env) ReadDumpDir
