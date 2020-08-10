@@ -69,11 +69,10 @@ photographeesList env _ dumpDir photographees' = do
                         ( thisPhotographee
                         , thisPhotographee == currentPhotographee
                         , case photographees' of
-                            (Photographee.CorrectPhotographees _) -> 
+                            (Photographee.CorrectPhotographees _) ->
                                 Photographee.CorrectPhotographees photographees''
-                            (Photographee.ChangedPhotographees _) -> 
+                            (Photographee.ChangedPhotographees _) ->
                                 Photographee.ChangedPhotographees photographees''
-                            
                         )
 
         let elems' = sortOn (\(a,_,_) -> fmap toLower (Photographee.toName' a)) $ toList elems
@@ -136,7 +135,7 @@ setChanged _ translations content parent button photographees = do
 
 sinkModel :: Env -> Window -> Translation -> Behavior Main.Model -> UI (Element, Element)
 sinkModel env@Env{..} win translations bModel = do
-    
+
     let isOk = Lens.view isChanged translations
     changedButton <- mkButton "mkChange" isOk
     changed' <- UI.p
@@ -154,7 +153,7 @@ sinkModel env@Env{..} win translations bModel = do
     select <- UI.select
     input <- UI.input #. "input"
     currentPhotographee <- UI.h1 #. "is-size-4"
-    
+
     help <- string "Valgt: "
     findHelp <- string "Søg: "
     inputSection <- UI.div #. "section" # set children [help, currentPhotographee, findHelp, input]
@@ -213,12 +212,11 @@ sinkModel env@Env{..} win translations bModel = do
                     _ <- case (Main._photographees item') of
                        (Photographee.ChangedPhotographees _) ->
                            void$ element mkBuild' # set (attr "disabled") "true"
-                       (Photographee.CorrectPhotographees _) -> 
+                       (Photographee.CorrectPhotographees _) ->
                             runFunction  $ ffi "$(%1).removeAttr('disabled')" (mkBuild')
 
-
                     _ <- setBuild env translations mkBuild' (Main._session item')
-                    
+
                     dumpFilesCounter' <- dumpFilesCounter env win translations (Main._dumpDir item')
                     _ <- element count # set children [dumpFilesCounter']
                     let options = CLocation.mkGrades env (Main._grades item')
@@ -232,7 +230,7 @@ sinkModel env@Env{..} win translations bModel = do
                     _ <- element currentPhotographee # set text name
 
                     isChanged <- setChanged env translations changed' changed changedButton (Main._photographees item')
-                    _ <- element content # set children (maybeToList isChanged ++ [photographerName, build', mkBuild, count, inputSection, selectSection, photographees'])
+                    _ <- element content # set children ([photographerName, build', mkBuild, count] ++ maybeToList isChanged ++ [inputSection, selectSection, photographees'])
                     return ()
 
 
@@ -264,7 +262,7 @@ sinkModel env@Env{..} win translations bModel = do
                 _ <- case (Main._photographees item') of
                        (Photographee.ChangedPhotographees _) ->
                             void$ element mkBuild' # set (attr "disabled") "true"
-                       (Photographee.CorrectPhotographees _) -> 
+                       (Photographee.CorrectPhotographees _) ->
                             runFunction  $ ffi "$(%1).removeAttr('disabled')" (mkBuild')
 
                 _ <- element photographerName # set text (Lens.view Photographer.name (Main._photographer item'))
@@ -291,10 +289,10 @@ sinkModel env@Env{..} win translations bModel = do
                     element select # set children [] #+ options
 
                 when (not editingInput) $ void $
-                    element input # set value "" 
+                    element input # set value ""
 
                 when (not (editingInput || editingSelect )) $ void $ do
-                    _ <- element content # set children (maybeToList isChanged ++[photographerName, build' ,mkBuild, count, inputSection, selectSection, photographees'])
+                    _ <- element content # set children ([photographerName, build', mkBuild, count] ++ maybeToList isChanged ++[ inputSection, selectSection, photographees'])
                     UI.setFocus input
                     return ()
 
@@ -362,11 +360,11 @@ sinkModel env@Env{..} win translations bModel = do
 
     _ <- onEvent ee4 $ \model -> do
         UI.setFocus (help) -- hack
-        _ <- element input # set value "" 
+        _ <- element input # set value ""
         void $ liftIO $ do
             case toJust (Main._unModel model) of
                 Nothing -> return ()
-                Just item'  -> do  
+                Just item'  -> do
                     case (Main._photographees item') of
                         (Photographee.CorrectPhotographees ys) -> do
                             _ <- Chan.writeChan chan $!! ( MFcker (item'))

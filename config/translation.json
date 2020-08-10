@@ -66,5 +66,5 @@
 ,"_atleast8With1" : "8 med 1"
 ,"_doneshootingEmpty" : "Doneshooting mappe tom"
 ,"_couldNotReadDoneshootingDir": "Kunne ikke læse"
-,"_changedPhotographeesError": "Du har ændret elev mens der var billeder i dump"
+,"_changedPhotographeesError": "Dump er ikke tom"
 }
