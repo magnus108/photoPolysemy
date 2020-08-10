@@ -71,7 +71,7 @@ controlXMP item' = do
     let crs = fst files
 
     --SUPER HACK
-    let pairPhotographeeAndCr' = map (\photographee' ->  (photographee', filter (\file' -> isInfixOf ("SYS_" ++ (Photographee.toSys' photographee')) file') crs)) photographees'
+    let pairPhotographeeAndCr' = map (\photographee' ->  (photographee', filter (\file' -> isInfixOf ("TEA_" ++ (Photographee.toSys' photographee')) file') crs ++ filter (\file' -> isInfixOf ("SYS_" ++ (Photographee.toSys' photographee')) file') crs)) photographees'
     let pairPhotographeeAndCr = filter (\x -> snd x /= []) pairPhotographeeAndCr' 
 
 
