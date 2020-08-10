@@ -312,7 +312,6 @@ reloadForker mGradeFile mLocationConfigFile = do
                         case grades of
                             Left x -> return $ Left x
                             Right grada -> do
-
                                 fromGrade locafile grada
 
 
@@ -321,7 +320,7 @@ reloadPhotographees mGradeFile mLocationConfigFile mPhotographeesFile = do
     liftIO $ (reloadForker mGradeFile mLocationConfigFile ) >>= \case
                     Left _ -> return ()
                     Right y -> do
-                        void $ writePhotographees mPhotographeesFile y
+                        void $! writePhotographees mPhotographeesFile y
 
 
 

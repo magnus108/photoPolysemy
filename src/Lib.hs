@@ -267,117 +267,117 @@ receiveMessages env@Env{..} mgr watchMap hPhotographers hConfigDump hConfigDagsd
         case msg of
             ReadPhographers ->
                 getPhotographers mPhotographersFile >>= \case
-                        Left e' -> hPhotographers $ Photographer.Model (Failure e')
-                        Right s -> hPhotographers $ Photographer.Model (Data s)
+                        Left e' -> hPhotographers $! Photographer.Model (Failure e')
+                        Right s -> hPhotographers $! Photographer.Model (Data s)
 
             WritePhographers photographers' ->
-                Photographer.writePhotographers mPhotographersFile photographers'
+                Photographer.writePhotographers mPhotographersFile $! photographers'
 
             ReadDump -> do 
                 Dump.getDump mDumpFile >>= \case
-                    Left e' -> hConfigDump $ Dump.DumpModel (Failure e')
-                    Right s -> hConfigDump $ Dump.DumpModel (Data s)
+                    Left e' -> hConfigDump $! Dump.DumpModel (Failure e')
+                    Right s -> hConfigDump $! Dump.DumpModel (Data s)
 
                 Dump.getDumpDir mDumpFile mCamerasFile >>= \case
-                        Left e' -> hDumpDir $ DumpDirModel (Failure e')
-                        Right s -> hDumpDir $ DumpDirModel (Data s)
+                        Left e' -> hDumpDir $! DumpDirModel (Failure e')
+                        Right s -> hDumpDir $! DumpDirModel (Data s)
 
-                modifyMVar_ watchMap $ \ h -> do
+                modifyMVar_ watchMap $! \ h -> do
                     h HashMap.! "stopDirDump"
                     stopDirDump <- dirDump env mgr mDumpFile mCamerasFile watchMap hDumpDir
                     return $ HashMap.insert "stopDirDump" stopDirDump h
 
             WriteDump dir -> 
-                writeDump mDumpFile dir
+                writeDump mDumpFile $! dir
 
             ReadDagsdato ->
                 Dagsdato.getDagsdato mDagsdatoFile >>= \case
-                        Left e' -> hConfigDagsdato $ Dagsdato.Model (Failure e')
-                        Right s -> hConfigDagsdato $ Dagsdato.Model (Data s)
+                        Left e' -> hConfigDagsdato $! Dagsdato.Model (Failure e')
+                        Right s -> hConfigDagsdato $! Dagsdato.Model (Data s)
 
             WriteDagsdato dagsdato' ->
-                writeDagsdato mDagsdatoFile dagsdato'
+                writeDagsdato mDagsdatoFile $! dagsdato'
 
             ReadDagsdatoBackup ->
                 DagsdatoBackup.getDagsdatoBackup mDagsdatoBackupFile  >>= \case
-                        Left e' -> hConfigDagsdatoBackup $ DagsdatoBackup.Model (Failure e')
-                        Right s -> hConfigDagsdatoBackup $ DagsdatoBackup.Model (Data s)
+                        Left e' -> hConfigDagsdatoBackup $! DagsdatoBackup.Model (Failure e')
+                        Right s -> hConfigDagsdatoBackup $! DagsdatoBackup.Model (Data s)
 
             WriteDagsdatoBackup dagsdatoBackup' ->
-                writeDagsdatoBackup mDagsdatoBackupFile dagsdatoBackup'
+                writeDagsdatoBackup mDagsdatoBackupFile $! dagsdatoBackup'
 
             ReadDoneshooting ->
                 Doneshooting.getDoneshooting mDoneshootingFile >>= \case
-                    Left e' -> hConfigDoneshooting $ Doneshooting.Model (Failure e')
-                    Right s -> hConfigDoneshooting $ Doneshooting.Model (Data s)
+                    Left e' -> hConfigDoneshooting $! Doneshooting.Model (Failure e')
+                    Right s -> hConfigDoneshooting $! Doneshooting.Model (Data s)
 
             WriteDoneshooting dir ->
-                writeDoneshooting mDoneshootingFile dir
+                writeDoneshooting mDoneshootingFile $! dir
 
             ReadDoneshootingDir ->
                 Doneshooting.getDoneshootingDir mDoneshootingFile mCamerasFile mLocationConfigFile mGradesFile >>= \case
-                    Left e' -> hDirDoneshooting $ Doneshooting.DoneshootingDirModel (Failure e')
-                    Right s -> hDirDoneshooting $ Doneshooting.DoneshootingDirModel (Data s)
+                    Left e' -> hDirDoneshooting $! Doneshooting.DoneshootingDirModel (Failure e')
+                    Right s -> hDirDoneshooting $! Doneshooting.DoneshootingDirModel (Data s)
 
             ReadCamera ->
                     Camera.getCameras mCamerasFile >>= \case
-                        Left e' -> hCameras $ Camera.Model (Failure e')
-                        Right s -> hCameras $ Camera.Model (Data s)
+                        Left e' -> hCameras $! Camera.Model (Failure e')
+                        Right s -> hCameras $! Camera.Model (Data s)
 
             WriteCamera cameras' ->
-                Camera.writeCameras mCamerasFile cameras'
+                Camera.writeCameras mCamerasFile $! cameras'
 
             ReadShooting ->
                 Shooting.getShootings mShootingsFile >>= \case
-                    Left e' -> hShootings $ Shooting.Model (Failure e')
-                    Right s -> hShootings $ Shooting.Model (Data s)
+                    Left e' -> hShootings $! Shooting.Model (Failure e')
+                    Right s -> hShootings $! Shooting.Model (Data s)
 
             WriteShooting shootings' ->
-                Shooting.writeShootings mShootingsFile shootings'
+                Shooting.writeShootings mShootingsFile $! shootings'
 
             ReadSessions ->
                 Session.getSessions mSessionsFile >>= \case
-                    Left e' -> hSessions $ Session.Model (Failure e')
-                    Right s -> hSessions $ Session.Model (Data s)
+                    Left e' -> hSessions $! Session.Model (Failure e')
+                    Right s -> hSessions $! Session.Model (Data s)
 
             WriteSessions sessions' ->
-                Session.writeSessions mSessionsFile sessions'
+                Session.writeSessions mSessionsFile $! sessions'
 
             ReadGrades ->
                 Grade.getGrades mGradesFile >>= \case
-                    Left e' -> hGrades $ Grade.Model $ Failure e'
-                    Right s -> hGrades $ Grade.Model $ Data s
+                    Left e' -> hGrades $! Grade.Model $! Failure e'
+                    Right s -> hGrades $! Grade.Model $! Data s
 
             WriteGrades grades' ->
                 Grade.writeGrades mGradesFile grades'
 
             ReadPhographees ->
                 Photographee.getPhotographees mPhotographeesFile >>= \case
-                    Left e' -> hPhotographees $ Photographee.Model (Failure e')
-                    Right s -> hPhotographees $ Photographee.Model (Data s)
+                    Left e' -> hPhotographees $! Photographee.Model (Failure e')
+                    Right s -> hPhotographees $! Photographee.Model (Data s)
 
             WritePhotographees photographees' dumpDir ->
                 if (Dump.count dumpDir == 0) then
-                    Photographee.writePhotographees mPhotographeesFile (Photographee.CorrectPhotographees (Photographee.toZip photographees'))
+                    Photographee.writePhotographees mPhotographeesFile $! (Photographee.CorrectPhotographees (Photographee.toZip photographees'))
                 else 
-                    Photographee.writePhotographees mPhotographeesFile (Photographee.ChangedPhotographees (Photographee.toZip photographees'))
+                    Photographee.writePhotographees mPhotographeesFile $! (Photographee.ChangedPhotographees (Photographee.toZip photographees'))
 
             WritePhotographeesOK photographees' ->
-                Photographee.writePhotographees mPhotographeesFile (Photographee.CorrectPhotographees (Photographee.toZip photographees'))
+                Photographee.writePhotographees mPhotographeesFile $! (Photographee.CorrectPhotographees (Photographee.toZip photographees'))
 
 
             ReadLocation ->
                 Location.getLocationFile mLocationConfigFile >>= \case
-                        Left e' -> hLocationConfigFile $ Location.Model (Failure e')
-                        Right s -> hLocationConfigFile $ Location.Model (Data s)
+                        Left e' -> hLocationConfigFile $! Location.Model (Failure e')
+                        Right s -> hLocationConfigFile $! Location.Model (Data s)
 
             WriteLocation loc -> 
-                Location.writeLocationFile  mLocationConfigFile loc
+                Location.writeLocationFile  mLocationConfigFile $! loc
 
             ReadDumpDir ->
                  Dump.getDumpDir mDumpFile mCamerasFile >>= \case
-                        Left e' -> hDumpDir $ DumpDirModel (Failure e')
-                        Right s -> hDumpDir $ DumpDirModel (Data s)
+                        Left e' -> hDumpDir $! DumpDirModel (Failure e')
+                        Right s -> hDumpDir $! DumpDirModel (Data s)
 
             SDirDagsdatoBackup -> hDirDagsdatoBackup ()
             SDirDagsdato -> hDirDagsdato ()
@@ -386,44 +386,44 @@ receiveMessages env@Env{..} mgr watchMap hPhotographers hConfigDump hConfigDagsd
                 filepath' <- readMVar mLocationConfigFile
                 locationFile <- Location.getLocationFile' filepath'
                 grades' <- mapM Photographee.parseGrades locationFile
-                let grades'' = either (const (Grade.Grades (ListZipper [] (Grade.Unknown (Grade.Grade' "")) []))) id (join grades')
+                let grades'' = either (const (Grade.Grades (ListZipper [] (Grade.Unknown (Grade.Grade' "")) []))) id $! join grades'
                 _ <- Location.getLocationFile mLocationConfigFile >>= \case
-                    Left e' -> hLocationConfigFile $ Location.Model (Failure e')
-                    Right s -> hLocationConfigFile $ Location.Model (Data s)
+                    Left e' -> hLocationConfigFile $! Location.Model (Failure e')
+                    Right s -> hLocationConfigFile $! Location.Model (Data s)
 
                 getDoneshootingDir mDoneshootingFile mCamerasFile mLocationConfigFile mGradesFile >>= \case
-                    Left e' -> hDirDoneshooting $ DoneshootingDirModel (Failure e')
-                    Right s -> hDirDoneshooting $ DoneshootingDirModel (Data s)
+                    Left e' -> hDirDoneshooting $! DoneshootingDirModel (Failure e')
+                    Right s -> hDirDoneshooting $! DoneshootingDirModel (Data s)
 
-                void $ Grade.writeGrades mGradesFile grades''
+                void $! Grade.writeGrades mGradesFile grades''
 
             SGrades -> do
                 _ <- Grade.getGrades mGradesFile >>= \case
-                        Left e' -> hGrades $ Grade.Model $ Failure e'
-                        Right s -> hGrades $ Grade.Model $ Data s
+                        Left e' -> hGrades $! Grade.Model $ Failure e'
+                        Right s -> hGrades $! Grade.Model $ Data s
                 
                 Photographee.reloadPhotographees mGradesFile mLocationConfigFile mPhotographeesFile
 
                 getDoneshootingDir mDoneshootingFile mCamerasFile mLocationConfigFile mGradesFile >>= \case
-                    Left e' -> hDirDoneshooting $ DoneshootingDirModel (Failure e')
-                    Right s -> hDirDoneshooting $ DoneshootingDirModel (Data s)
+                    Left e' -> hDirDoneshooting $! DoneshootingDirModel (Failure e')
+                    Right s -> hDirDoneshooting $! DoneshootingDirModel (Data s)
 
             SConfigCameras -> do
                 _ <- Camera.getCameras mCamerasFile >>= \case
-                    Left e' -> hCameras $ Camera.Model (Failure e')
-                    Right s -> hCameras $ Camera.Model (Data s)
+                    Left e' -> hCameras $! Camera.Model (Failure e')
+                    Right s -> hCameras $! Camera.Model (Data s)
 
                 getDumpDir mDumpFile mCamerasFile >>= \case
-                    Left e' -> hDumpDir $ DumpDirModel (Failure e')
-                    Right s -> hDumpDir $ DumpDirModel (Data s)
+                    Left e' -> hDumpDir $! DumpDirModel (Failure e')
+                    Right s -> hDumpDir $! DumpDirModel (Data s)
 
                 getDoneshootingDir mDoneshootingFile mCamerasFile mLocationConfigFile mGradesFile >>= \case
-                    Left e' -> hDirDoneshooting $ DoneshootingDirModel (Failure e')
-                    Right s -> hDirDoneshooting $ DoneshootingDirModel (Data s)
+                    Left e' -> hDirDoneshooting $! DoneshootingDirModel (Failure e')
+                    Right s -> hDirDoneshooting $! DoneshootingDirModel (Data s)
             SBuild -> do
                 Build.getBuild mBuildFile >>= \case
-                    Left e' -> hBuild $ Build.Model (Failure (e' ++ "Kunne ikke finde byg"))
-                    Right s -> hBuild $ Build.Model (Data s)
+                    Left e' -> hBuild $! Build.Model (Failure (e' ++ "Kunne ikke finde byg"))
+                    Right s -> hBuild $! Build.Model (Data s)
 
             MFcker i ->
                 --DANGEROUS 
@@ -433,10 +433,10 @@ receiveMessages env@Env{..} mgr watchMap hPhotographers hConfigDump hConfigDagsd
                 --DANGEROUS 
                 --DANGEROUS 
                 --DANGEROUS 
-                void $ forkIO $ SBuild.entry msgs mBuildFile mDumpFile i
+                void $ forkIO $ SBuild.entry msgs mBuildFile mDumpFile $! i
 
             BuilderMessage msg ->
-                Build.writeBuild mBuildFile msg
+                Build.writeBuild mBuildFile $! msg
 
 
 
