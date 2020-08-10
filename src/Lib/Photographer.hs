@@ -12,6 +12,7 @@ module Lib.Photographer
     , name
     , Model(..)
     ) where
+import Control.DeepSeq
 
 import Control.Concurrent
 import Utils.ListZipper
@@ -25,7 +26,7 @@ type Tid = String
 data Photographer = Photographer
     { _name :: Name
     , _tid :: Tid
-    } deriving (Show, Ord, Eq, Generic, ToJSON, FromJSON)
+    } deriving (Show, Ord, Eq, Generic, ToJSON, FromJSON, NFData)
 
 
 makeLenses ''Photographer
@@ -34,7 +35,7 @@ makeLenses ''Photographer
 newtype Photographers = Photographers { unPhotographers :: ListZipper Photographer }
     deriving (Eq, Ord, Show)
     deriving (Generic)
-    deriving (FromJSON, ToJSON)
+    deriving (FromJSON, ToJSON, NFData)
 
 
 getPhotographers' :: (MonadIO m, MonadThrow m) => FilePath -> m (Either String Photographers)
@@ -46,6 +47,7 @@ writePhotographers' = writeJSONFile
 
 
 newtype Model = Model { unModel :: Data String Photographers }
+    deriving (Generic, NFData)
 
 
 initalState :: Model

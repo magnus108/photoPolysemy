@@ -2,6 +2,7 @@ module Lib.Client.Main
     ( mainSection
     , mkModel
     ) where
+import Control.DeepSeq
 
 import Lib.App (Action(..))
 import qualified Control.Concurrent.Chan as Chan
@@ -88,7 +89,7 @@ mkPhotographee Env{..} dumpDir (photographee, isCenter, photographees)
         let name = Photographee.toName' photographee
         button <- mkButton name name
         UI.on UI.click button $ \_ ->
-            liftIO $ Chan.writeChan chan ( WritePhotographees photographees dumpDir)
+            liftIO $ Chan.writeChan chan $!! ( WritePhotographees photographees dumpDir)
         UI.div #. "section" #+ [element button]
 
 
@@ -343,7 +344,7 @@ sinkModel env@Env{..} win translations bModel = do
             case toJust (Main._unModel model) of
                 Nothing -> return ()
                 Just item'  -> do
-                    _ <- Chan.writeChan chan ( WritePhotographeesOK (Main._photographees item') )
+                    _ <- Chan.writeChan chan $!! ( WritePhotographeesOK (Main._photographees item') )
                     return ()
 
     let buildEvent = concatenate' <$> unions' (buildClick :| [fmap const enterKeydown])
@@ -368,7 +369,7 @@ sinkModel env@Env{..} win translations bModel = do
                 Just item'  -> do  
                     case (Main._photographees item') of
                         (Photographee.CorrectPhotographees ys) -> do
-                            _ <- Chan.writeChan chan ( MFcker (item'))
+                            _ <- Chan.writeChan chan $!! ( MFcker (item'))
                             return ()
                         (Photographee.ChangedPhotographees ys) -> do
                             return ()
@@ -381,7 +382,7 @@ sinkModel env@Env{..} win translations bModel = do
                 Just item'  -> do
                     --Location.writeLocationFile mLocationConfigFile (location i)
                     --
-                    _ <- Chan.writeChan chan ( WritePhotographees (Main._photographees item') (Main._dumpDir item'))
+                    _ <- Chan.writeChan chan $!! ( WritePhotographees (Main._photographees item') (Main._dumpDir item'))
                     return ()
 
     _ <- onEvent ee $ \model -> do
@@ -390,7 +391,7 @@ sinkModel env@Env{..} win translations bModel = do
                 Nothing -> return ()
                 Just item'  -> do
                     --Location.writeLocationFile mLocationConfigFile (location i)
-                    _ <- Chan.writeChan chan (WriteGrades ( Main._grades item'))
+                    _ <- Chan.writeChan chan $!! (WriteGrades ( Main._grades item'))
                     return ()
 
     return (input, content)

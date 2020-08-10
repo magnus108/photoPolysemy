@@ -16,6 +16,7 @@ module Lib.Dump
     , initalStateDir
     ) where
 
+import Control.DeepSeq
 import System.FilePath
 import System.Directory
 import Control.Exception
@@ -29,7 +30,7 @@ import Control.Concurrent (withMVar)
 newtype Dump = Dump { unDump :: FilePath }
     deriving (Eq, Ord, Show)
     deriving (Generic)
-    deriving (FromJSON, ToJSON)
+    deriving (FromJSON, ToJSON, NFData)
 
 
 getDump' :: (MonadIO m, MonadThrow m) => FilePath -> m (Either String Dump)
@@ -37,7 +38,7 @@ getDump' = readJSONFile'
 
 
 newtype DumpModel = DumpModel { unModel :: Data String Dump }
-    deriving (Show)
+    deriving (Show, NFData)
 
 
 initalState :: DumpModel
@@ -83,7 +84,7 @@ getDump file = liftIO $ read file
 newtype DumpDir = DumpDir { unDumpDir :: [FilePath] }
     deriving (Eq, Ord, Show)
     deriving (Generic)
-    deriving (FromJSON, ToJSON)
+    deriving (FromJSON, ToJSON, NFData)
 
 
 count :: DumpDir -> Int
@@ -134,6 +135,7 @@ getDumpDir' dump camera = do
 
 
 newtype DumpDirModel = DumpDirModel { unDumpDirModel :: Data String DumpDir }
+    deriving (Generic, NFData)
 
 
 initalStateDir :: DumpDirModel

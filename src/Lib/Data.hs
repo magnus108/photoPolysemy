@@ -1,8 +1,10 @@
+{-# LANGUAGE DeriveAnyClass #-}
 module Lib.Data
     ( Data(..)
     , toJust
     ) where
 
+import Control.DeepSeq
 
 data Data e s
     = NotAsked
@@ -11,6 +13,8 @@ data Data e s
     | Data s
         deriving Show
         deriving Functor
+        deriving Generic
+        deriving NFData
 
 instance Monad (Data e) where
     return = Data

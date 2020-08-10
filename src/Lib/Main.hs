@@ -1,4 +1,6 @@
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE DeriveAnyClass #-}
+
 module Lib.Main
     ( Model(..)
     , Item(..)
@@ -20,6 +22,7 @@ module Lib.Main
 
 
 import Lib.Data
+import Control.DeepSeq
 import qualified Lib.Photographee as Photographee
 import qualified Lib.Grade as Grade
 import qualified Lib.Dump as Dump
@@ -51,7 +54,7 @@ data Item = Item { _location :: Location.LocationFile
                  , _photographer :: Photographer.Photographer
                  , _dagsdatoBackup :: DagsdatoBackup.DagsdatoBackup
                  , _build :: Build.Build
-                 } deriving Show
+                 } deriving (Show, Generic ,NFData)
 
 makeLenses ''Item
 

@@ -10,6 +10,7 @@ module Lib.DagsdatoBackup
     , initialState
     ) where
 
+import Control.DeepSeq
 
 import System.Directory
 import Control.Concurrent
@@ -21,10 +22,10 @@ import Control.Lens
 newtype DagsdatoBackup = DagsdatoBackup { unDagsdatoBackup :: FilePath }
     deriving (Eq, Ord, Show)
     deriving (Generic)
-    deriving (FromJSON, ToJSON)
+    deriving (FromJSON, ToJSON, NFData)
 
 newtype Model = Model { unModel :: Data String DagsdatoBackup }
-    deriving (Show)
+    deriving (Show, Generic, NFData)
 
 makeLenses ''Model
 

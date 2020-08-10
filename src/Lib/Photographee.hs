@@ -1,6 +1,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE DeriveAnyClass #-}
 
+
 module Lib.Photographee
     ( Photographee(..)
     , Photographees(..)
@@ -34,6 +35,7 @@ module Lib.Photographee
 
 import Control.Concurrent
 import Data.Csv
+import Control.DeepSeq
 import Data.List (nub)
 
 import Prelude hiding (empty)
@@ -54,14 +56,14 @@ data Photographee' = Photographee'
     { _tea :: String --eller sys
     , _name :: String
     , _ident :: String
-    } deriving (Show, Eq, Generic, ToJSON, FromJSON)
+    } deriving (Show, Eq, Generic, ToJSON, FromJSON, NFData)
 
 makeLenses ''Photographee'
 
 data Photographee
     = Unknown Photographee'
     | Known Photographee'
-    deriving (Show, Eq, Generic, ToJSON, FromJSON)
+    deriving (Show, Eq, Generic, ToJSON, FromJSON, NFData)
 
 
 data PhotographeeData = ParsePhotographeeData
@@ -69,7 +71,7 @@ data PhotographeeData = ParsePhotographeeData
     , gradeData :: String
     , nameData :: String
     , identData :: String
-    } deriving (Show, Eq, Generic, ToJSON, FromJSON)
+    } deriving (Show, Eq, Generic, ToJSON, FromJSON, NFData)
 
 
 makeLenses ''Photographee
@@ -81,6 +83,7 @@ data Photographees
         deriving (Eq, Show)
         deriving (Generic)
         deriving (FromJSON, ToJSON)
+        deriving (NFData)
 
 
 lookup' :: String -> Photographee -> Bool
@@ -263,7 +266,7 @@ parseGrades locationFile = do
 
 --------------------------------------------------------------------------------
 
-data Model = Model { _unModel :: Data String Photographees } deriving Show
+data Model = Model { _unModel :: Data String Photographees } deriving (Show, Generic, NFData)
 
 makeLenses ''Model
 

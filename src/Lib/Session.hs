@@ -20,6 +20,7 @@ module Lib.Session
 
 import Prelude hiding (toInteger)
 import qualified Control.Lens as Lens
+import Control.DeepSeq
 import qualified Utils.ListZipper as ListZipper
 
 import Control.Concurrent
@@ -34,7 +35,7 @@ data Session
     | School
     deriving (Eq, Ord, Show)
     deriving (Generic)
-    deriving (FromJSON, ToJSON)
+    deriving (FromJSON, ToJSON, NFData)
 
 
 toInteger :: Session -> Int
@@ -48,7 +49,7 @@ data Decisions
     | GroupOrSingleForKindergarten
     deriving (Eq, Ord, Show)
     deriving (Generic)
-    deriving (FromJSON, ToJSON)
+    deriving (FromJSON, ToJSON, NFData)
 
 
 
@@ -78,7 +79,7 @@ translationSession session = Lens.view translator
 newtype Sessions = Sessions { unSessions:: ListZipper.ListZipper Session }
     deriving (Eq, Ord, Show)
     deriving (Generic)
-    deriving (FromJSON, ToJSON)
+    deriving (FromJSON, ToJSON, NFData)
 
 
 getSessions' :: (MonadIO m, MonadThrow m) => FilePath -> m (Either String Sessions)
@@ -89,6 +90,7 @@ writeSessions' :: (MonadIO m) => FilePath -> Sessions -> m ()
 writeSessions' = writeJSONFile
 
 newtype Model = Model { unModel :: Data String Sessions }
+    deriving (NFData, Generic)
 
 
 makeLenses ''Model

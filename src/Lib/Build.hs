@@ -14,6 +14,7 @@ import qualified Lib.Translation  as Translation --todo should not be here
 
 import Control.Concurrent
 
+import Control.DeepSeq
 import Control.Lens
 
 import qualified Control.Lens as Lens
@@ -30,6 +31,8 @@ data Build
     deriving (Eq, Show)
     deriving (Generic)
     deriving (FromJSON, ToJSON)
+    deriving (NFData)
+
 
 
 toString :: Build -> Translation.Translation -> String
@@ -53,6 +56,7 @@ writeBuild' :: (MonadIO m) => FilePath -> Build -> m ()
 writeBuild' = writeJSONFile
 
 newtype Model = Model { unModel :: Data String Build }
+    deriving (Generic, NFData)
 
 makeLenses ''Model
 

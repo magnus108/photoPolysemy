@@ -5,6 +5,7 @@ module Lib.App.Env
        ) where
 
 
+import Control.DeepSeq
 import qualified Lib.Build as Build
 import qualified Control.Concurrent.Chan as Chan
 import qualified Lib.Photographer as Photographer
@@ -72,7 +73,7 @@ data Action
     | MFcker Main.Item
     | BuilderMessage Build.Build
 
-        deriving Show
+        deriving (Show, Generic, NFData)
 
 data Env = Env
     { serverRoot :: FilePath

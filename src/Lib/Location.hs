@@ -12,6 +12,7 @@ module Lib.Location
     , Model(..)
     ) where
 
+import Control.DeepSeq
 
 import Control.Concurrent
 import System.Directory
@@ -22,6 +23,7 @@ import Control.Lens
 newtype LocationFile = LocationFile { unLocationFile :: FilePath }
     deriving (Eq, Ord, Show)
     deriving (Generic)
+    deriving (NFData)
     deriving (FromJSON, ToJSON)
 
 
@@ -34,7 +36,7 @@ writeLocationFile' = writeJSONFile
 
 
 newtype Model = Model { unModel :: Data String LocationFile }
-    deriving Show
+    deriving (Show, Generic, NFData)
 
 
 makeLenses ''Model

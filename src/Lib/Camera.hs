@@ -18,6 +18,7 @@ module Lib.Camera
 import Utils.ListZipper
 
 import Control.Concurrent
+import Control.DeepSeq
 
 import Lib.Data
 
@@ -28,7 +29,7 @@ data Camera
     | CR3
     deriving (Eq, Ord, Show)
     deriving (Generic)
-    deriving (FromJSON, ToJSON)
+    deriving (FromJSON, ToJSON, NFData)
 
 
 toExtension :: Camera -> (String, String)
@@ -38,7 +39,7 @@ toExtension CR3 = ("CR3", "cr3")
 newtype Cameras = Cameras { unCameras :: ListZipper Camera }
     deriving (Eq, Ord, Show)
     deriving (Generic)
-    deriving (FromJSON, ToJSON)
+    deriving (FromJSON, ToJSON, NFData)
 
 
 getCameras' :: (MonadIO m, MonadThrow m) => FilePath -> m (Either String Cameras)
@@ -50,6 +51,7 @@ writeCameras' = writeJSONFile
 
 
 newtype Model = Model { unModel :: Data String Cameras }
+    deriving (Generic, NFData)
 
 
 makeLenses ''Model

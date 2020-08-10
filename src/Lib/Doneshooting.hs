@@ -18,6 +18,7 @@ module Lib.Doneshooting
 import System.FilePath
 import Control.Exception
 import Control.Concurrent
+import Control.DeepSeq
 
 import Lib.Data
 import Utils.Comonad
@@ -32,11 +33,11 @@ import Control.Lens
 newtype Doneshooting = Doneshooting { unDoneshooting :: FilePath }
     deriving (Eq, Ord, Show)
     deriving (Generic)
-    deriving (FromJSON, ToJSON)
+    deriving (FromJSON, ToJSON, NFData)
 
 
 newtype Model = Model { unModel :: Data String Doneshooting }
-    deriving (Show)
+    deriving (Show, NFData)
 
 makeLenses ''Model
 
@@ -87,7 +88,7 @@ getDoneshooting file = liftIO $ read file
 newtype DoneshootingDir = DoneshootingDir { unDoneshootingDir :: ([FilePath], ([FilePath], FilePath))}
     deriving (Eq, Ord, Show)
     deriving (Generic)
-    deriving (FromJSON, ToJSON)
+    deriving (FromJSON, ToJSON, NFData)
 
 
 
@@ -118,7 +119,7 @@ getDoneshootingDir' doneshooting camera loc grades = do
 
 
 newtype DoneshootingDirModel = DoneshootingDirModel { unDoneshootingDirModel :: Data String DoneshootingDir }
-    deriving Show
+    deriving (Show, NFData)
 
 count :: DoneshootingDir -> Int
 count = length . fst . unDoneshootingDir

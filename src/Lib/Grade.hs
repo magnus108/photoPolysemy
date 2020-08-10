@@ -23,6 +23,7 @@ module Lib.Grade
     ) where
 
 import Control.Concurrent
+import Control.DeepSeq
 
 import Utils.Comonad
 import Utils.ListZipper
@@ -34,7 +35,7 @@ import Control.Lens
 newtype Grade' = Grade' { _unGrade :: String }
     deriving (Eq, Ord, Show)
     deriving (Generic)
-    deriving (FromJSON, ToJSON)
+    deriving (FromJSON, ToJSON, NFData)
 
 makeLenses ''Grade'
 
@@ -43,7 +44,7 @@ data Grade
     | Unknown Grade'
         deriving (Eq, Ord, Show)
         deriving (Generic)
-        deriving (FromJSON, ToJSON)
+        deriving (FromJSON, ToJSON, NFData)
 
 makeLenses ''Grade
 
@@ -51,7 +52,7 @@ makeLenses ''Grade
 newtype Grades = Grades { _unGrades :: ListZipper Grade }
     deriving (Eq, Ord, Show)
     deriving (Generic)
-    deriving (FromJSON, ToJSON)
+    deriving (FromJSON, ToJSON, NFData)
 
 makeLenses ''Grades
 
@@ -97,7 +98,7 @@ writeGrades :: (MonadIO m) => MVar FilePath -> Grades -> m ()
 writeGrades file grades = liftIO $ (write file grades) 
 
 
-data Model = Model { _grades :: Data String Grades } deriving Show
+data Model = Model { _grades :: Data String Grades } deriving (Show, Generic, NFData)
 
 makeLenses ''Model
 

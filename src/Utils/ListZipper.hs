@@ -42,11 +42,13 @@ import Data.Aeson
 import Data.Bool
 
 import Utils.Comonad
+import Control.DeepSeq
 
 data ListZipper a = ListZipper [a] a [a]
     deriving (Eq, Ord, Show)
     deriving (Generic)
     deriving (FromJSON, ToJSON)
+    deriving (NFData)
 
 
 first :: ListZipper a -> ListZipper a

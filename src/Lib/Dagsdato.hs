@@ -9,6 +9,7 @@ module Lib.Dagsdato
     , writeDagsdato
     , initialState
     ) where
+import Control.DeepSeq
 
 import System.Directory
 
@@ -21,11 +22,11 @@ import Control.Lens
 newtype Dagsdato = Dagsdato { unDagsdato :: FilePath }
     deriving (Eq, Ord, Show)
     deriving (Generic)
-    deriving (FromJSON, ToJSON)
+    deriving (FromJSON, ToJSON, NFData)
 
 
 newtype Model = Model { unModel :: Data String Dagsdato }
-    deriving (Show)
+    deriving (Show, NFData)
 
 makeLenses ''Model
 

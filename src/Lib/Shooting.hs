@@ -13,6 +13,7 @@ module Lib.Shooting
     , Model(..)
     , initialState
     ) where
+import Control.DeepSeq
 
 import Prelude hiding (toInteger)
 
@@ -29,7 +30,7 @@ data Shooting
     | Normal
     deriving (Eq, Ord, Show)
     deriving (Generic)
-    deriving (FromJSON, ToJSON)
+    deriving (FromJSON, ToJSON, NFData)
 
 toInteger :: Shooting -> Integer
 toInteger = \case
@@ -40,7 +41,7 @@ toInteger = \case
 newtype Shootings = Shootings { unShootings :: ListZipper Shooting }
     deriving (Eq, Ord, Show)
     deriving (Generic)
-    deriving (FromJSON, ToJSON)
+    deriving (FromJSON, ToJSON, NFData)
 
 
 getShootings' :: (MonadIO m, MonadThrow m) => FilePath -> m (Either String Shootings)
@@ -52,6 +53,7 @@ writeShootings' = writeJSONFile
 
 
 newtype Model = Model { unModel :: Data String Shootings }
+    deriving (Generic, NFData)
 
 
 makeLenses ''Model
