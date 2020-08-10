@@ -324,6 +324,7 @@ sinkModel env@Env{..} win translations bModel = do
                 <@> findEvent
 
     let enterKeydown = filterJust $ (\keycode -> if (keycode == 13) then Just () else Nothing) <$> (UI.keydown input)
+
     let buildClick = seq <$> UI.click mkBuild'
 
     let changeOk = UI.click changedButton
@@ -365,8 +366,12 @@ sinkModel env@Env{..} win translations bModel = do
             case toJust (Main._unModel model) of
                 Nothing -> return ()
                 Just item'  -> do  
-                    _ <- Chan.writeChan chan ( MFcker (item'))
-                    return ()
+                    case (Main._photographees item') of
+                        (Photographee.CorrectPhotographees ys) -> do
+                            _ <- Chan.writeChan chan ( MFcker (item'))
+                            return ()
+                        (Photographee.ChangedPhotographees ys) -> do
+                            return ()
 
 
     _ <- onEvent ee2 $ \model -> do
