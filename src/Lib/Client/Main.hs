@@ -200,7 +200,7 @@ sinkModel env@Env{..} win translations bModel = do
 
                 Data item' -> do
                     buildStatus <- UI.string $ Build.toString (Main._build item') translations
-                    _ <- element photographerName # set text (Lens.view Photographer.tid (Main._photographer item'))
+                    _ <- element photographerName # set text (Lens.view Photographer.name (Main._photographer item'))
                     _ <- element build' # set children [buildStatus]
                     _ <- case (Main._build item') of
                             (Build.DoneBuild _ _) -> do
@@ -266,7 +266,7 @@ sinkModel env@Env{..} win translations bModel = do
                        (Photographee.CorrectPhotographees _) -> 
                             runFunction  $ ffi "$(%1).removeAttr('disabled')" (mkBuild')
 
-                _ <- element photographerName # set text (Lens.view Photographer.tid (Main._photographer item'))
+                _ <- element photographerName # set text (Lens.view Photographer.name (Main._photographer item'))
                 editingInput <- liftIO $ currentValue bEditingInput
                 editingSelect <- liftIO $ currentValue bEditingSelect
 
