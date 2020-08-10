@@ -12,6 +12,7 @@ import qualified Lib.Server.Build as SBuild
 import qualified Lib.Build as Build
 
 import Utils.Comonad
+import qualified Utils.ListZipper as ListZipper
 
 import           Data.Char
 import Graphics.UI.Threepenny.Core
@@ -133,6 +134,27 @@ setChanged _ translations content parent button photographees = do
             return $ Just val
 
 
+mkPhotographees :: Env -> Photographee.Photographees -> [UI Element]
+mkPhotographees env photographees' = do
+    let elems = ListZipper.iextend (\i photographees'' -> (i, (Photographee.toZip photographees') == photographees'', extract photographees'')) (Photographee.toZip photographees')
+    map (mkPhotographeeListItem env) (ListZipper.toList elems)
+
+mkPhotographeeListItem :: Env -> (Int, Bool, Photographee.Photographee) -> UI Element
+mkPhotographeeListItem Env {..} (thisIndex, isCenter, photographee) = do
+    let name   = Photographee.toName' photographee
+    let option = UI.option # set value (show thisIndex) # set text name
+    if isCenter then option # set UI.selected True else option
+
+selectPhotographeeF :: Int -> Photographee.Photographees -> Photographee.Photographees
+selectPhotographeeF selected photographees' =
+        -- TODO this just wierd
+    fromMaybe photographees' $ asum $ ListZipper.toNonEmpty $ ListZipper.iextend
+        (\thisIndex photographees'' -> if selected == thisIndex
+            then Just (Photographee.CorrectPhotographees photographees'')
+            else Nothing
+        ) (Photographee.toZip photographees')
+
+
 sinkModel :: Env -> Window -> Translation -> Behavior Main.Model -> UI (Element, Element)
 sinkModel env@Env{..} win translations bModel = do
 
@@ -172,12 +194,13 @@ sinkModel env@Env{..} win translations bModel = do
                 ]
             ]
 
-    photographees' <- UI.div
     count <- UI.div
 
     bEditingInput <- bEditing input
     bEditingSelect  <- bEditing select
 
+    selectPhotographee <- UI.select
+    bEditingSelectPhotographee <- bEditing selectPhotographee
 
     liftIOLater $ do
         model <- currentValue bModel
@@ -223,13 +246,21 @@ sinkModel env@Env{..} win translations bModel = do
                     _ <- element select # set children [] #+ options
 
                     photographeesList' <- photographeesList env win (Main._dumpDir item') (Main._photographees item')
-                    _ <- element photographees' # set children photographeesList'
 
                     let _ = Photographee.toIdent (Main._photographees item')
                     let name = Photographee.toName (Main._photographees item')
                     _ <- element currentPhotographee # set text name
 
                     isChanged <- setChanged env translations changed' changed changedButton (Main._photographees item')
+
+
+                    _ <- element selectPhotographee # set children [] #+ (mkPhotographees env (Main._photographees item'))
+                    photographees' <- UI.div #. "section"
+                                    #+ [ UI.div
+                                        #. "field"
+                                        #+ [ UI.p #. "control" #+ [UI.div #. "select" #+ [element selectPhotographee]]]
+                                    ]
+
                     _ <- element content # set children ([photographerName, build', mkBuild, count] ++ maybeToList isChanged ++ [inputSection, selectSection, photographees'])
                     return ()
 
@@ -275,7 +306,11 @@ sinkModel env@Env{..} win translations bModel = do
                 dumpFilesCounter' <- dumpFilesCounter env win translations (Main._dumpDir item')
                 _ <- element count # set children [dumpFilesCounter']
                 photographeesList' <- photographeesList env win (Main._dumpDir item') (Main._photographees item')
-                _ <- element photographees' # set children photographeesList'
+
+                editingSelectPhotographee <- liftIO $ currentValue bEditingSelectPhotographee
+
+                when (not editingSelectPhotographee) $ void $
+                    element selectPhotographee # set children [] #+ (mkPhotographees env (Main._photographees item'))
 
                 let _ = Photographee.toIdent (Main._photographees item')
                 let name = Photographee.toName (Main._photographees item')
@@ -292,11 +327,19 @@ sinkModel env@Env{..} win translations bModel = do
                     element input # set value ""
 
                 when (not (editingInput || editingSelect )) $ void $ do
+                    photographees' <- UI.div #. "section"
+                        #+ ([ UI.div
+                                    #+ [ UI.div
+                                        #. "field"
+                                        #+ [ UI.p #. "control" #+ [UI.div #. "select" #+ [element selectPhotographee]]]
+                                    ]
+                                    ])
                     _ <- element content # set children ([photographerName, build', mkBuild, count] ++ maybeToList isChanged ++[ inputSection, selectSection, photographees'])
                     UI.setFocus input
                     return ()
 
 
+    let eSelect   = selectPhotographeeF <$> filterJust (selectionChange' selectPhotographee)
 
     let eSelectGrade = CLocation.selectGrade <$> filterJust (selectionChange' select)
     let eFind = Photographee.tryFindById <$> UI.valueChange input
@@ -321,6 +364,27 @@ sinkModel env@Env{..} win translations bModel = do
                         )
                         bModel
                 <@> findEvent
+
+    let ee3 = filterJust
+                $   fmap
+                        (\m f -> case toJust (Main._unModel m) of
+                            Nothing -> Nothing
+                            Just x -> Just $ Main.Model $ Data $ Lens.over Main.photographees f x
+                        )
+                        bModel
+                <@> eSelect
+
+
+
+    _ <- onEvent ee3 $ \model -> do
+        void $ liftIO $ do
+            case toJust (Main._unModel model) of
+                Nothing -> return ()
+                Just item'  -> do
+                    --Location.writeLocationFile mLocationConfigFile (location i)
+                    _ <- Chan.writeChan chan (WritePhotographees (Main._photographees item') (Main._dumpDir item'))
+                    return ()
+
 
     let enterKeydown = filterJust $ (\keycode -> if (keycode == 13) then Just () else Nothing) <$> (UI.keydown input)
 
