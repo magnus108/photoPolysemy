@@ -356,8 +356,15 @@ receiveMessages env@Env{..} mgr watchMap hPhotographers hConfigDump hConfigDagsd
                     Left e' -> hPhotographees $ Photographee.Model (Failure e')
                     Right s -> hPhotographees $ Photographee.Model (Data s)
 
-            WritePhotographees photographees' ->
-                Photographee.writePhotographees mPhotographeesFile photographees'
+            WritePhotographees photographees' dumpDir ->
+                if (Dump.count dumpDir == 0) then
+                    Photographee.writePhotographees mPhotographeesFile (Photographee.CorrectPhotographees (Photographee.toZip photographees'))
+                else 
+                    Photographee.writePhotographees mPhotographeesFile (Photographee.ChangedPhotographees (Photographee.toZip photographees'))
+
+            WritePhotographeesOK photographees' ->
+                Photographee.writePhotographees mPhotographeesFile (Photographee.CorrectPhotographees (Photographee.toZip photographees'))
+
 
             ReadLocation ->
                 Location.getLocationFile mLocationConfigFile >>= \case

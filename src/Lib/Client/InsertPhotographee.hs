@@ -7,6 +7,7 @@ module Lib.Client.InsertPhotographee
     ) where
 import Lib.App (Action(..))
 import qualified Control.Concurrent.Chan as Chan
+import qualified Lib.Dump as Dump
 
 import Lib.Data
 
@@ -41,6 +42,7 @@ import Control.Lens hiding (children, set, (#), element)
 data Item = Item { _location :: Location.LocationFile
                  , _grades :: Grade.Grades
                  , _photographees :: Photographee.Photographees
+                 , _dumpDir :: Dump.DumpDir --TODO this is wrong
                  }
 
 makeLenses ''Item
@@ -49,11 +51,12 @@ newtype Model = Model { _unModel :: Data String Item }
 
 makeLenses ''Model
 
-mkModel :: Location.Model -> Grade.Model -> Photographee.Model -> Model
-mkModel location' grades' photograhees =
+mkModel :: Location.Model -> Grade.Model -> Photographee.Model -> Dump.DumpDirModel -> Model
+mkModel location' grades' photograhees dumpDir =
     Model $ Item <$>
         Location.unModel location' <*> Grade._grades grades' <*>
                     (Lens.view Photographee.unModel photograhees)
+                    <*> Dump.unDumpDirModel dumpDir
 
 
 ---------------------------------------------------------------------------------
@@ -74,8 +77,8 @@ mkCreate _ _ translations = do
 
 
 mkPhotographees :: Env -> Photographee.Photographees -> [UI Element]
-mkPhotographees env (Photographee.Photographees photographees') = do
-    let elems = ListZipper.iextend (\i photographees'' -> (i, photographees' == photographees'', extract photographees'')) photographees'
+mkPhotographees env photographees' = do
+    let elems = ListZipper.iextend (\i photographees'' -> (i, (Photographee.toZip photographees') == photographees'', extract photographees'')) (Photographee.toZip photographees')
     map (mkPhotographeeListItem env) (ListZipper.toList elems)
 
 
@@ -180,13 +183,13 @@ selectPhotographeeSection env _ translations input inputIdent inputSys select bu
     return content
 
 selectPhotographeeF :: Int -> Photographee.Photographees -> Photographee.Photographees
-selectPhotographeeF selected (Photographee.Photographees photographees') =
+selectPhotographeeF selected photographees' =
         -- TODO this just wierd
-    fromMaybe (Photographee.Photographees photographees') $ asum $ ListZipper.toNonEmpty $ ListZipper.iextend
+    fromMaybe photographees' $ asum $ ListZipper.toNonEmpty $ ListZipper.iextend
         (\thisIndex photographees'' -> if selected == thisIndex
-            then Just (Photographee.Photographees photographees'')
+            then Just (Photographee.CorrectPhotographees photographees'')
             else Nothing
-        ) photographees'
+        ) (Photographee.toZip photographees')
 
 
 
@@ -346,7 +349,7 @@ sinkModel env@Env{..} win translations bModel = do
                 Nothing -> return ()
                 Just item'  -> do
                     --Location.writeLocationFile mLocationConfigFile (location i)
-                    _ <- Chan.writeChan chan (WritePhotographees (_photographees item'))
+                    _ <- Chan.writeChan chan (WritePhotographees (_photographees item') (_dumpDir item'))
                     return ()
 
 

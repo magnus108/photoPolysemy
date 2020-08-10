@@ -3,6 +3,8 @@
 
 module Lib.Translation
     ( Translation(..)
+    , isChanged
+    , changedPhotographeesError
     , couldNotReadDoneshootingDir
     , exactly1With5
     , doneshootingEmpty
@@ -79,6 +81,8 @@ import Control.Lens
 import Control.Concurrent
 
 data Translation = Translation { _loading :: String
+                               , _isChanged :: String
+                               , _changedPhotographeesError :: String
                                , _insertPhotographeeTab :: String
                                , _build :: String
                                , _buildSingle :: String

@@ -62,7 +62,9 @@
 ,"_noBuild" : "Intet byg"
 ,"_controlError" : "Der er fejl med kontrol"
 ,"_exactly1With5" : "1 med 5"
+,"_isChanged" : "Ok"
 ,"_atleast8With1" : "8 med 1"
 ,"_doneshootingEmpty" : "Doneshooting mappe tom"
 ,"_couldNotReadDoneshootingDir": "Kunne ikke læse"
+,"_changedPhotographeesError": "Du har ændret elev mens der var billeder i dump"
 }

@@ -53,7 +53,9 @@ data Action
     | WriteGrades Grade.Grades
 
     | ReadPhographees
-    | WritePhotographees Photographee.Photographees
+    | WritePhotographees Photographee.Photographees Dump.DumpDir
+    | WritePhotographeesOK Photographee.Photographees
+
   
     | ReadLocation
     | WriteLocation Location.LocationFile

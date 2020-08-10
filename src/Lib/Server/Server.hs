@@ -89,7 +89,7 @@ view env@Env{..} win translation bDoneshootingDir bBuild bGrades bLocationConfig
             return ()
 
         InsertPhotographeeTab -> do
-            let bModel = InsertPhotographee.mkModel <$> bLocationConfigFile <*> bGrades <*> bPhotographees
+            let bModel = InsertPhotographee.mkModel <$> bLocationConfigFile <*> bGrades <*> bPhotographees <*> bDumpDir
             InsertPhotographee.insertPhotographeeSection env win translation tabs bModel
             -- QUICK BADNESS
             return ()

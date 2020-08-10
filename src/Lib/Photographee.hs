@@ -4,6 +4,7 @@
 module Lib.Photographee
     ( Photographee(..)
     , Photographees(..)
+    , toZip
     , setSys
     , toSys
     , toSys'
@@ -74,7 +75,9 @@ data PhotographeeData = ParsePhotographeeData
 makeLenses ''Photographee
 
 
-newtype Photographees = Photographees { unPhotographees :: ListZipper.ListZipper Photographee}
+data Photographees
+    = CorrectPhotographees { unPhotographees :: ListZipper.ListZipper Photographee }
+    | ChangedPhotographees { unPhotographees :: ListZipper.ListZipper Photographee }
         deriving (Eq, Show)
         deriving (Generic)
         deriving (FromJSON, ToJSON)
@@ -86,16 +89,25 @@ lookup' s (Known a) = _ident a == s
 
 
 tryFindById :: String -> Photographees -> Photographees
-tryFindById s (Photographees x) = 
+tryFindById s xs = 
     if s == "" then 
-        Photographees x
+        xs
     else 
-        let 
-            found = ListZipper.findFirst (lookup' s) x
-        in 
-            case found of
-                Nothing -> Photographees x
-                Just xs -> Photographees xs
+        case xs of
+            (CorrectPhotographees ys) ->
+                let 
+                    found = ListZipper.findFirst (lookup' s) ys
+                in 
+                    case found of
+                        Nothing -> xs
+                        Just xs -> CorrectPhotographees ys
+            (ChangedPhotographees ys) ->
+                let 
+                    found = ListZipper.findFirst (lookup' s) ys
+                in 
+                    case found of
+                        Nothing -> xs
+                        Just xs -> ChangedPhotographees ys
 
 
 setSys' :: String -> Photographee -> Photographee
@@ -103,8 +115,18 @@ setSys' sys' (Unknown a) = Unknown $ photographee ("SYS_" ++ sys') (_name a) (_i
 setSys' sys' (Known a) = Known $ photographee ("SYS_" ++ sys') (_name a) (_ident a)
 
 setSys :: String -> Photographees -> Photographees
-setSys sys' (Photographees xs) = Photographees $ 
-    ListZipper.mapFocus (setSys' sys') xs
+setSys sys' xs =
+    case xs of
+        (CorrectPhotographees ys) ->
+            CorrectPhotographees $ ListZipper.mapFocus (setSys' sys') ys
+        (ChangedPhotographees ys) ->
+            ChangedPhotographees $ ListZipper.mapFocus (setSys' sys') ys
+
+toZip :: Photographees -> ListZipper.ListZipper Photographee
+toZip xs =
+    case xs of
+        (CorrectPhotographees ys) -> ys
+        (ChangedPhotographees ys) -> ys
 
 
 setName' :: String -> Photographee -> Photographee
@@ -112,8 +134,12 @@ setName' name' (Unknown a) = Unknown $ photographee (_tea a) name' (_ident a)
 setName' name' (Known a) = Known $ photographee (_tea a)  name' (_ident a)
 
 setName :: String -> Photographees -> Photographees
-setName name' (Photographees xs) = Photographees $ 
-    ListZipper.mapFocus (setName' name') xs
+setName name' xs =
+    case xs of
+        (CorrectPhotographees ys) ->
+            CorrectPhotographees $ ListZipper.mapFocus (setName' name') ys
+        (ChangedPhotographees ys) ->
+            ChangedPhotographees $ ListZipper.mapFocus (setName' name') ys
 
 
 setIdent' :: String -> Photographee -> Photographee
@@ -122,8 +148,13 @@ setIdent' ident' (Known a) = Known $ photographee (_tea a) (_name a) ident'
 
 
 setIdent :: String -> Photographees -> Photographees
-setIdent ident' (Photographees xs) = Photographees $
-    ListZipper.mapFocus (setIdent' ident') xs
+setIdent ident' xs =
+    case xs of
+        (CorrectPhotographees ys) ->
+            CorrectPhotographees $ ListZipper.mapFocus (setIdent' ident') ys
+        (ChangedPhotographees ys) ->
+            ChangedPhotographees $ ListZipper.mapFocus (setIdent' ident') ys
+
 
 
 toTea' :: Photographee -> String
@@ -136,7 +167,12 @@ toName' (Known x) =  _name x
 
 
 toName :: Photographees -> String
-toName (Photographees x) = toName' ( extract x)
+toName xs =
+    case xs of
+        (CorrectPhotographees ys) ->
+            toName' ( extract ys)
+        (ChangedPhotographees ys) ->
+            toName' ( extract ys)
 
 
 toIdent' :: Photographee -> String
@@ -145,7 +181,12 @@ toIdent' (Known x) =  _ident x
 
 
 toIdent :: Photographees -> String
-toIdent (Photographees x) =  toIdent' ( extract x)
+toIdent xs =
+    case xs of
+        (CorrectPhotographees ys) ->
+            toIdent' ( extract ys)
+        (ChangedPhotographees ys) ->
+            toIdent' ( extract ys)
 
 
 toSys' :: Photographee -> String
@@ -153,7 +194,12 @@ toSys' (Unknown x) = drop 4 (_tea x)
 toSys' (Known x) =  drop 4 (_tea x)
 
 toSys :: Photographees -> String
-toSys (Photographees x) =  toSys' ( extract x)
+toSys xs =
+    case xs of
+        (CorrectPhotographees ys) ->
+            toSys' (extract ys)
+        (ChangedPhotographees ys) ->
+            toSys' (extract ys)
 
 
 
@@ -169,7 +215,12 @@ empty = photographee "Tom" "Tom" "Tom"
 
 
 insert :: Photographee -> Photographees -> Photographees
-insert x (Photographees xs) = Photographees $ ListZipper.insert xs x
+insert x xs =
+    case xs of
+        (CorrectPhotographees ys) ->
+            CorrectPhotographees $ ListZipper.insert ys x
+        (ChangedPhotographees ys) ->
+            ChangedPhotographees $ ListZipper.insert ys x
 
 
 myOptionsDecode :: DecodeOptions
@@ -191,8 +242,8 @@ fromGrade locationFile grades = do
                 let photographees = Vector.filter (((Grade.showGrade grades) ==) . gradeData) locData
                 let zipper = ListZipper.fromList $ fmap (\x -> Known $ photographee (teaData x) (nameData x) (identData x)) $ sortOn nameData $ Vector.toList photographees
                 case zipper of
-                    Nothing -> return (Right (Photographees (ListZipper.ListZipper [] (Unknown empty) [] )))
-                    Just zs -> return (Right (Photographees zs))
+                    Nothing -> return (Right (CorrectPhotographees (ListZipper.ListZipper [] (Unknown empty) [] )))
+                    Just zs -> return (Right (CorrectPhotographees zs))
 
 
 parseGrades :: Location.LocationFile -> IO (Either String Grade.Grades)
