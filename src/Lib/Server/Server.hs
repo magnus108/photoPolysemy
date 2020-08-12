@@ -48,8 +48,8 @@ import Utils.Comonad
 
 
 
-view :: Env -> Window -> Translation -> Behavior Doneshooting.DoneshootingDirModel -> Behavior Build.Model -> Behavior Grade.Model -> Behavior Location.Model -> UI.Behavior Session.Model -> UI.Behavior Shooting.Model -> UI.Behavior Camera.Model -> UI.Behavior Dump.DumpModel -> UI.Behavior Dump.DumpDirModel -> UI.Behavior Doneshooting.Model -> UI.Behavior Dagsdato.Model -> UI.Behavior DagsdatoBackup.Model -> UI.Behavior Photographer.Model -> UI.Behavior Photographee.Model -> Handler (Grade.Model) -> Handler (Location.Model) -> Handler Dump.DumpModel -> Handler Dump.DumpDirModel -> Handler Photographee.Model -> Tabs -> UI ()
-view env@Env{..} win translation bDoneshootingDir bBuild bGrades bLocationConfigFile bSessions bShootings bCameras bDump bDumpDir bDoneshooting bDagsdato bDagsdatoBackup bPhotographers bPhotographees _ _ _ _ _ tabs = do
+--view :: Env -> Window -> Translation -> Behavior Doneshooting.DoneshootingDirModel -> Behavior Build.Model -> Behavior Grade.Model -> Behavior Location.Model -> UI.Behavior Session.Model -> UI.Behavior Shooting.Model -> UI.Behavior Camera.Model -> UI.Behavior Dump.DumpModel -> UI.Behavior Dump.DumpDirModel -> UI.Behavior Doneshooting.Model -> UI.Behavior Dagsdato.Model -> UI.Behavior DagsdatoBackup.Model -> UI.Behavior Photographer.Model -> UI.Behavior Photographee.Model -> Handler (Grade.Model) -> Handler (Location.Model) -> Handler Dump.DumpModel -> Handler Dump.DumpDirModel -> Handler Photographee.Model -> Tabs -> UI ()
+view env@Env{..} win translation bDoneshootingDir bBuild bGrades bLocationConfigFile bSessions bShootings bCameras bDump bDumpDir bDoneshooting bDagsdato bDagsdatoBackup bPhotographers bPhotographees _ _ _ _ _ tabs  bModelLocation1 bModelInserter1 = do
     let currentTab = focus (unTabs tabs)
     case currentTab of
         DumpTab -> dumpSection env win translation tabs bDump
@@ -60,17 +60,12 @@ view env@Env{..} win translation bDoneshootingDir bBuild bGrades bLocationConfig
         CamerasTab -> camerasSection env win translation tabs bCameras
         DagsdatoTab -> dagsdatoSection env win translation tabs bDagsdato
         DagsdatoBackupTab -> dagsdatoBackupSection env win translation tabs bDagsdatoBackup
-        LocationTab -> do
-            let bModel = liftA2 CLocation.mkModel bLocationConfigFile bGrades
-            CLocation.locationSection env win translation tabs bModel
-            -- QUICK BADNESS
-            return ()
+        LocationTab -> CLocation.locationSection env win translation tabs bModelLocation1
 
         MainTab -> do
             let bSession =
                     fmap (\x -> (\(Session.Sessions sessions) -> extract sessions
                                 ) <$> (Session.unModel x) ) bSessions
-
 
             let bCamera = (\camerasData -> fmap (\(Camera.Cameras x) -> extract x) (Camera.unModel camerasData)) <$> bCameras
             let bDagsdato' = Dagsdato.unModel <$> bDagsdato
@@ -88,11 +83,7 @@ view env@Env{..} win translation bDoneshootingDir bBuild bGrades bLocationConfig
             controlSection env win translation tabs bModel
             return ()
 
-        InsertPhotographeeTab -> do
-            let bModel = InsertPhotographee.mkModel <$> bLocationConfigFile <*> bGrades <*> bPhotographees <*> bDumpDir
-            InsertPhotographee.insertPhotographeeSection env win translation tabs bModel
-            -- QUICK BADNESS
-            return ()
+        InsertPhotographeeTab -> InsertPhotographee.insertPhotographeeSection env win translation tabs bModelInserter1 
         _ -> 
             return ()
 
@@ -114,6 +105,9 @@ run port env@Env{..} translations bDoneshootingDir bBuild eGrades bLocationConfi
         -- behaviors
         bTabs <- stepper tabs eTabs
 
+        let bModelLocation1 = liftA2 CLocation.mkModel bLocationConfigFile eGrades
+        let bModelInserter1 = InsertPhotographee.mkModel <$> bLocationConfigFile <*> eGrades <*> bPhotographees <*> bDumpDir
+
         liftIO $ do
             model <- currentValue bTabs
             runUI win $ void $ do
@@ -133,6 +127,8 @@ run port env@Env{..} translations bDoneshootingDir bBuild eGrades bLocationConfi
                                                 hDumpDir
                                                 hPhotographees
                                                 model
+                                                bModelLocation1
+                                                bModelInserter1 
 
         liftIO $ onChange bTabs $ \tabs' -> runUI win $ do
             (view env win translations bDoneshootingDir bBuild eGrades bLocationConfigFile eSessions
@@ -150,6 +146,8 @@ run port env@Env{..} translations bDoneshootingDir bBuild eGrades bLocationConfi
                                             hDumpDir
                                             hPhotographees
                                             tabs'
+                                            bModelLocation1
+                                            bModelInserter1 
                            )
 
         UI.on UI.disconnect win $ const $ liftIO $ do
