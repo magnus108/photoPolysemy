@@ -14,7 +14,7 @@ module Lib.Photographer
     ) where
 import Control.DeepSeq
 
-import Control.Concurrent
+import Control.Concurrent.MVar.Strict
 import Utils.ListZipper
 import Control.Lens
 

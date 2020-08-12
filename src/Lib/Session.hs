@@ -23,7 +23,7 @@ import qualified Control.Lens as Lens
 import Control.DeepSeq
 import qualified Utils.ListZipper as ListZipper
 
-import Control.Concurrent
+import Control.Concurrent.MVar.Strict
 
 import Lib.Data
 import Control.Lens

@@ -14,7 +14,7 @@ module Lib.Location
 
 import Control.DeepSeq
 
-import Control.Concurrent
+import Control.Concurrent.MVar.Strict
 import System.Directory
 
 import Lib.Data

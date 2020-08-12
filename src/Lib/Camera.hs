@@ -17,7 +17,8 @@ module Lib.Camera
 
 import Utils.ListZipper
 
-import Control.Concurrent
+import Control.Concurrent.MVar.Strict
+
 import Control.DeepSeq
 
 import Lib.Data

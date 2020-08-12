@@ -16,6 +16,7 @@ module Lib.Dump
     , initalStateDir
     ) where
 
+import Control.Concurrent.MVar.Strict
 import Control.DeepSeq
 import System.FilePath
 import System.Directory
@@ -24,7 +25,6 @@ import Control.Exception
 import Utils.Comonad
 import Lib.Data
 import qualified Lib.Camera as Camera
-import Control.Concurrent (withMVar)
 
 
 newtype Dump = Dump { unDump :: FilePath }

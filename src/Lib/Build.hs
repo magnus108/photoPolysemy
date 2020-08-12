@@ -12,7 +12,7 @@ module Lib.Build
 import Prelude hiding (toString)
 import qualified Lib.Translation  as Translation --todo should not be here
 
-import Control.Concurrent
+import Control.Concurrent.MVar.Strict
 
 import Control.DeepSeq
 import Control.Lens

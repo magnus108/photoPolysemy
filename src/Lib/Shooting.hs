@@ -17,7 +17,7 @@ import Control.DeepSeq
 
 import Prelude hiding (toInteger)
 
-import Control.Concurrent
+import Control.Concurrent.MVar.Strict
 
 import Lib.Data
 

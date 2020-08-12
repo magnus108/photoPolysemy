@@ -106,7 +106,7 @@ opts :: Chan.Chan App.Action -> Photographee.Photographee -> ShakeOptions
 opts  c photographee = shakeOptions
                     { shakeFiles = shakeDir
                     , shakeProgress = progress -- should change
-                    , shakeThreads = 5
+                    , shakeThreads = 0
                     , shakeColor = True
                     }
     where

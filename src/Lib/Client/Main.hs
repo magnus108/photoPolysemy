@@ -124,7 +124,7 @@ setBuild _ translations button session = do
 
 setChanged :: Env -> Translation -> Element -> Element -> Element -> Photographee.Photographees -> UI (Maybe Element)
 setChanged _ translations content parent button photographees = do
-    case traceShow photographees photographees of
+    case photographees of
         Photographee.CorrectPhotographees ys  ->
             return Nothing
         Photographee.ChangedPhotographees _ -> do
@@ -449,19 +449,15 @@ sinkModel env@Env{..} win translations bModel = do
                 Just item'  -> do
                     --Location.writeLocationFile mLocationConfigFile (location i)
                     model2 <- currentValue bModel
-                    traceShowM "wtf"
                     case toJust (Main._unModel model2) of
                         Nothing -> do
                                 _ <- Chan.writeChan chan $!! ( WritePhotographees (Main._photographees item') (Main._dumpDir item'))
-                                return $ traceShow "lol2" ()
+                                return $ ()
                         Just item'' -> do
-                            traceShowM "okok"
-                            traceShowM (Main._photographees item')
-                            traceShowM (Main._photographees item'')
                             if ((Main._photographees item') /= (Main._photographees item'')) then
                                 void $ Chan.writeChan chan $!! ( WritePhotographees (Main._photographees item') (Main._dumpDir item'))
                             else
-                                return $ traceShow "lol" ()
+                                return $ ()
 
     _ <- onEvent ee $ \model -> do
         void $ liftIO $ do

@@ -22,7 +22,7 @@ module Lib.Grade
     , writeGrades
     ) where
 
-import Control.Concurrent
+import Control.Concurrent.MVar.Strict
 import Control.DeepSeq
 
 import Utils.Comonad

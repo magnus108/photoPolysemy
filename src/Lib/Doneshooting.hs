@@ -17,7 +17,7 @@ module Lib.Doneshooting
 
 import System.FilePath
 import Control.Exception
-import Control.Concurrent
+import Control.Concurrent.MVar.Strict
 import Control.DeepSeq
 
 import Lib.Data

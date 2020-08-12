@@ -17,7 +17,8 @@ import qualified Graphics.UI.Threepenny as UI
 import Control.Exception (SomeException(..), catch)
 
 import System.FilePath
-import Control.Concurrent.MVar (modifyMVar_)
+import qualified Control.Concurrent as TT
+import Control.Concurrent.MVar.Strict (modifyMVar_)
 import qualified Data.HashMap.Strict as HashMap
 import System.FSNotify
 import qualified Control.Concurrent.Chan as Chan
@@ -161,7 +162,7 @@ runServer port env@Env{..} = do
         stopConfigTab <- configTab mgr mTabsFile watchers hTab
 
         --TODO setter
-        modifyMVar_ watchers $ \_ -> do
+        TT.modifyMVar_ watchers $ \_ -> do
             return $ HashMap.fromList
                 [("stopConfigTab", stopConfigTab )
 
@@ -285,7 +286,7 @@ receiveMessages env@Env{..} mgr watchMap hPhotographers hConfigDump hConfigDagsd
                         Left e' -> hDumpDir $!! DumpDirModel (Failure e')
                         Right s -> hDumpDir $!! DumpDirModel (Data s)
 
-                modifyMVar_ watchMap $!! \ h -> do
+                TT.modifyMVar_ watchMap $!! \ h -> do
                     h HashMap.! "stopDirDump"
                     stopDirDump <- dirDump env mgr mDumpFile mCamerasFile watchMap hDumpDir
                     return $ HashMap.insert "stopDirDump" stopDirDump h
@@ -516,7 +517,7 @@ grades env mgr mGradesFile mLocationConfigFile mPhotographeesFile mDoneshootingF
         (\_ -> void $ do
             Chan.writeChan (chan env) SGrades
 
-            modifyMVar_ watchMap $ \ h -> do
+            TT.modifyMVar_ watchMap $ \ h -> do
                 h HashMap.! "stopDirDoneshooting"
                 stopDirDoneshooting <- dirDoneshooting env mgr mDoneshootingFile mCamerasFile mLocationConfigFile mGradesFile watchMap handleDonshootingDir
                 return $ HashMap.insert "stopDirDoneshooting" stopDirDoneshooting  h
@@ -592,7 +593,7 @@ configDoneshooting env mgr mDoneshootingFile mCamerasFile mLocationConfigFile mG
             print e
             Chan.writeChan (chan env) ReadDoneshooting
             -- TODO these two are related
-            modifyMVar_ watchMap $ \ h -> do
+            TT.modifyMVar_ watchMap $ \ h -> do
                 h HashMap.! "stopDirDoneshooting"
                 stopDirDoneshooting <- dirDoneshooting env mgr mDoneshootingFile mCamerasFile mLocationConfigFile mGradesFile watchMap handleDonshootingDir
                 return $ HashMap.insert "stopDirDoneshooting" stopDirDoneshooting  h
@@ -669,7 +670,7 @@ configDagsdato env mgr mDagsdatoFile watchMap handler handleDagsdatoDir = do
         (\e -> do
             print e
             Chan.writeChan (chan env) ReadDagsdato
-            modifyMVar_ watchMap $ \ h -> do
+            TT.modifyMVar_ watchMap $ \ h -> do
                 h HashMap.! "stopDirDagsdato"
                 stopDirDagsdato <- dirDagsdato env mgr mDagsdatoFile watchMap handleDagsdatoDir
                 return $ HashMap.insert "stopDirDagsdato" stopDirDagsdato h
@@ -708,7 +709,7 @@ configDagsdatoBackup env mgr mDagsdatoBackupFile watchMap handler handleDagsdato
 
             Chan.writeChan (chan env) ReadDagsdatoBackup
 
-            modifyMVar_ watchMap $ \ h -> do
+            TT.modifyMVar_ watchMap $ \ h -> do
                 h HashMap.! "stopDirDagsdatoBackup"
                 stopDirDagsdatoBackup <- dirDagsdatoBackup env mgr mDagsdatoBackupFile watchMap handleDagsdatoBackupDir
                 return $ HashMap.insert "stopDirDagsdatoBackup" stopDirDagsdatoBackup h

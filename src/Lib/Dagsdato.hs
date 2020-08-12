@@ -13,7 +13,8 @@ import Control.DeepSeq
 
 import System.Directory
 
-import Control.Concurrent
+import Control.Concurrent.MVar.Strict
+
 
 import Lib.Data
 

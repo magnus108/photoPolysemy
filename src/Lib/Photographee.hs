@@ -33,7 +33,7 @@ module Lib.Photographee
     , tryFindById
     ) where
 
-import Control.Concurrent
+import Control.Concurrent.MVar.Strict
 import Data.Csv
 import Control.DeepSeq
 import Data.List (nub)
