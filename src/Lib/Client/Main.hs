@@ -124,7 +124,7 @@ setBuild _ translations button session = do
 
 setChanged :: Env -> Translation -> Element -> Element -> Element -> Photographee.Photographees -> UI (Maybe Element)
 setChanged _ translations content parent button photographees = do
-    case photographees of
+    case traceShow photographees photographees of
         Photographee.CorrectPhotographees ys  ->
             return Nothing
         Photographee.ChangedPhotographees _ -> do
@@ -202,6 +202,8 @@ sinkModel env@Env{..} win translations bModel = do
     selectPhotographee <- UI.select
     bEditingSelectPhotographee <- bEditing selectPhotographee
 
+    ok <- UI.div
+
     liftIOLater $ do
         model <- currentValue bModel
         runUI win $ void $ do
@@ -252,6 +254,7 @@ sinkModel env@Env{..} win translations bModel = do
                     _ <- element currentPhotographee # set text name
 
                     isChanged <- setChanged env translations changed' changed changedButton (Main._photographees item')
+                    element ok # set children (maybeToList isChanged)
 
 
                     _ <- element selectPhotographee # set children [] #+ (mkPhotographees env (Main._photographees item'))
@@ -261,7 +264,7 @@ sinkModel env@Env{..} win translations bModel = do
                                         #+ [ UI.p #. "control" #+ [UI.div #. "select" #+ [element selectPhotographee]]]
                                     ]
 
-                    _ <- element content # set children ([photographerName, build', mkBuild, count] ++ maybeToList isChanged ++ [inputSection, selectSection, photographees'])
+                    _ <- element content # set children ([photographerName, build', mkBuild, count, ok, inputSection, selectSection, photographees'])
                     return ()
 
 
@@ -318,6 +321,8 @@ sinkModel env@Env{..} win translations bModel = do
 
                 _ <- setBuild env translations mkBuild' (Main._session item')
                 isChanged <- setChanged env translations changed' changed changedButton (Main._photographees item')
+                element ok # set children (maybeToList isChanged)
+
 
                 when (not editingSelect) $ void $ do
                     let options = CLocation.mkGrades env (Main._grades item')
@@ -334,7 +339,7 @@ sinkModel env@Env{..} win translations bModel = do
                                         #+ [ UI.p #. "control" #+ [UI.div #. "select" #+ [element selectPhotographee]]]
                                     ]
                                     ])
-                    _ <- element content # set children ([photographerName, build', mkBuild, count] ++ maybeToList isChanged ++[ inputSection, selectSection, photographees'])
+                    _ <- element content # set children ([photographerName, build', mkBuild, count, ok, inputSection, selectSection, photographees'])
                     UI.setFocus input
                     return ()
 
@@ -443,9 +448,20 @@ sinkModel env@Env{..} win translations bModel = do
                 Nothing -> return ()
                 Just item'  -> do
                     --Location.writeLocationFile mLocationConfigFile (location i)
-                    --
-                    _ <- Chan.writeChan chan $!! ( WritePhotographees (Main._photographees item') (Main._dumpDir item'))
-                    return ()
+                    model2 <- currentValue bModel
+                    traceShowM "wtf"
+                    case toJust (Main._unModel model2) of
+                        Nothing -> do
+                                _ <- Chan.writeChan chan $!! ( WritePhotographees (Main._photographees item') (Main._dumpDir item'))
+                                return $ traceShow "lol2" ()
+                        Just item'' -> do
+                            traceShowM "okok"
+                            traceShowM (Main._photographees item')
+                            traceShowM (Main._photographees item'')
+                            if ((Main._photographees item') /= (Main._photographees item'')) then
+                                void $ Chan.writeChan chan $!! ( WritePhotographees (Main._photographees item') (Main._dumpDir item'))
+                            else
+                                return $ traceShow "lol" ()
 
     _ <- onEvent ee $ \model -> do
         void $ liftIO $ do

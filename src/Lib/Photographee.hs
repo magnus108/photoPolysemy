@@ -94,23 +94,23 @@ lookup' s (Known a) = _ident a == s
 tryFindById :: String -> Photographees -> Photographees
 tryFindById s xs = 
     if s == "" then 
-        traceShow "wtf" xs
+        xs
     else 
         case xs of
             (CorrectPhotographees ys) ->
                 let 
-                    found = ListZipper.findFirst (lookup' (traceShow s s)) ys
+                    found = ListZipper.findFirst (lookup' (s)) ys
                 in 
                     case found of
-                        Nothing -> traceShow "here" xs
-                        Just zs -> CorrectPhotographees (traceShow "hwhwa" zs)
+                        Nothing -> xs
+                        Just zs -> CorrectPhotographees (zs)
             (ChangedPhotographees ys) ->
                 let 
                     found = ListZipper.findFirst (lookup' s) ys
                 in 
                     case found of
-                        Nothing -> traceShow "hisere" xs
-                        Just zs -> ChangedPhotographees (traceShow "loL" zs)
+                        Nothing -> xs
+                        Just zs -> ChangedPhotographees (zs)
 
 
 setSys' :: String -> Photographee -> Photographee
