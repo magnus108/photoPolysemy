@@ -8,7 +8,7 @@ module Lib.Client.Location
 where
 
 import Lib.App (Action(..))
-import qualified Control.Concurrent.Chan as Chan
+import qualified Control.Concurrent.Chan.Strict as Chan
 
 import           Data.Char
 import           Lib.Client.Utils

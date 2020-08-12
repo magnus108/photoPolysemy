@@ -21,7 +21,7 @@ import qualified Control.Concurrent as TT
 import Control.Concurrent.MVar.Strict (modifyMVar_)
 import qualified Data.HashMap.Strict as HashMap
 import System.FSNotify
-import qualified Control.Concurrent.Chan as Chan
+import qualified Control.Concurrent.Chan.Strict as Chan
 
 import qualified Lib.App as App
 
@@ -357,8 +357,8 @@ receiveMessages env@Env{..} mgr watchMap hPhotographers hConfigDump hConfigDagsd
 
             ReadPhographees ->
                 Photographee.getPhotographees mPhotographeesFile >>= \case
-                    Left e' -> hPhotographees $ Photographee.Model (Failure e')
-                    Right s -> hPhotographees $ Photographee.Model (Data s)
+                    Left e' -> hPhotographees $!! Photographee.Model (Failure e')
+                    Right s -> hPhotographees $!! Photographee.Model (Data s)
 
             WritePhotographees photographees' dumpDir ->
                 if (Dump.count dumpDir == 0) then
@@ -380,8 +380,12 @@ receiveMessages env@Env{..} mgr watchMap hPhotographers hConfigDump hConfigDagsd
 
             ReadDumpDir ->
                  Dump.getDumpDir mDumpFile mCamerasFile >>= \case
-                        Left e' -> hDumpDir $!! DumpDirModel (Failure e')
-                        Right s -> hDumpDir $!! DumpDirModel (Data s)
+                        Left e' -> do
+                            traceShowM "got it2 "
+                            hDumpDir $!! DumpDirModel (Failure e')
+                        Right s -> do
+                            traceShowM "got it"
+                            hDumpDir $!! DumpDirModel (Data s)
 
             SDirDagsdatoBackup -> hDirDagsdatoBackup ()
             SDirDagsdato -> hDirDagsdato ()
@@ -437,7 +441,7 @@ receiveMessages env@Env{..} mgr watchMap hPhotographers hConfigDump hConfigDagsd
                 --DANGEROUS 
                 --DANGEROUS 
                 --DANGEROUS 
-                SBuild.entry msgs mBuildFile mDumpFile $!! i
+                void $ forkIO $ SBuild.entry msgs mBuildFile mDumpFile $!! i
 
             BuilderMessage msg ->
                 Build.writeBuild mBuildFile $!! msg

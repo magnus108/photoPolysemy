@@ -9,7 +9,7 @@ import System.FilePath
 import Graphics.UI.Threepenny.Core 
 import qualified Graphics.UI.Threepenny as UI
 
-import Control.Concurrent.MVar (withMVar)
+import Control.Concurrent.MVar.Strict (withMVar)
 import Lib.App (Env(..))
 
 import Lib.Translation

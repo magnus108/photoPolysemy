@@ -3,7 +3,7 @@ module Lib.Client.Control
     ) where
 
 import Lib.App (Action(..))
-import qualified Control.Concurrent.Chan as Chan
+import qualified Control.Concurrent.Chan.Strict as Chan
 
 import Graphics.UI.Threepenny.Core
 import qualified Graphics.UI.Threepenny as UI

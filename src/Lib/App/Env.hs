@@ -7,7 +7,7 @@ module Lib.App.Env
 
 import Control.DeepSeq
 import qualified Lib.Build as Build
-import qualified Control.Concurrent.Chan as Chan
+import qualified Control.Concurrent.Chan.Strict as Chan
 import qualified Lib.Photographer as Photographer
 import qualified Lib.Dump as Dump
 import qualified Lib.Dagsdato as Dagsdato

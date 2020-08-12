@@ -6,7 +6,7 @@ module Lib.Client.InsertPhotographee
     , location
     ) where
 import Lib.App (Action(..))
-import qualified Control.Concurrent.Chan as Chan
+import qualified Control.Concurrent.Chan.Strict as Chan
 import qualified Lib.Dump as Dump
 
 import Lib.Data

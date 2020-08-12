@@ -5,7 +5,8 @@ module Lib.Client.Main
 import Control.DeepSeq
 
 import Lib.App (Action(..))
-import qualified Control.Concurrent.Chan as Chan
+import qualified Control.Concurrent.Chan.Strict as Chan
+
 import Lib.Data
 import qualified Lib.Main as Main
 import qualified Lib.Server.Build as SBuild

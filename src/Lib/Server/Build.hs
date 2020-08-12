@@ -10,8 +10,8 @@ module Lib.Server.Build
 
 import qualified Lib.App as App
 
-import Control.Concurrent (threadDelay, killThread, forkIO)
-import qualified Control.Concurrent.Chan as Chan
+import Control.Concurrent (threadDelay)
+import qualified Control.Concurrent.Chan.Strict as Chan
 
 import Data.Char
 
@@ -106,8 +106,7 @@ opts :: Chan.Chan App.Action -> Photographee.Photographee -> ShakeOptions
 opts  c photographee = shakeOptions
                     { shakeFiles = shakeDir
                     , shakeProgress = progress -- should change
-                    , shakeThreads = 0
-                    , shakeColor = True
+                    , shakeThreads = 1
                     }
     where
         progress p = do
