@@ -106,11 +106,11 @@ opts :: Chan.Chan App.Action -> Photographee.Photographee -> ShakeOptions
 opts  c photographee = shakeOptions
                     { shakeFiles = shakeDir
                     , shakeProgress = progress -- should change
-                    , shakeThreads = 1
+                    , shakeThreads = 0
                     }
     where
         progress p = do
-            myProgressProgram 500000 c photographee p
+            myProgressProgram 1000000 c photographee p
 
 
 mkDoneshootingPath :: Int -> FilePath -> Main.Item -> FilePath

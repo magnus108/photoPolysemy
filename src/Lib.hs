@@ -117,7 +117,7 @@ runServer port env@Env{..} = do
     (eBuild, hBuild) <- newEvent
 
     watchers <- newMVar mempty
-    withManagerConf ( WatchConfig { confDebounce = Debounce 2000000
+    withManagerConf ( WatchConfig { confDebounce = DebounceDefault
                     , confPollInterval = 10^(6 :: Int) -- 1 second
                     , confUsePolling = True
                     })$ \mgr -> do
