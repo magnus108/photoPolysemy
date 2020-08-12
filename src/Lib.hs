@@ -267,7 +267,7 @@ receiveMessages :: Env -> WatchManager -> WatchMap -> Handler Photographer.Model
 receiveMessages env@Env{..} mgr watchMap hPhotographers hConfigDump hConfigDagsdato hConfigDagsdatoBackup hConfigDoneshooting  hDirDoneshooting  hCameras hShootings  hSessions hGrades hPhotographees hLocationConfigFile  hDumpDir hDirDagsdatoBackup hDirDagsdato hBuild msgs = do
     messages <- Chan.getChanContents msgs
     forM_ messages $ \msg -> do
-        --traceShowM msg
+        traceShowM msg
         case msg of
             ReadPhographers ->
                 getPhotographers mPhotographersFile >>= \case
@@ -286,10 +286,6 @@ receiveMessages env@Env{..} mgr watchMap hPhotographers hConfigDump hConfigDagsd
                         Left e' -> hDumpDir $!! DumpDirModel (Failure e')
                         Right s -> hDumpDir $!! DumpDirModel (Data s)
 
-                TT.modifyMVar_ watchMap $!! \ h -> do
-                    h HashMap.! "stopDirDump"
-                    stopDirDump <- dirDump env mgr mDumpFile mCamerasFile watchMap hDumpDir
-                    return $ HashMap.insert "stopDirDump" stopDirDump h
 
             WriteDump dir -> 
                 writeDump mDumpFile $!! dir
@@ -381,10 +377,8 @@ receiveMessages env@Env{..} mgr watchMap hPhotographers hConfigDump hConfigDagsd
             ReadDumpDir ->
                  Dump.getDumpDir mDumpFile mCamerasFile >>= \case
                         Left e' -> do
-                            traceShowM "got it2 "
                             hDumpDir $!! DumpDirModel (Failure e')
                         Right s -> do
-                            traceShowM "got it"
                             hDumpDir $!! DumpDirModel (Data s)
 
             SDirDagsdatoBackup -> hDirDagsdatoBackup ()
@@ -640,6 +634,11 @@ configDump env mgr mDumpFile mCamerasFile watchMap handler handleDumpDir = do
         (\e -> do
             print e
             Chan.writeChan (chan env) ReadDump
+            TT.modifyMVar_ watchMap $!! \ h -> do
+                h HashMap.! "stopDirDump"
+                stopDirDump <- dirDump env mgr mDumpFile mCamerasFile watchMap handleDumpDir
+                return $ HashMap.insert "stopDirDump" stopDirDump h
+
         )  `catch` (\( _ :: SomeException ) -> return $ return () ) --TODO this sucks
 
 
