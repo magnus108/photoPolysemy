@@ -117,7 +117,10 @@ runServer port env@Env{..} = do
     (eBuild, hBuild) <- newEvent
 
     watchers <- newMVar mempty
-    withManager $ \mgr -> do
+    withManagerConf ( WatchConfig { confDebounce = Debounce 2000000
+                    , confPollInterval = 10^(6 :: Int) -- 1 second
+                    , confUsePolling = True
+                    })$ \mgr -> do
         --Build
         stopBuild <- build env mgr mBuildFile watchers hBuild
 
