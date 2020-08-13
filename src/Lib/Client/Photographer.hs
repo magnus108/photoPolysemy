@@ -41,8 +41,8 @@ mkPhotographerListItem Env {..} (thisIndex, isCenter, photographer) = do
     if isCenter then option # set UI.selected True else option
 
 
-photographersSection :: Env -> Window -> Translation -> Tabs -> Behavior Model -> UI Element
-photographersSection env@Env{..} win translations tabs bModel = do
+photographersSection :: Env -> Window -> Translation -> Element -> Element -> Behavior Model -> UI Element
+photographersSection env@Env{..} win translations tabs' navigation bModel = do
 
     content <- UI.div #. "section"
     select <- UI.select
@@ -138,8 +138,6 @@ photographersSection env@Env{..} win translations tabs bModel = do
                     _ <- Chan.writeChan chan (WritePhographers item')
                     return ()
 
-    tabs' <- mkElement "nav" #. "section" #+ [mkTabs env translations tabs]
-    navigation <- mkElement "footer" #. "section" #+ [mkNavigation env translations tabs]
 
     view <- UI.div #+ fmap element [ content ]
 

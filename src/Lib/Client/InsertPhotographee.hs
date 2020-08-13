@@ -60,12 +60,10 @@ mkModel location' grades' photograhees dumpDir =
 
 
 ---------------------------------------------------------------------------------
-insertPhotographeeSection :: Env -> Window -> Translation -> Tabs -> Behavior Model -> UI Element
-insertPhotographeeSection env@Env{..} win translations tabs bModel = do
+insertPhotographeeSection :: Env -> Window -> Translation -> Element -> Element -> Behavior Model -> UI Element
+insertPhotographeeSection env@Env{..} win translations tabs' navigation bModel = do
     view' <- sinkModel env win translations bModel
 
-    tabs' <- mkElement "nav" #. "section" #+ [mkTabs env translations tabs]
-    navigation <- mkElement "footer" #. "section" #+ [mkNavigation env translations tabs]
 
     UI.div # set children [tabs', view', navigation]
 

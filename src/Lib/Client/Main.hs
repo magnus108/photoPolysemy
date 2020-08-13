@@ -105,12 +105,9 @@ dumpFilesCounter _ _ translations dumpDir =
 
 
 ---------------------------------------------------------------------------------
-mainSection :: Env -> Window -> Translation -> Tabs -> Behavior Main.Model -> UI Element
-mainSection env@Env{..} win translations tabs bModel = do
+mainSection :: Env -> Window -> Translation -> Element -> Element -> Behavior Main.Model -> UI Element
+mainSection env@Env{..} win translations tabs' navigation bModel = do
     (input, view) <- sinkModel env win translations bModel
-
-    tabs' <- mkElement "nav" #. "section" #+ [mkTabs env translations tabs]
-    navigation <- mkElement "footer" #. "section" #+ [mkNavigation env translations tabs]
 
     UI.div # set children [tabs', view, navigation]
 

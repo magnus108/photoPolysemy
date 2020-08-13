@@ -48,13 +48,11 @@ mkDagsdato Env{..} translations model = do
                    ]
 
 
-dagsdatoSection :: Env -> Window -> Translation -> Tabs -> Behavior Model -> UI Element
-dagsdatoSection env@Env{..} win translation tabs bModel = do
+dagsdatoSection :: Env -> Window -> Translation -> Element -> Element -> Behavior Model -> UI Element
+dagsdatoSection env@Env{..} win translation tabs' navigation bModel = do
     let bView = mkDagsdato env translation <$> bModel
     content <- UI.div # sink items bView
 
-    tabs' <- mkElement "nav" #. "section" #+ [mkTabs env translation tabs]
-    navigation <- mkElement "footer" #. "section" #+ [mkNavigation env translation tabs]
 
     view <- UI.div #+ fmap element [ content ]
 

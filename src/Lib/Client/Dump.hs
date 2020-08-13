@@ -49,13 +49,10 @@ mkDump Env{..} translations model = do
                    ]
 
 
-dumpSection :: Env -> Window -> Translation -> Tabs -> Behavior DumpModel -> UI Element
-dumpSection env@Env{..} win translation tabs bModel = do
+dumpSection :: Env -> Window -> Translation -> Element -> Element -> Behavior DumpModel -> UI Element
+dumpSection env@Env{..} win translation tabs' navigation bModel = do
     let bView = mkDump env translation <$> bModel
     content <- UI.div # sink items bView
-
-    tabs' <- mkElement "nav" #. "section" #+ [mkTabs env translation tabs]
-    navigation <- mkElement "footer" #. "section" #+ [mkNavigation env translation tabs]
 
     view <- UI.div #+ fmap element [ content ]
     

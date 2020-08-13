@@ -23,8 +23,8 @@ import Lib.Camera
 import Lib.Client.Element
 
 
-camerasSection :: Env -> Window -> Translation -> Tabs -> Behavior Model -> UI Element
-camerasSection env@Env{..} win translations tabs bModel = do
+camerasSection :: Env -> Window -> Translation -> Element -> Element  -> Behavior Model -> UI Element
+camerasSection env@Env{..} win translations tabs' navigation bModel = do
 
     content <- UI.div #. "section"
 
@@ -110,9 +110,6 @@ camerasSection env@Env{..} win translations tabs bModel = do
                     return ()
 
 
-
-    tabs' <- mkElement "nav" #. "section" #+ [mkTabs env translations tabs]
-    navigation <- mkElement "footer" #. "section" #+ [mkNavigation env translations tabs]
 
     view <- UI.div #+ fmap element [ content ]
 

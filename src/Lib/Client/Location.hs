@@ -202,13 +202,10 @@ sinkModel env@Env{..} win translations bModel = do
     return (input, content)
 
 
-locationSection :: Env -> Window -> Translation -> Tabs -> Behavior Model -> UI Element
-locationSection env@Env {..} win translations tabs bModel = do
+locationSection :: Env -> Window -> Translation -> Element -> Element -> Behavior Model -> UI Element
+locationSection env@Env {..} win translations tabs' navigation bModel = do
 
     (input, view) <- sinkModel env win translations bModel
-
-    tabs' <- mkElement "nav" #. "section" #+ [mkTabs env translations tabs]
-    navigation <- mkElement "footer" #. "section" #+ [mkNavigation env translations tabs]
 
     UI.div # set children [tabs', view, navigation]
 

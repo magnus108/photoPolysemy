@@ -5,6 +5,7 @@ module Lib.Server.Server
 import Control.Concurrent (ThreadId, killThread)
 import           Reactive.Threepenny
 
+import Lib.Client.Tab
 import System.FilePath
 import Graphics.UI.Threepenny.Core 
 import qualified Graphics.UI.Threepenny as UI
@@ -90,18 +91,23 @@ run port env@Env{..} translations bDoneshootingDir bBuild eGrades bLocationConfi
 
 
 
-        dumpSection' <- dumpSection env win translations tabs eDump
-        doneshootingSection' <- doneshootingSection env win translations tabs eDoneshooting
-        photographersSection' <- photographersSection env win translations tabs bPhotographers
-        shootingsSection' <- shootingsSection env win translations tabs eShootings
-        sessionsSection' <- sessionsSection env win translations tabs eSessions
-        camerasSection' <- camerasSection env win translations tabs eCameras
-        dagsdatoSection' <- dagsdatoSection env win translations tabs eDagsdato
-        dagsdatoBackupSection' <- dagsdatoBackupSection env win translations tabs eDagsdatoBackup
-        locationSection' <- CLocation.locationSection env win translations tabs bModelLocation1
-        mainSection' <- CMain.mainSection env win translations tabs bModel1
-        controlSection' <- controlSection env win translations tabs bModel2
-        insertPhotographeeSection' <- InsertPhotographee.insertPhotographeeSection env win translations tabs bModelInserter1
+
+        tabs' <- mkElement "nav" #. "section" #+ [mkTabs env translations tabs]
+        navigation <- mkElement "footer" #. "section" #+ [mkNavigation env translations tabs]
+
+
+        dumpSection' <- dumpSection env win translations tabs' navigation eDump
+        doneshootingSection' <- doneshootingSection env win translations tabs' navigation eDoneshooting
+        photographersSection' <- photographersSection env win translations tabs' navigation bPhotographers
+        shootingsSection' <- shootingsSection env win translations tabs' navigation eShootings
+        sessionsSection' <- sessionsSection env win translations tabs' navigation eSessions
+        camerasSection' <- camerasSection env win translations tabs' navigation eCameras
+        dagsdatoSection' <- dagsdatoSection env win translations tabs' navigation eDagsdato
+        dagsdatoBackupSection' <- dagsdatoBackupSection env win translations tabs' navigation  eDagsdatoBackup
+        locationSection' <- CLocation.locationSection env win translations tabs' navigation bModelLocation1
+        mainSection' <- CMain.mainSection env win translations tabs' navigation bModel1
+        controlSection' <- controlSection env win translations tabs' navigation bModel2
+        insertPhotographeeSection' <- InsertPhotographee.insertPhotographeeSection env win translations tabs' navigation bModelInserter1
 
         content <- UI.div
         liftIOLater $ do
@@ -121,11 +127,17 @@ run port env@Env{..} translations bDoneshootingDir bBuild eGrades bLocationConfi
                         MainTab -> mainSection'
                         ControlTab -> controlSection'
                         InsertPhotographeeTab -> insertPhotographeeSection'
-                void $ element content # set children [childe]
+
+                tt <- mkTabs env translations (model)
+                ttt <- mkNavigation env translations (model)
+                element tabs' # set children [tt]
+                element navigation # set children [ttt]
+
+                void $ element content # set children [tabs', childe, navigation]
 
 
-        liftIOLater $ onChange bTabs $ \tabs' -> runUI win $ do
-            let currentTab = focus (unTabs tabs')
+        liftIOLater $ onChange bTabs $ \tabs'' -> runUI win $ do
+            let currentTab = focus (unTabs tabs'')
             let childe = case currentTab of
                     DumpTab -> dumpSection'
                     DoneshootingTab -> doneshootingSection'
@@ -140,10 +152,15 @@ run port env@Env{..} translations bDoneshootingDir bBuild eGrades bLocationConfi
                     ControlTab -> controlSection'
                     InsertPhotographeeTab -> insertPhotographeeSection'
 
-            void $ element content # set children [childe]
+            tt <- mkTabs env translations (tabs'')
+            ttt <- mkNavigation env translations (tabs'')
+            element tabs' # set children [tt]
+            element navigation # set children [ttt]
 
+            void $ element content # set children [tabs',childe, navigation]
 
         void $ UI.getBody win # set children [content]
+
         UI.on UI.disconnect win $ const $ liftIO $ do
             killThread messageReceiver
 

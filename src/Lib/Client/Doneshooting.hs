@@ -46,13 +46,10 @@ mkDoneshooting Env{..} translations model = do
                    ]
 
 
-doneshootingSection :: Env -> Window -> Translation -> Tabs -> Behavior Model -> UI Element
-doneshootingSection env@Env{..} win translation tabs bModel = do
+doneshootingSection :: Env -> Window -> Translation -> Element -> Element -> Behavior Model -> UI Element
+doneshootingSection env@Env{..} win translation tabs' navigation bModel = do
     let bView = mkDoneshooting env translation <$> bModel
     content <- UI.div # sink items bView
-
-    tabs' <- mkElement "nav" #. "section" #+ [mkTabs env translation tabs]
-    navigation <- mkElement "footer" #. "section" #+ [mkNavigation env translation tabs]
 
     view <- UI.div #+ fmap element [ content ]
 

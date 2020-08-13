@@ -68,8 +68,8 @@ mkStatus translations results dir =
             , UI.div #+ [Lens.views controlError string translations]]
 
 
-controlSection :: Env -> Window -> Translation -> Tabs -> Behavior Model.Model -> UI Element
-controlSection env@Env{..} win translation tabs bModel = do
+controlSection :: Env -> Window -> Translation -> Element -> Element  -> Behavior Model.Model -> UI Element
+controlSection env@Env{..} win translation tabs' navigation bModel = do
     selectGrade <- UI.select
     let eSelect = CLocation.selectGrade <$> filterJust (selectionChange' selectGrade)
     let gradeEvent = concatenate' <$> unions' (eSelect :| [])
@@ -96,9 +96,6 @@ controlSection env@Env{..} win translation tabs bModel = do
 
     content <- UI.div # sink item bView
 
-
-    tabs' <- mkElement "nav" #. "section" #+ [mkTabs env translation tabs]
-    navigation <- mkElement "footer" #. "section" #+ [mkNavigation env translation tabs]
 
     view <- UI.div #+ fmap element [ content ]
 
