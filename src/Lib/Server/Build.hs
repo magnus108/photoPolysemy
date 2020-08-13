@@ -240,7 +240,6 @@ myShake opts' time item = do
     let tmp = case sortDir  of
             [] -> error "empty"
             xss ->  Data.List.Index.imap (\index' cr -> do 
-                traceShowM files
 
                 let index'' = iindex + index' + 1
                 let jpg = cr -<.> "jpg"
