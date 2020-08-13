@@ -8,6 +8,7 @@ module Lib.Server.Build
     , mkDoneshootingPathJpg
     ) where
 
+import System.Directory
 import qualified Lib.App as App
 
 import Control.Concurrent (threadDelay)
@@ -112,6 +113,26 @@ opts  c photographee = shakeOptions
         progress p = do
             myProgressProgram 1000000 c photographee p
 
+gradePath :: Main.Item -> FilePath
+gradePath item =
+    Doneshooting.unDoneshooting doneshooting </> location </> extension </> grade
+        where
+            location = takeBaseName $ Location.unLocationFile $ Lens.view Main.location item
+            session = Lens.view Main.session item
+            sessionId = show $ Session.toInteger session
+
+            camera = Lens.view Main.camera item
+            extension = snd $ Camera.toExtension camera
+            photographer = Lens.view Main.photographer item
+            photographerId = Lens.view Photographer.tid photographer
+            doneshooting = Lens.view Main.doneshooting item
+            shooting = Lens.view Main.shooting item
+            shootingId = if session == Session.KindergartenGroup then "3" else show $ Shooting.toInteger shooting
+            grade = Grade.showGrade (Lens.view Main.grades item)
+            photographees = Lens.view Main.photographees item
+            photographee = extract (Photographee.unPhotographees photographees)
+            tea = Photographee.toTea' photographee
+
 
 mkDoneshootingPath :: Int -> FilePath -> Main.Item -> FilePath
 mkDoneshootingPath index' file item =
@@ -200,16 +221,28 @@ entry messages mBuildFile mDumpFile item = do
             let dump = Lens.view Main.dump item
             Chan.writeChan messages (App.WriteDump dump)
 
+
 myShake :: ShakeOptions -> String -> Main.Item -> IO ()
 myShake opts' time item = do
     let dump = Lens.view Main.dump item
     let root = Dump.unDump dump
     let dumpDir = Lens.view Main.dumpDir item
     let sortDir = sort (Dump.unDumpDir dumpDir)
+    let pathCR = gradePath item
+    files <- try $ listDirectory pathCR :: IO (Either SomeException [FilePath])
+    --traceShowM files
+    let count = case files of
+            Left e -> []
+            Right filess -> filess
+
+    let iindex = length count
+
     let tmp = case sortDir  of
             [] -> error "empty"
             xss ->  Data.List.Index.imap (\index' cr -> do 
-                let index'' = index' + 1
+                traceShowM files
+
+                let index'' = iindex + index' + 1
                 let jpg = cr -<.> "jpg"
 
                 let doneshootingCr = mkDoneshootingPath index'' cr item

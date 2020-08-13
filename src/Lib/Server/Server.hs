@@ -49,7 +49,7 @@ import Utils.Comonad
 
 
 --view :: Env -> Window -> Translation -> Behavior Doneshooting.DoneshootingDirModel -> Behavior Build.Model -> Behavior Grade.Model -> Behavior Location.Model -> UI.Behavior Session.Model -> UI.Behavior Shooting.Model -> UI.Behavior Camera.Model -> UI.Behavior Dump.DumpModel -> UI.Behavior Dump.DumpDirModel -> UI.Behavior Doneshooting.Model -> UI.Behavior Dagsdato.Model -> UI.Behavior DagsdatoBackup.Model -> UI.Behavior Photographer.Model -> UI.Behavior Photographee.Model -> Handler (Grade.Model) -> Handler (Location.Model) -> Handler Dump.DumpModel -> Handler Dump.DumpDirModel -> Handler Photographee.Model -> Tabs -> UI ()
-view env@Env{..} win translation bDoneshootingDir bBuild bGrades bLocationConfigFile bSessions bShootings bCameras bDump bDumpDir bDoneshooting bDagsdato bDagsdatoBackup bPhotographers bPhotographees _ _ _ _ _ tabs  bModelLocation1 bModelInserter1 = do
+view env@Env{..} win translation bDoneshootingDir bBuild bGrades bLocationConfigFile bSessions bShootings bCameras bDump bDumpDir bDoneshooting bDagsdato bDagsdatoBackup bPhotographers bPhotographees tabs  bModelLocation1 bModelInserter1 = do
     let currentTab = focus (unTabs tabs)
     case currentTab of
         DumpTab -> dumpSection env win translation tabs bDump
@@ -91,8 +91,8 @@ view env@Env{..} win translation bDoneshootingDir bBuild bGrades bLocationConfig
 
 
 
-run :: Int -> Env -> Translation -> UI.Behavior Doneshooting.DoneshootingDirModel -> UI.Behavior Build.Model -> UI.Behavior Grade.Model ->  UI.Behavior Location.Model -> UI.Behavior Session.Model -> UI.Behavior Shooting.Model -> UI.Behavior Camera.Model -> UI.Behavior Dump.DumpModel -> UI.Behavior Dump.DumpDirModel -> UI.Behavior Doneshooting.Model -> UI.Behavior Dagsdato.Model -> UI.Behavior DagsdatoBackup.Model -> UI.Event Tabs -> UI.Behavior (Photographer.Model) -> UI.Behavior (Photographee.Model) -> Handler (Grade.Model) -> Handler (Location.Model) -> Handler Dump.DumpModel -> Handler Dump.DumpDirModel -> Handler Photographee.Model -> ThreadId -> IO ()
-run port env@Env{..} translations bDoneshootingDir bBuild eGrades bLocationConfigFile eSessions eShootings eCameras eDump bDumpDir eDoneshooting eDagsdato eDagsdatoBackup eTabs bPhotographers bPhotographees hGrades hLocationConfigFile hDump hDumpDir hPhotographees messageReceiver= do
+run :: Int -> Env -> Translation -> UI.Behavior Doneshooting.DoneshootingDirModel -> UI.Behavior Build.Model -> UI.Behavior Grade.Model ->  UI.Behavior Location.Model -> UI.Behavior Session.Model -> UI.Behavior Shooting.Model -> UI.Behavior Camera.Model -> UI.Behavior Dump.DumpModel -> UI.Behavior Dump.DumpDirModel -> UI.Behavior Doneshooting.Model -> UI.Behavior Dagsdato.Model -> UI.Behavior DagsdatoBackup.Model -> UI.Event Tabs -> UI.Behavior (Photographer.Model) -> UI.Behavior (Photographee.Model) -> ThreadId -> IO ()
+run port env@Env{..} translations bDoneshootingDir bBuild eGrades bLocationConfigFile eSessions eShootings eCameras eDump bDumpDir eDoneshooting eDagsdato eDagsdatoBackup eTabs bPhotographers bPhotographees messageReceiver= do
     tabs <- withMVar mTabsFile $ \tabsFile -> getTabs tabsFile
 
     startGUI defaultConfig
@@ -108,7 +108,7 @@ run port env@Env{..} translations bDoneshootingDir bBuild eGrades bLocationConfi
         let bModelLocation1 = liftA2 CLocation.mkModel bLocationConfigFile eGrades
         let bModelInserter1 = InsertPhotographee.mkModel <$> bLocationConfigFile <*> eGrades <*> bPhotographees <*> bDumpDir
 
-        liftIO $ do
+        liftIOLater $ do
             model <- currentValue bTabs
             runUI win $ void $ do
                 view env win translations bDoneshootingDir bBuild eGrades bLocationConfigFile eSessions
@@ -121,16 +121,11 @@ run port env@Env{..} translations bDoneshootingDir bBuild eGrades bLocationConfi
                                                 eDagsdatoBackup
                                                 bPhotographers
                                                 bPhotographees
-                                                hGrades
-                                                hLocationConfigFile
-                                                hDump
-                                                hDumpDir
-                                                hPhotographees
                                                 model
                                                 bModelLocation1
                                                 bModelInserter1 
 
-        liftIO $ onChange bTabs $ \tabs' -> runUI win $ do
+        liftIOLater $ onChange bTabs $ \tabs' -> runUI win $ do
             (view env win translations bDoneshootingDir bBuild eGrades bLocationConfigFile eSessions
                                             eShootings
                                             eCameras
@@ -141,10 +136,6 @@ run port env@Env{..} translations bDoneshootingDir bBuild eGrades bLocationConfi
                                             eDagsdatoBackup
                                             bPhotographers
                                             bPhotographees
-                                            hGrades hLocationConfigFile
-                                            hDump
-                                            hDumpDir
-                                            hPhotographees
                                             tabs'
                                             bModelLocation1
                                             bModelInserter1 

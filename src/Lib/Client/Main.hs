@@ -286,6 +286,8 @@ sinkModel env@Env{..} win translations bModel = do
                 _ <- element content # set children [section]
                 return ()
             Data item' -> do
+                dumpFilesCounter' <- dumpFilesCounter env win translations (Main._dumpDir item')
+                _ <- element count # set children [dumpFilesCounter']
 
                 _ <- case (Main._build item') of
                         (Build.DoneBuild _ _) ->
@@ -307,8 +309,6 @@ sinkModel env@Env{..} win translations bModel = do
                 buildStatus <- UI.string $ Build.toString (Main._build item') translations
                 _ <- element build' # set children [buildStatus]
 
-                dumpFilesCounter' <- dumpFilesCounter env win translations (Main._dumpDir item')
-                _ <- element count # set children [dumpFilesCounter']
                 photographeesList' <- photographeesList env win (Main._dumpDir item') (Main._photographees item')
 
                 editingSelectPhotographee <- liftIO $ currentValue bEditingSelectPhotographee
