@@ -636,7 +636,7 @@ configDump env mgr mDumpFile mCamerasFile watchMap handler handleDumpDir = do
         (\e -> do
             print e
             Chan.writeChan (chan env) ReadDump
-            TT.modifyMVar_ watchMap $!! \ h -> do
+            TT.modifyMVar_ watchMap $ \ h -> do
                 h HashMap.! "stopDirDump"
                 stopDirDump <- dirDump env mgr mDumpFile mCamerasFile watchMap handleDumpDir
                 return $ HashMap.insert "stopDirDump" stopDirDump h
