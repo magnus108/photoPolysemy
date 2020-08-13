@@ -162,7 +162,7 @@ runServer port env@Env{..} = do
         stopConfigLocationFile <- configLocationFile env mgr mDoneshootingFile mCamerasFile mLocationConfigFile mGradesFile watchers hLocationConfigFile hDirDoneshooting
 
         --Tabs
-        stopConfigTab <- configTab mgr mTabsFile watchers hTab
+        stopConfigTab <- configTab env mgr mTabsFile watchers hTab
 
         --TODO setter
         TT.modifyMVar_ watchers $ \_ -> do
@@ -261,13 +261,13 @@ runServer port env@Env{..} = do
         translations <- Translation.read mTranslationFile
         --VERY important this is here.. BADNESS FIX AT THE END
 
-        receive <- liftIO $ forkIO $ receiveMessages env mgr watchers hPhotographers hConfigDump hConfigDagsdato hConfigDagsdatoBackup hConfigDoneshooting hDirDoneshooting hCameras hShootings hSessions hGrades hPhotographees hLocationConfigFile hDumpDir hDirDagsdatoBackup  hDirDagsdato hBuild chan
+        receive <- liftIO $ forkIO $ receiveMessages env mgr watchers hPhotographers hConfigDump hConfigDagsdato hConfigDagsdatoBackup hConfigDoneshooting hDirDoneshooting hCameras hShootings hSessions hGrades hPhotographees hLocationConfigFile hDumpDir hDirDagsdatoBackup  hDirDagsdato hBuild hTab chan
 
         Server.run port env (fromJust (rightToMaybe translations)) bDoneshootingDir bBuild bGrades bLocationConfigFile bSessions bShootings bCameras bDump bDumpDir bDoneshooting bDagsdato bDagsdatoBackup eTabs bPhotographers bPhotographees receive
 
 
-receiveMessages :: Env -> WatchManager -> WatchMap -> Handler Photographer.Model -> Handler Dump.DumpModel -> Handler Dagsdato.Model -> Handler DagsdatoBackup.Model -> Handler Doneshooting.Model -> Handler Doneshooting.DoneshootingDirModel -> Handler Camera.Model -> Handler Shooting.Model -> Handler Session.Model -> Handler Grade.Model -> Handler Photographee.Model -> Handler Location.Model -> Handler Dump.DumpDirModel -> Handler () -> Handler () -> Handler Build.Model -> Chan.Chan App.Action -> IO ()
-receiveMessages env@Env{..} mgr watchMap hPhotographers hConfigDump hConfigDagsdato hConfigDagsdatoBackup hConfigDoneshooting  hDirDoneshooting  hCameras hShootings  hSessions hGrades hPhotographees hLocationConfigFile  hDumpDir hDirDagsdatoBackup hDirDagsdato hBuild msgs = do
+receiveMessages :: Env -> WatchManager -> WatchMap -> Handler Photographer.Model -> Handler Dump.DumpModel -> Handler Dagsdato.Model -> Handler DagsdatoBackup.Model -> Handler Doneshooting.Model -> Handler Doneshooting.DoneshootingDirModel -> Handler Camera.Model -> Handler Shooting.Model -> Handler Session.Model -> Handler Grade.Model -> Handler Photographee.Model -> Handler Location.Model -> Handler Dump.DumpDirModel -> Handler () -> Handler () -> Handler Build.Model -> Handler Tabs -> Chan.Chan App.Action -> IO ()
+receiveMessages env@Env{..} mgr watchMap hPhotographers hConfigDump hConfigDagsdato hConfigDagsdatoBackup hConfigDoneshooting  hDirDoneshooting  hCameras hShootings  hSessions hGrades hPhotographees hLocationConfigFile  hDumpDir hDirDagsdatoBackup hDirDagsdato hBuild hTab msgs = do
     messages <- Chan.getChanContents msgs
     forM_ messages $ \msg -> do
         traceShowM msg
@@ -444,6 +444,10 @@ receiveMessages env@Env{..} mgr watchMap hPhotographers hConfigDump hConfigDagsd
             BuilderMessage msg ->
                 Build.writeBuild mBuildFile $ msg
 
+            STab -> do
+                filepath' <- readMVar mTabsFile
+                getTabs filepath'  >>= hTab
+
 
 
 type WatchMap = MVar (HashMap String StopListening)
@@ -463,8 +467,8 @@ build env mgr mBuildFile _ handler = do
 
 
 
-configTab :: WatchManager -> MVar FilePath -> WatchMap -> Handler Tabs -> IO StopListening
-configTab mgr mTabsFile _ handler = do
+configTab :: Env -> WatchManager -> MVar FilePath -> WatchMap -> Handler Tabs -> IO StopListening
+configTab env mgr mTabsFile _ handler = do
     filepath <- readMVar mTabsFile
     watchDir
         mgr
@@ -472,8 +476,7 @@ configTab mgr mTabsFile _ handler = do
         (\e -> eventPath e == filepath)
         (\e -> do
             print e
-            filepath' <- readMVar mTabsFile
-            getTabs filepath'  >>= handler
+            Chan.writeChan (chan env) STab
         )
 
 

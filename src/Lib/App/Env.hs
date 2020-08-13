@@ -72,6 +72,7 @@ data Action
     | SBuild
     | MFcker Main.Item
     | BuilderMessage Build.Build
+    | STab
 
         deriving (Show, Generic, NFData)
 
