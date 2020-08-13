@@ -48,7 +48,7 @@ mkDagsdato Env{..} translations model = do
                    ]
 
 
-dagsdatoSection :: Env -> Window -> Translation -> Tabs -> Behavior Model -> UI ()
+dagsdatoSection :: Env -> Window -> Translation -> Tabs -> Behavior Model -> UI Element
 dagsdatoSection env@Env{..} win translation tabs bModel = do
     let bView = mkDagsdato env translation <$> bModel
     content <- UI.div # sink items bView
@@ -58,4 +58,4 @@ dagsdatoSection env@Env{..} win translation tabs bModel = do
 
     view <- UI.div #+ fmap element [ content ]
 
-    void $ UI.getBody win # set children [tabs', view, navigation]
+    UI.div # set children [tabs', view, navigation]

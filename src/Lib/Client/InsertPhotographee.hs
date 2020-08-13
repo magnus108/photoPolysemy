@@ -60,14 +60,14 @@ mkModel location' grades' photograhees dumpDir =
 
 
 ---------------------------------------------------------------------------------
-insertPhotographeeSection :: Env -> Window -> Translation -> Tabs -> Behavior Model -> UI ()
+insertPhotographeeSection :: Env -> Window -> Translation -> Tabs -> Behavior Model -> UI Element
 insertPhotographeeSection env@Env{..} win translations tabs bModel = do
     view' <- sinkModel env win translations bModel
 
     tabs' <- mkElement "nav" #. "section" #+ [mkTabs env translations tabs]
     navigation <- mkElement "footer" #. "section" #+ [mkNavigation env translations tabs]
 
-    void $ UI.getBody win # set children [tabs', view', navigation]
+    UI.div # set children [tabs', view', navigation]
 
 
 mkCreate :: Env -> Window -> Translation -> UI Element
@@ -76,10 +76,10 @@ mkCreate _ _ translations = do
     return button
 
 
-mkPhotographees :: Env -> Photographee.Photographees -> [UI Element]
+mkPhotographees :: Env -> Photographee.Photographees -> UI [Element]
 mkPhotographees env photographees' = do
     let elems = ListZipper.iextend (\i photographees'' -> (i, (Photographee.toZip photographees') == photographees'', extract photographees'')) (Photographee.toZip photographees')
-    map (mkPhotographeeListItem env) (ListZipper.toList elems)
+    mapM (mkPhotographeeListItem env) (ListZipper.toList elems)
 
 
 mkPhotographeeListItem :: Env -> (Int, Bool, Photographee.Photographee) -> UI Element
@@ -93,26 +93,11 @@ mkPhotographeeListItem Env {..} (thisIndex, isCenter, photographee) = do
 selectPhotographeeSection :: Env -> Window -> Translation -> Element -> Element -> Element -> Element -> Element -> Element -> Photographee.Photographees -> UI Element
 selectPhotographeeSection env _ translations input inputIdent inputSys select button selectGrade photographees' = do
     _ <- element input # set value (Photographee.toName photographees')
-    _ <- element select # set children [] #+ (mkPhotographees env photographees')
+    ff <- mkPhotographees env photographees'
+    _ <- element select # set children [] #+ fmap element ff
     _ <- element inputIdent # set value (Photographee.toIdent photographees')
     _ <- element inputSys # set value (Photographee.toSys photographees')
 
-    let ok = case (extract (Photographee.unPhotographees photographees')) of
-            (Photographee.Unknown _) -> []
-            (Photographee.Known _) -> [UI.div
-                #. "field is-horizontal"
-                #+ [ UI.div #. "field-label is-normal"
-                    #+ [UI.label #. "label" #+ [Lens.views photographeeIdent string translations]]
-                   , UI.div
-                    #. "field-body"
-                    #+ [ UI.div
-                        #. "field"
-                        #+ [ UI.p
-                           #. "control"
-                           #+ [element inputIdent #. "input"]
-                        ]
-                        ]
-                ]]
     content <-
         UI.div
         #. "section"
@@ -234,8 +219,8 @@ sinkModel env@Env{..} win translations bModel = do
                     return ()
 
                 Data item' -> do
-                    let options = CLocation.mkGrades env (_grades item')
-                    _ <- element select # set children [] #+ options
+                    options <- CLocation.mkGrades env (_grades item')
+                    _ <- element select # set children [] #+ fmap element options
 
 
                     _ <- case (extract (Photographee.unPhotographees (_photographees item'))) of
@@ -288,11 +273,13 @@ sinkModel env@Env{..} win translations bModel = do
                 when (not editingInputPhotographee ) $ void $
                     element inputPhotographee # set value (Photographee.toName (_photographees item'))
 
-                when (not editingSelectPhotographee) $ void $
-                    element selectPhotographee # set children [] #+ (mkPhotographees env (_photographees item'))
 
                 when (not editingInputPhotographeeIdent) $ void $
                     element inputPhotographeeIdent # set value (Photographee.toIdent (_photographees item'))
+
+                when (not editingSelectPhotographee) $ void $ do
+                    ff <- mkPhotographees env (_photographees item')
+                    element selectPhotographee # set children [] #+ fmap element ff
 
                 when (not editingInputPhotographeeSys) $ void $
                     element inputPhotographeeSys # set value (Photographee.toSys (_photographees item'))
@@ -300,14 +287,14 @@ sinkModel env@Env{..} win translations bModel = do
                 editingSelect <- liftIO $ currentValue bEditingSelect
 
                 when (not editingSelect) $ void $ do
-                    let options = CLocation.mkGrades env (_grades item')
-                    element select # set children [] #+ options
-
+                    options <- CLocation.mkGrades env (_grades item')
+                    element select # set children [] #+ fmap element options
 
                 when (not (editingSelectPhotographee || editingSelect || editingInputPhotographee || editingInputPhotographeeIdent  || editingInputPhotographeeSys)) $ void $ do
                     selectInputPhotographeeSection <- selectPhotographeeSection env win translations inputPhotographee inputPhotographeeIdent inputPhotographeeSys selectPhotographee newPhotographee select (_photographees item')
                     _ <- element content # set children [ selectInputPhotographeeSection] 
                     return ()
+
 
 
     let eNewPhotographee = Photographee.insert (Photographee.Unknown Photographee.empty) <$ UI.click newPhotographee

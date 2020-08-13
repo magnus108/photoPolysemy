@@ -49,43 +49,7 @@ import Utils.Comonad
 
 
 --view :: Env -> Window -> Translation -> Behavior Doneshooting.DoneshootingDirModel -> Behavior Build.Model -> Behavior Grade.Model -> Behavior Location.Model -> UI.Behavior Session.Model -> UI.Behavior Shooting.Model -> UI.Behavior Camera.Model -> UI.Behavior Dump.DumpModel -> UI.Behavior Dump.DumpDirModel -> UI.Behavior Doneshooting.Model -> UI.Behavior Dagsdato.Model -> UI.Behavior DagsdatoBackup.Model -> UI.Behavior Photographer.Model -> UI.Behavior Photographee.Model -> Handler (Grade.Model) -> Handler (Location.Model) -> Handler Dump.DumpModel -> Handler Dump.DumpDirModel -> Handler Photographee.Model -> Tabs -> UI ()
-view env@Env{..} win translation bDoneshootingDir bBuild bGrades bLocationConfigFile bSessions bShootings bCameras bDump bDumpDir bDoneshooting bDagsdato bDagsdatoBackup bPhotographers bPhotographees tabs  bModelLocation1 bModelInserter1 = do
-    let currentTab = focus (unTabs tabs)
-    case currentTab of
-        DumpTab -> dumpSection env win translation tabs bDump
-        DoneshootingTab -> doneshootingSection env win translation tabs bDoneshooting
-        PhotographersTab -> photographersSection env win translation tabs bPhotographers
-        ShootingsTab -> shootingsSection env win translation tabs bShootings
-        SessionsTab -> sessionsSection env win translation tabs bSessions
-        CamerasTab -> camerasSection env win translation tabs bCameras
-        DagsdatoTab -> dagsdatoSection env win translation tabs bDagsdato
-        DagsdatoBackupTab -> dagsdatoBackupSection env win translation tabs bDagsdatoBackup
-        LocationTab -> CLocation.locationSection env win translation tabs bModelLocation1
-
-        MainTab -> do
-            let bSession =
-                    fmap (\x -> (\(Session.Sessions sessions) -> extract sessions
-                                ) <$> (Session.unModel x) ) bSessions
-
-            let bCamera = (\camerasData -> fmap (\(Camera.Cameras x) -> extract x) (Camera.unModel camerasData)) <$> bCameras
-            let bDagsdato' = Dagsdato.unModel <$> bDagsdato
-            let bShooting = fmap (\(Shooting.Shootings x) -> extract x) <$> Shooting.unModel <$> bShootings
-            let bPhotographer = fmap (\(Photographer.Photographers x) -> extract x) <$> Photographer.unModel <$> bPhotographers
-            let bDoneshooting' = Doneshooting.unModel <$> bDoneshooting
-            let bDagsdatoBackup' = DagsdatoBackup.unModel <$> bDagsdatoBackup
-            let bBuild' = Build.unModel <$> bBuild
-            let bModel = CMain.mkModel <$> bLocationConfigFile <*> bGrades <*> bDump <*> bDumpDir <*> bPhotographees <*> bSession <*> bCamera <*> bDagsdato' <*> bShooting <*> bDoneshooting' <*> bPhotographer <*> bDagsdatoBackup' <*> bBuild'
-            CMain.mainSection env win translation tabs bModel
-            -- QUICK BADNESS
-            return ()
-        ControlTab -> do
-            let bModel = ControlModel.mkModel <$> bGrades <*> bDoneshootingDir <*> bPhotographees
-            controlSection env win translation tabs bModel
-            return ()
-
-        InsertPhotographeeTab -> InsertPhotographee.insertPhotographeeSection env win translation tabs bModelInserter1 
-        _ -> 
-            return ()
+--view env@Env{..} win translation bDoneshootingDir bBuild bGrades bLocationConfigFile bSessions bShootings bCameras bDump bDumpDir bDoneshooting bDagsdato bDagsdatoBackup bPhotographers bPhotographees tabs  bModelLocation1 bModelInserter1 bModel1 bModel2= do
 
 
 
@@ -108,39 +72,78 @@ run port env@Env{..} translations bDoneshootingDir bBuild eGrades bLocationConfi
         let bModelLocation1 = liftA2 CLocation.mkModel bLocationConfigFile eGrades
         let bModelInserter1 = InsertPhotographee.mkModel <$> bLocationConfigFile <*> eGrades <*> bPhotographees <*> bDumpDir
 
+        let bSession1 =
+                fmap (\x -> (\(Session.Sessions sessions) -> extract sessions
+                            ) <$> (Session.unModel x) ) eSessions
+
+        let bCamera1 = (\camerasData -> fmap (\(Camera.Cameras x) -> extract x) (Camera.unModel camerasData)) <$> eCameras
+        let bDagsdato1' = Dagsdato.unModel <$> eDagsdato
+        let bShooting1 = fmap (\(Shooting.Shootings x) -> extract x) <$> Shooting.unModel <$> eShootings
+        let bPhotographer1= fmap (\(Photographer.Photographers x) -> extract x) <$> Photographer.unModel <$> bPhotographers
+        let bDoneshooting1' = Doneshooting.unModel <$> eDoneshooting
+        let bDagsdatoBackup1' = DagsdatoBackup.unModel <$> eDagsdatoBackup
+        let bBuild1' = Build.unModel <$> bBuild
+        let bModel1 = CMain.mkModel <$> bLocationConfigFile <*> eGrades <*> eDump <*> bDumpDir <*> bPhotographees <*> bSession1 <*> bCamera1 <*> bDagsdato1' <*> bShooting1 <*> bDoneshooting1' <*> bPhotographer1 <*> bDagsdatoBackup1' <*> bBuild1'
+
+
+        let bModel2 = ControlModel.mkModel <$> eGrades <*> bDoneshootingDir <*> bPhotographees
+
+
+
+        dumpSection' <- dumpSection env win translations tabs eDump
+        doneshootingSection' <- doneshootingSection env win translations tabs eDoneshooting
+        photographersSection' <- photographersSection env win translations tabs bPhotographers
+        shootingsSection' <- shootingsSection env win translations tabs eShootings
+        sessionsSection' <- sessionsSection env win translations tabs eSessions
+        camerasSection' <- camerasSection env win translations tabs eCameras
+        dagsdatoSection' <- dagsdatoSection env win translations tabs eDagsdato
+        dagsdatoBackupSection' <- dagsdatoBackupSection env win translations tabs eDagsdatoBackup
+        locationSection' <- CLocation.locationSection env win translations tabs bModelLocation1
+        mainSection' <- CMain.mainSection env win translations tabs bModel1
+        controlSection' <- controlSection env win translations tabs bModel2
+        insertPhotographeeSection' <- InsertPhotographee.insertPhotographeeSection env win translations tabs bModelInserter1
+
+        content <- UI.div
         liftIOLater $ do
             model <- currentValue bTabs
             runUI win $ void $ do
-                view env win translations bDoneshootingDir bBuild eGrades bLocationConfigFile eSessions
-                                                eShootings
-                                                eCameras
-                                                eDump
-                                                bDumpDir
-                                                eDoneshooting
-                                                eDagsdato
-                                                eDagsdatoBackup
-                                                bPhotographers
-                                                bPhotographees
-                                                model
-                                                bModelLocation1
-                                                bModelInserter1 
+                let currentTab = focus (unTabs model)
+                let childe = case currentTab of
+                        DumpTab -> dumpSection'
+                        DoneshootingTab -> doneshootingSection'
+                        PhotographersTab -> photographersSection'
+                        ShootingsTab -> shootingsSection'
+                        SessionsTab -> sessionsSection'
+                        CamerasTab -> camerasSection'
+                        DagsdatoTab -> dagsdatoSection'
+                        DagsdatoBackupTab -> dagsdatoBackupSection'
+                        LocationTab -> locationSection'
+                        MainTab -> mainSection'
+                        ControlTab -> controlSection'
+                        InsertPhotographeeTab -> insertPhotographeeSection'
+                void $ element content # set children [childe]
+
 
         liftIOLater $ onChange bTabs $ \tabs' -> runUI win $ do
-            (view env win translations bDoneshootingDir bBuild eGrades bLocationConfigFile eSessions
-                                            eShootings
-                                            eCameras
-                                            eDump
-                                            bDumpDir
-                                            eDoneshooting
-                                            eDagsdato
-                                            eDagsdatoBackup
-                                            bPhotographers
-                                            bPhotographees
-                                            tabs'
-                                            bModelLocation1
-                                            bModelInserter1 
-                           )
+            let currentTab = focus (unTabs tabs')
+            let childe = case currentTab of
+                    DumpTab -> dumpSection'
+                    DoneshootingTab -> doneshootingSection'
+                    PhotographersTab -> photographersSection'
+                    ShootingsTab -> shootingsSection'
+                    SessionsTab -> sessionsSection'
+                    CamerasTab -> camerasSection'
+                    DagsdatoTab -> dagsdatoSection'
+                    DagsdatoBackupTab -> dagsdatoBackupSection'
+                    LocationTab -> locationSection'
+                    MainTab -> mainSection'
+                    ControlTab -> controlSection'
+                    InsertPhotographeeTab -> insertPhotographeeSection'
 
+            void $ element content # set children [childe]
+
+
+        void $ UI.getBody win # set children [content]
         UI.on UI.disconnect win $ const $ liftIO $ do
             killThread messageReceiver
 

@@ -24,7 +24,7 @@ import Lib.Shooting
 import Lib.Client.Element
 
 
-shootingsSection :: Env -> Window -> Translation -> Tabs -> Behavior Model -> UI ()
+shootingsSection :: Env -> Window -> Translation -> Tabs -> Behavior Model -> UI Element
 shootingsSection env@Env{..} win translations tabs bModel = do
     content <- UI.div #. "section" 
 
@@ -114,7 +114,7 @@ shootingsSection env@Env{..} win translations tabs bModel = do
 
     view <- UI.div #+ fmap element [ content ]
 
-    void $ UI.getBody win # set children [tabs', view, navigation]
+    UI.div # set children [tabs', view, navigation]
 
 
 mkShooting :: Env -> Translation -> (Shooting, Bool, Shootings) -> UI Element

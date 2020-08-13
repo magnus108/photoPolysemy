@@ -54,7 +54,8 @@ insertButton _ _ translations = do
 selectSection :: Env -> Window -> Translation -> Element -> Element -> Grade.Grades -> UI Element
 selectSection env _ _ input select grades = do
     _ <- element input # set value (Grade.showGrade grades)
-    _ <- element select # set children [] #+ (mkGrades env grades)
+    lol <- mkGrades env grades
+    _ <- element select # set children [] #+ fmap element lol
     content <-
         UI.div
         #. "section"
@@ -161,8 +162,9 @@ sinkModel env@Env{..} win translations bModel = do
                 when (not editingInput ) $ void $
                     element input # set value (Grade.showGrade grades)
 
-                when (not editingSelect) $ void $
-                    element select # set children [] #+ (mkGrades env grades)
+                when (not editingSelect) $ void $ do
+                    lol <- mkGrades env grades
+                    element select # set children [] #+ fmap element lol
 
                 _ <- element locationFileView' # set children [] #+ (locationFileView env translations locfile)
 
@@ -200,25 +202,25 @@ sinkModel env@Env{..} win translations bModel = do
     return (input, content)
 
 
-locationSection :: Env -> Window -> Translation -> Tabs -> Behavior Model -> UI ()
-locationSection env@Env {..} win translations tabs bModel = mdo
+locationSection :: Env -> Window -> Translation -> Tabs -> Behavior Model -> UI Element
+locationSection env@Env {..} win translations tabs bModel = do
 
     (input, view) <- sinkModel env win translations bModel
 
     tabs' <- mkElement "nav" #. "section" #+ [mkTabs env translations tabs]
     navigation <- mkElement "footer" #. "section" #+ [mkNavigation env translations tabs]
 
-    void $ UI.getBody win # set children [tabs', view, navigation]
+    UI.div # set children [tabs', view, navigation]
 
-    UI.setFocus (getElement input) -- Can only do this if element exists and should not do this if not focus
+    --UI.setFocus (getElement input) -- Can only do this if element exists and should not do this if not focus
 
 
 --TODO a little flawed
-mkGrades :: Env -> Grade.Grades -> [UI Element]
+mkGrades :: Env -> Grade.Grades -> UI [Element]
 mkGrades env (Grade.Grades grades') = do
     let elems = ListZipper.iextend (\index grades'' -> (index, grades' == grades'', extract grades'')) grades'
     let elems' = sortOn (\(_,_,g) -> fmap toLower (Grade.showGrade' g)) $ toList elems
-    map (mkGrade env) elems'
+    mapM (mkGrade env) elems'
 
 
 mkGrade :: Env -> (Int, Bool, Grade.Grade) -> UI Element

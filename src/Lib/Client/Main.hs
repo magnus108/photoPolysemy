@@ -105,17 +105,14 @@ dumpFilesCounter _ _ translations dumpDir =
 
 
 ---------------------------------------------------------------------------------
-mainSection :: Env -> Window -> Translation -> Tabs -> Behavior Main.Model -> UI ()
+mainSection :: Env -> Window -> Translation -> Tabs -> Behavior Main.Model -> UI Element
 mainSection env@Env{..} win translations tabs bModel = do
     (input, view) <- sinkModel env win translations bModel
 
     tabs' <- mkElement "nav" #. "section" #+ [mkTabs env translations tabs]
     navigation <- mkElement "footer" #. "section" #+ [mkNavigation env translations tabs]
 
-    void $ UI.getBody win # set children [tabs', view, navigation]
-    liftIOLater $ do
-        runUI win $ void $ do
-            UI.setFocus input
+    UI.div # set children [tabs', view, navigation]
 
 
 setBuild :: Env -> Translation -> Element -> Session.Session -> UI ()
@@ -135,10 +132,10 @@ setChanged _ translations content parent button photographees = do
             return $ Just val
 
 
-mkPhotographees :: Env -> Photographee.Photographees -> [UI Element]
+mkPhotographees :: Env -> Photographee.Photographees -> UI [Element]
 mkPhotographees env photographees' = do
     let elems = ListZipper.iextend (\i photographees'' -> (i, (Photographee.toZip photographees') == photographees'', extract photographees'')) (Photographee.toZip photographees')
-    map (mkPhotographeeListItem env) (ListZipper.toList elems)
+    mapM (mkPhotographeeListItem env) (ListZipper.toList elems)
 
 mkPhotographeeListItem :: Env -> (Int, Bool, Photographee.Photographee) -> UI Element
 mkPhotographeeListItem Env {..} (thisIndex, isCenter, photographee) = do
@@ -245,8 +242,8 @@ sinkModel env@Env{..} win translations bModel = do
 
                     dumpFilesCounter' <- dumpFilesCounter env win translations (Main._dumpDir item')
                     _ <- element count # set children [dumpFilesCounter']
-                    let options = CLocation.mkGrades env (Main._grades item')
-                    _ <- element select # set children [] #+ options
+                    options <- CLocation.mkGrades env (Main._grades item')
+                    _ <- element select # set children [] #+ fmap element options
 
                     photographeesList' <- photographeesList env win (Main._dumpDir item') (Main._photographees item')
 
@@ -258,7 +255,9 @@ sinkModel env@Env{..} win translations bModel = do
                     element ok # set children (maybeToList isChanged)
 
 
-                    _ <- element selectPhotographee # set children [] #+ (mkPhotographees env (Main._photographees item'))
+
+                    ites <- (mkPhotographees env (Main._photographees item'))
+                    _ <- element selectPhotographee # set children [] #+ fmap element ites
                     photographees' <- UI.div #. "section"
                                     #+ [ UI.div
                                         #. "field"
@@ -313,8 +312,9 @@ sinkModel env@Env{..} win translations bModel = do
 
                 editingSelectPhotographee <- liftIO $ currentValue bEditingSelectPhotographee
 
-                when (not editingSelectPhotographee) $ void $
-                    element selectPhotographee # set children [] #+ (mkPhotographees env (Main._photographees item'))
+                when (not editingSelectPhotographee) $ void $ do
+                    ites <- (mkPhotographees env (Main._photographees item'))
+                    element selectPhotographee # set children [] #+ fmap element ites
 
                 let _ = Photographee.toIdent (Main._photographees item')
                 let name = Photographee.toName (Main._photographees item')
@@ -326,8 +326,8 @@ sinkModel env@Env{..} win translations bModel = do
 
 
                 when (not editingSelect) $ void $ do
-                    let options = CLocation.mkGrades env (Main._grades item')
-                    element select # set children [] #+ options
+                    options <- CLocation.mkGrades env (Main._grades item')
+                    element select # set children [] #+ fmap element options
 
                 when (not editingInput) $ void $
                     element input # set value ""

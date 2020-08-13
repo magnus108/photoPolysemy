@@ -41,7 +41,7 @@ mkPhotographerListItem Env {..} (thisIndex, isCenter, photographer) = do
     if isCenter then option # set UI.selected True else option
 
 
-photographersSection :: Env -> Window -> Translation -> Tabs -> Behavior Model -> UI ()
+photographersSection :: Env -> Window -> Translation -> Tabs -> Behavior Model -> UI Element
 photographersSection env@Env{..} win translations tabs bModel = do
 
     content <- UI.div #. "section"
@@ -143,7 +143,7 @@ photographersSection env@Env{..} win translations tabs bModel = do
 
     view <- UI.div #+ fmap element [ content ]
 
-    void $ UI.getBody win # set children [tabs', view, navigation]
+    UI.div # set children [tabs', view, navigation]
 
 
 selectPhotographeeF :: Int -> Photographer.Photographers -> Photographer.Photographers

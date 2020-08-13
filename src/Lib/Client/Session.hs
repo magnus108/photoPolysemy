@@ -204,7 +204,7 @@ mkSession Env{..} translations (Sessions sessions) session = do
     -}
 
 
-sessionsSection :: Env -> Window -> Translation -> Tabs -> Behavior Model -> UI ()
+sessionsSection :: Env -> Window -> Translation -> Tabs -> Behavior Model -> UI Element
 sessionsSection env@Env{..} win translations tabs bModel = do
 
     content <- UI.div #. "section"
@@ -294,7 +294,7 @@ sessionsSection env@Env{..} win translations tabs bModel = do
 
     view <- UI.div #+ fmap element [ content ]
 
-    void $ UI.getBody win # set children [tabs', view, navigation]
+    UI.div # set children [tabs', view, navigation]
 
 
 mkSession :: Env -> Translation -> (Session, Bool, Sessions) -> UI Element

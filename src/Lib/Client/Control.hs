@@ -42,8 +42,8 @@ mkControl env@Env{..} translations select model =
                                 ]
 
 
-            let options = CLocation.mkGrades env (Lens.view Model.grades item')
-            _ <- element select # set children [] #+ options
+            options <- CLocation.mkGrades env (Lens.view Model.grades item')
+            _ <- element select # set children [] #+ fmap element options
             selectGradeSection <- UI.div #. "section" #+ [UI.div #. "select" # set children [select]]
 
             --BAD BRUh
@@ -68,7 +68,7 @@ mkStatus translations results dir =
             , UI.div #+ [Lens.views controlError string translations]]
 
 
-controlSection :: Env -> Window -> Translation -> Tabs -> Behavior Model.Model -> UI ()
+controlSection :: Env -> Window -> Translation -> Tabs -> Behavior Model.Model -> UI Element
 controlSection env@Env{..} win translation tabs bModel = do
     selectGrade <- UI.select
     let eSelect = CLocation.selectGrade <$> filterJust (selectionChange' selectGrade)
@@ -102,4 +102,4 @@ controlSection env@Env{..} win translation tabs bModel = do
 
     view <- UI.div #+ fmap element [ content ]
 
-    void $ UI.getBody win # set children [tabs', view, navigation]
+    UI.div # set children [tabs', view, navigation]
