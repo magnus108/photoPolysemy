@@ -105,9 +105,9 @@ dumpFilesCounter _ _ translations dumpDir =
 
 
 ---------------------------------------------------------------------------------
-mainSection :: Env -> Window -> Translation -> Element -> Element -> Behavior Main.Model -> UI Element
-mainSection env@Env{..} win translations tabs' navigation bModel = do
-    (input, view) <- sinkModel env win translations bModel
+mainSection :: Env -> Window -> Translation -> Element -> Element -> Behavior Main.Model -> Element -> UI Element
+mainSection env@Env{..} win translations tabs' navigation bModel inputss = do
+    (input, view) <- sinkModel env win translations bModel inputss
 
     UI.div # set children [tabs', view, navigation]
 
@@ -150,8 +150,8 @@ selectPhotographeeF selected photographees' =
         ) (Photographee.toZip photographees')
 
 
-sinkModel :: Env -> Window -> Translation -> Behavior Main.Model -> UI (Element, Element)
-sinkModel env@Env{..} win translations bModel = do
+sinkModel :: Env -> Window -> Translation -> Behavior Main.Model -> Element -> UI (Element, Element)
+sinkModel env@Env{..} win translations bModel input = do
 
     let isOk = Lens.view isChanged translations
     changedButton <- mkButton "mkChange" isOk
@@ -168,7 +168,6 @@ sinkModel env@Env{..} win translations bModel = do
 
     content <- UI.div
     select <- UI.select
-    input <- UI.input #. "input"
     currentPhotographee <- UI.h1 #. "is-size-4"
 
     help <- string "Valgt: "

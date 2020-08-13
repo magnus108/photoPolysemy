@@ -90,10 +90,9 @@ run port env@Env{..} translations bDoneshootingDir bBuild eGrades bLocationConfi
         let bModel2 = ControlModel.mkModel <$> eGrades <*> bDoneshootingDir <*> bPhotographees
 
 
-
-
         tabs' <- mkElement "nav" #. "section" #+ [mkTabs env translations tabs]
         navigation <- mkElement "footer" #. "section" #+ [mkNavigation env translations tabs]
+        inputteren <- UI.input #. "input"
 
 
         dumpSection' <- dumpSection env win translations tabs' navigation eDump
@@ -105,7 +104,7 @@ run port env@Env{..} translations bDoneshootingDir bBuild eGrades bLocationConfi
         dagsdatoSection' <- dagsdatoSection env win translations tabs' navigation eDagsdato
         dagsdatoBackupSection' <- dagsdatoBackupSection env win translations tabs' navigation  eDagsdatoBackup
         locationSection' <- CLocation.locationSection env win translations tabs' navigation bModelLocation1
-        mainSection' <- CMain.mainSection env win translations tabs' navigation bModel1
+        mainSection' <- CMain.mainSection env win translations tabs' navigation bModel1 inputteren
         controlSection' <- controlSection env win translations tabs' navigation bModel2
         insertPhotographeeSection' <- InsertPhotographee.insertPhotographeeSection env win translations tabs' navigation bModelInserter1
 
@@ -135,6 +134,10 @@ run port env@Env{..} translations bDoneshootingDir bBuild eGrades bLocationConfi
 
                 void $ element content # set children [tabs', childe, navigation]
 
+                case currentTab of
+                    MainTab -> UI.setFocus (getElement inputteren)
+                    _ -> return ()
+
 
         liftIOLater $ onChange bTabs $ \tabs'' -> runUI win $ do
             let currentTab = focus (unTabs tabs'')
@@ -152,12 +155,18 @@ run port env@Env{..} translations bDoneshootingDir bBuild eGrades bLocationConfi
                     ControlTab -> controlSection'
                     InsertPhotographeeTab -> insertPhotographeeSection'
 
+
             tt <- mkTabs env translations (tabs'')
             ttt <- mkNavigation env translations (tabs'')
             element tabs' # set children [tt]
             element navigation # set children [ttt]
 
+            
             void $ element content # set children [tabs',childe, navigation]
+
+            case currentTab of
+                    MainTab -> UI.setFocus (getElement inputteren)
+                    _ -> return ()
 
         void $ UI.getBody win # set children [content]
 

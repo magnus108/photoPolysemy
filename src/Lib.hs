@@ -117,7 +117,7 @@ runServer port env@Env{..} = do
     (eBuild, hBuild) <- newEvent
 
     watchers <- newMVar mempty
-    withManager $ \mgr -> do
+    withManagerConf ( defaultConfig { confDebounce = Debounce ( 0.001) })$ \mgr -> do
         --Build
         stopBuild <- build env mgr mBuildFile watchers hBuild
 
@@ -435,8 +435,8 @@ receiveMessages env@Env{..} mgr watchMap hPhotographers hConfigDump hConfigDagsd
                 --DANGEROUS 
                 --DANGEROUS 
                 --DANGEROUS 
-                --void $ forkIO $ SBuild.entry msgs mBuildFile mDumpFile $!! i
-                void $ SBuild.entry msgs mBuildFile mDumpFile $ i
+                void $ forkIO $ SBuild.entry msgs mBuildFile mDumpFile $!! i
+                --void $ SBuild.entry msgs mBuildFile mDumpFile $ i
 
             BuilderMessage msg ->
                 Build.writeBuild mBuildFile $ msg
