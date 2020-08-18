@@ -5,6 +5,7 @@ module Lib.Translation
     ( Translation(..)
     , isChanged
     , notFoundPhotographeesError
+    , countPhotographees
     , changedPhotographeesError
     , couldNotReadDoneshootingDir
     , exactly1With5
@@ -151,6 +152,7 @@ data Translation = Translation { _loading :: String
                                , _atleast8With1 :: String
                                , _doneshootingEmpty :: String
                                , _couldNotReadDoneshootingDir :: String
+                               , _countPhotographees :: String
                                }
     deriving (Show, Ord, Eq, Generic, ToJSON, FromJSON)
 

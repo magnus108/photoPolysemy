@@ -206,6 +206,8 @@ sinkModel env@Env{..} win translations bModel input = do
 
     ok <- UI.div
 
+    countPhotographees' <- UI.span
+
     liftIOLater $ do
         model <- currentValue bModel
         runUI win $ void $ do
@@ -262,12 +264,14 @@ sinkModel env@Env{..} win translations bModel input = do
 
 
 
+                    element countPhotographees' # set text (show (length (ListZipper.toList (Photographee.toZip ( Main._photographees item')))))
                     ites <- (mkPhotographees env (Main._photographees item'))
                     _ <- element selectPhotographee # set children [] #+ fmap element ites
                     photographees' <- UI.div #. "section"
-                                    #+ [ UI.div
-                                        #. "field"
-                                        #+ [ UI.p #. "control" #+ [UI.div #. "select" #+ [element selectPhotographee]]]
+                                    #+ [ UI.div #. "columns is-vcentered" #+ [element countPhotographees' #. "is-1 is-size-3 column", Lens.views countPhotographees string translations #. "column"]
+                                        , UI.div
+                                            #. "field"
+                                            #+ [ UI.p #. "control" #+ [UI.div #. "select" #+ [element selectPhotographee]]]
                                     ]
 
                     _ <- element content # set children ([photographerName, build', mkBuild, count, ok, inputSection, selectSection, photographees'])
@@ -340,10 +344,12 @@ sinkModel env@Env{..} win translations bModel input = do
                 when (not editingInput) $ void $
                     element input # set value ""
 
+                element countPhotographees' # set text (show (length (ListZipper.toList (Photographee.toZip ( Main._photographees item')))))
                 when (not (editingInput || editingSelect )) $ void $ do
                     photographees' <- UI.div #. "section"
                         #+ ([ UI.div
-                                    #+ [ UI.div
+                                    #+ [ UI.div #. "columns is-vcentered" #+ [element countPhotographees' #. "is-size-3 is-1 column", Lens.views countPhotographees string translations #. "column"]
+                                       ,UI.div
                                         #. "field"
                                         #+ [ UI.p #. "control" #+ [UI.div #. "select" #+ [element selectPhotographee]]]
                                     ]
