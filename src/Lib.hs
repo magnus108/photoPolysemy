@@ -358,7 +358,13 @@ receiveMessages env@Env{..} mgr watchMap hPhotographers hConfigDump hConfigDagsd
 
             WritePhotographees photographees' dumpDir ->
                 if (Dump.count dumpDir == 0) then
-                    Photographee.writePhotographees mPhotographeesFile $ (Photographee.CorrectPhotographees (Photographee.toZip photographees'))
+                    case (photographees') of
+                       (Photographee.ChangedPhotographees _) ->
+                            Photographee.writePhotographees mPhotographeesFile $ (Photographee.CorrectPhotographees (Photographee.toZip photographees'))
+                       (Photographee.NotFoundPhotographees _) ->
+                            Photographee.writePhotographees mPhotographeesFile $ (Photographee.NotFoundPhotographees (Photographee.toZip photographees'))
+                       (Photographee.CorrectPhotographees _) ->
+                            Photographee.writePhotographees mPhotographeesFile $ (Photographee.CorrectPhotographees (Photographee.toZip photographees'))
                 else 
                     Photographee.writePhotographees mPhotographeesFile $ (Photographee.ChangedPhotographees (Photographee.toZip photographees'))
 

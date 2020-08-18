@@ -75,6 +75,8 @@ photographeesList env _ dumpDir photographees' = do
                                 Photographee.CorrectPhotographees photographees''
                             (Photographee.ChangedPhotographees _) ->
                                 Photographee.ChangedPhotographees photographees''
+                            (Photographee.NotFoundPhotographees _) ->
+                                Photographee.NotFoundPhotographees photographees''
                         )
 
         let elems' = sortOn (\(a,_,_) -> fmap toLower (Photographee.toName' a)) $ toList elems
@@ -124,6 +126,12 @@ setChanged _ translations content parent button photographees = do
             return Nothing
         Photographee.ChangedPhotographees _ -> do
             let msg = Lens.view changedPhotographeesError translations
+            item <- element content #. "has-text-danger is-size-3" # set text msg
+            val <- element parent # set children [item, button]
+            return $ Just val
+
+        Photographee.NotFoundPhotographees _ -> do
+            let msg = Lens.view notFoundPhotographeesError translations
             item <- element content #. "has-text-danger is-size-3" # set text msg
             val <- element parent # set children [item, button]
             return $ Just val
@@ -231,6 +239,8 @@ sinkModel env@Env{..} win translations bModel input = do
                     _ <- case (Main._photographees item') of
                        (Photographee.ChangedPhotographees _) ->
                            void$ element mkBuild' # set (attr "disabled") "true"
+                       (Photographee.NotFoundPhotographees _) ->
+                           void$ element mkBuild' # set (attr "disabled") "true"
                        (Photographee.CorrectPhotographees _) ->
                             runFunction  $ ffi "$(%1).removeAttr('disabled')" (mkBuild')
 
@@ -293,6 +303,8 @@ sinkModel env@Env{..} win translations bModel input = do
 
                 _ <- case (Main._photographees item') of
                        (Photographee.ChangedPhotographees _) ->
+                            void$ element mkBuild' # set (attr "disabled") "true"
+                       (Photographee.NotFoundPhotographees _) ->
                             void$ element mkBuild' # set (attr "disabled") "true"
                        (Photographee.CorrectPhotographees _) ->
                             runFunction  $ ffi "$(%1).removeAttr('disabled')" (mkBuild')
@@ -436,6 +448,8 @@ sinkModel env@Env{..} win translations bModel input = do
                             _ <- Chan.writeChan chan $ ( MFcker (item'))
                             return ()
                         (Photographee.ChangedPhotographees ys) -> do
+                            return ()
+                        (Photographee.NotFoundPhotographees ys) -> do
                             return ()
 
 

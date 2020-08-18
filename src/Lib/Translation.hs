@@ -4,6 +4,7 @@
 module Lib.Translation
     ( Translation(..)
     , isChanged
+    , notFoundPhotographeesError
     , changedPhotographeesError
     , couldNotReadDoneshootingDir
     , exactly1With5
@@ -83,6 +84,7 @@ import Control.Concurrent
 data Translation = Translation { _loading :: String
                                , _isChanged :: String
                                , _changedPhotographeesError :: String
+                               , _notFoundPhotographeesError :: String
                                , _insertPhotographeeTab :: String
                                , _build :: String
                                , _buildSingle :: String

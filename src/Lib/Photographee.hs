@@ -80,6 +80,7 @@ makeLenses ''Photographee
 data Photographees
     = CorrectPhotographees { unPhotographees :: ListZipper.ListZipper Photographee }
     | ChangedPhotographees { unPhotographees :: ListZipper.ListZipper Photographee }
+    | NotFoundPhotographees { unPhotographees :: ListZipper.ListZipper Photographee }
         deriving (Eq, Show)
         deriving (Generic)
         deriving (FromJSON, ToJSON)
@@ -102,15 +103,23 @@ tryFindById s xs =
                     found = ListZipper.findFirst (lookup' (s)) ys
                 in 
                     case found of
-                        Nothing -> xs
+                        Nothing -> NotFoundPhotographees (toZip xs)
                         Just zs -> CorrectPhotographees (zs)
             (ChangedPhotographees ys) ->
                 let 
                     found = ListZipper.findFirst (lookup' s) ys
                 in 
                     case found of
-                        Nothing -> xs
+                        Nothing -> NotFoundPhotographees (toZip xs)
                         Just zs -> ChangedPhotographees (zs)
+
+            (NotFoundPhotographees ys) ->
+                let 
+                    found = ListZipper.findFirst (lookup' s) ys
+                in 
+                    case found of
+                        Nothing -> NotFoundPhotographees (toZip xs)
+                        Just zs -> CorrectPhotographees (zs) --problem
 
 
 setSys' :: String -> Photographee -> Photographee
@@ -124,12 +133,15 @@ setSys sys' xs =
             CorrectPhotographees $ ListZipper.mapFocus (setSys' sys') ys
         (ChangedPhotographees ys) ->
             ChangedPhotographees $ ListZipper.mapFocus (setSys' sys') ys
+        (NotFoundPhotographees ys) ->
+            NotFoundPhotographees $ ListZipper.mapFocus (setSys' sys') ys
 
 toZip :: Photographees -> ListZipper.ListZipper Photographee
 toZip xs =
     case xs of
         (CorrectPhotographees ys) -> ys
         (ChangedPhotographees ys) -> ys
+        (NotFoundPhotographees ys) -> ys
 
 
 setName' :: String -> Photographee -> Photographee
@@ -143,6 +155,8 @@ setName name' xs =
             CorrectPhotographees $ ListZipper.mapFocus (setName' name') ys
         (ChangedPhotographees ys) ->
             ChangedPhotographees $ ListZipper.mapFocus (setName' name') ys
+        (NotFoundPhotographees ys) ->
+            NotFoundPhotographees $ ListZipper.mapFocus (setName' name') ys
 
 
 setIdent' :: String -> Photographee -> Photographee
@@ -157,6 +171,8 @@ setIdent ident' xs =
             CorrectPhotographees $ ListZipper.mapFocus (setIdent' ident') ys
         (ChangedPhotographees ys) ->
             ChangedPhotographees $ ListZipper.mapFocus (setIdent' ident') ys
+        (NotFoundPhotographees ys) ->
+            NotFoundPhotographees $ ListZipper.mapFocus (setIdent' ident') ys
 
 
 
@@ -176,7 +192,8 @@ toName xs =
             toName' ( extract ys)
         (ChangedPhotographees ys) ->
             toName' ( extract ys)
-
+        (NotFoundPhotographees ys) ->
+            toName' ( extract ys)
 
 toIdent' :: Photographee -> String
 toIdent' (Unknown x) = _ident x
@@ -190,6 +207,8 @@ toIdent xs =
             toIdent' ( extract ys)
         (ChangedPhotographees ys) ->
             toIdent' ( extract ys)
+        (NotFoundPhotographees ys) ->
+            toIdent' ( extract ys)
 
 
 toSys' :: Photographee -> String
@@ -202,6 +221,8 @@ toSys xs =
         (CorrectPhotographees ys) ->
             toSys' (extract ys)
         (ChangedPhotographees ys) ->
+            toSys' (extract ys)
+        (NotFoundPhotographees ys) ->
             toSys' (extract ys)
 
 
@@ -224,6 +245,8 @@ insert x xs =
             CorrectPhotographees $ ListZipper.insert ys x
         (ChangedPhotographees ys) ->
             ChangedPhotographees $ ListZipper.insert ys x
+        (NotFoundPhotographees ys) ->
+            NotFoundPhotographees $ ListZipper.insert ys x
 
 
 myOptionsDecode :: DecodeOptions
