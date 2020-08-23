@@ -2,6 +2,13 @@ module Lib.Server.Server
     ( run
     ) where
 
+import Lib.Data
+import Lib.Client.Element
+import qualified Control.Lens as Lens
+import Lib.Client.Utils
+import qualified Lib.Main as Main
+import qualified Control.Concurrent.Chan.Strict as Chan
+
 import Control.Concurrent (ThreadId, killThread)
 import           Reactive.Threepenny
 
@@ -48,6 +55,7 @@ import Utils.ListZipper (focus)
 import Utils.Comonad
 
 
+import Lib.App (Action(..))
 
 --view :: Env -> Window -> Translation -> Behavior Doneshooting.DoneshootingDirModel -> Behavior Build.Model -> Behavior Grade.Model -> Behavior Location.Model -> UI.Behavior Session.Model -> UI.Behavior Shooting.Model -> UI.Behavior Camera.Model -> UI.Behavior Dump.DumpModel -> UI.Behavior Dump.DumpDirModel -> UI.Behavior Doneshooting.Model -> UI.Behavior Dagsdato.Model -> UI.Behavior DagsdatoBackup.Model -> UI.Behavior Photographer.Model -> UI.Behavior Photographee.Model -> Handler (Grade.Model) -> Handler (Location.Model) -> Handler Dump.DumpModel -> Handler Dump.DumpDirModel -> Handler Photographee.Model -> Tabs -> UI ()
 --view env@Env{..} win translation bDoneshootingDir bBuild bGrades bLocationConfigFile bSessions bShootings bCameras bDump bDumpDir bDoneshooting bDagsdato bDagsdatoBackup bPhotographers bPhotographees tabs  bModelLocation1 bModelInserter1 bModel1 bModel2= do
@@ -96,7 +104,79 @@ run port env@Env{..} translations bDoneshootingDir bBuild eGrades bLocationConfi
 
 
         contentInner <- UI.div
-        mainSection' <- CMain.mainSection env win translations contentInner tabs' navigation bModel1 inputteren
+
+        --chaos
+        let isOk = Lens.view isChanged translations
+        changedButton <- mkButton "mkChange" isOk
+        changed' <- UI.p
+        changed <- UI.div #. "section"
+
+
+        mkBuild' <- mkButton "mkBuild" ""
+        mkBuild <- UI.div #. "section" # set children [mkBuild']
+
+        build' <- UI.div #. "section"
+
+        photographerName <- UI.p #. "section has-text-info"
+
+        contentTT <- UI.div
+        select <- UI.select
+        currentPhotographee <- UI.h1 #. "is-size-4"
+
+        help <- string "Valgt: "
+        findHelp <- string "Søg: "
+        inputSection <- UI.div #. "section" # set children [help, currentPhotographee, findHelp, inputteren]
+
+        selectSection <-
+            UI.div
+            #. "section"
+            #+ [ UI.div
+                    #. "field is-horizontal"
+                    #+ [ UI.div
+                        #. "field-body"
+                        #+ [ UI.div
+                            #. "field"
+                            #+ [UI.p #. "control" #+ [UI.div #. "select" #+ [element select]]]
+                            ]
+                    ]
+                ]
+
+        count <- UI.div
+
+        bEditingInput <- bEditing inputteren
+        bEditingSelect  <- bEditing select
+
+        selectPhotographee <- UI.select
+        bEditingSelectPhotographee <- bEditing selectPhotographee
+
+        ok <- UI.div
+
+        countPhotographees' <- UI.span
+        --chaos
+
+        mainSection' <- 
+            CMain.mainSection env win translations contentInner tabs' navigation bModel1 inputteren isOk
+                changedButton
+                changed'
+                changed
+                mkBuild' 
+                mkBuild
+                build'
+                photographerName
+                contentTT
+                select
+                currentPhotographee
+                help
+                findHelp
+                inputSection
+                selectSection
+                count
+                bEditingInput
+                bEditingSelect
+                selectPhotographee
+                bEditingSelectPhotographee
+                ok
+                countPhotographees'
 
         dumpSection' <- dumpSection env win translations tabs' navigation eDump
         doneshootingSection' <- doneshootingSection env win translations tabs' navigation eDoneshooting
@@ -109,6 +189,133 @@ run port env@Env{..} translations bDoneshootingDir bBuild eGrades bLocationConfi
         locationSection' <- CLocation.locationSection env win translations tabs' navigation bModelLocation1
         controlSection' <- controlSection env win translations tabs' navigation bModel2
         insertPhotographeeSection' <- InsertPhotographee.insertPhotographeeSection env win translations tabs' navigation bModelInserter1
+
+        let eSelect   = CMain.selectPhotographeeF <$> filterJust (selectionChange' selectPhotographee)
+
+        let eSelectGrade = CLocation.selectGrade <$> filterJust (selectionChange' select)
+        let eFind = Photographee.tryFindById <$> UI.valueChange inputteren
+
+        let gradeEvent = concatenate' <$> unions' (eSelectGrade :| [])
+        let findEvent = concatenate' <$> unions' (eFind :| [])
+        let ee  = filterJust
+                    $   fmap
+                            (\m f -> case toJust (Main._unModel m) of
+                                Nothing -> Nothing
+                                Just x -> Just $ Main.Model $ Data $ Lens.over Main.grades f x
+                            )
+                            bModel1
+                    <@> gradeEvent
+
+
+        let ee2 = filterJust
+                    $   fmap
+                            (\m f -> case toJust (Main._unModel m) of
+                                Nothing -> Nothing
+                                Just x -> Just $ Main.Model $ Data $ Lens.over Main.photographees f x
+                            )
+                            bModel1
+                    <@> findEvent
+
+        let ee3 = filterJust
+                    $   fmap
+                            (\m f -> case toJust (Main._unModel m) of
+                                Nothing -> Nothing
+                                Just x -> Just $ Main.Model $ Data $ Lens.over Main.photographees f x
+                            )
+                            bModel1
+                    <@> eSelect
+
+
+
+        _ <- onEvent ee3 $ \model -> do
+            void $ liftIO $ do
+                case toJust (Main._unModel model) of
+                    Nothing -> return ()
+                    Just item'  -> do
+                        --Location.writeLocationFile mLocationConfigFile (location i)
+                        _ <- Chan.writeChan chan (WritePhotographees (Main._photographees item') (Main._dumpDir item'))
+                        return ()
+
+
+        let enterKeydown = filterJust $ (\keycode -> if (keycode == 13) then Just () else Nothing) <$> (UI.keydown inputteren)
+
+        let buildClick = seq <$> UI.click mkBuild'
+
+        let changeOk = UI.click changedButton
+
+        let ee5 = filterJust
+                    $   fmap
+                            (\m -> case toJust (Main._unModel m) of
+                                Nothing -> Nothing
+                                Just x -> Just (Main.Model (Data x))
+                            )
+                            bModel1
+                    <@ changeOk
+
+        _ <- onEvent ee5 $ \model -> do
+            void $ liftIO $ do
+                case toJust (Main._unModel model) of
+                    Nothing -> return ()
+                    Just item'  -> do
+                        _ <- Chan.writeChan chan $ ( WritePhotographeesOK (Main._photographees item') )
+                        return ()
+
+        let buildEvent = concatenate' <$> unions' (buildClick :| [fmap const enterKeydown])
+
+        let ee4 = filterJust
+                    $   fmap
+                            (\m -> case toJust (Main._unModel m) of
+                                Nothing -> Nothing
+                                Just x -> Just (Main.Model (Data x))
+                            )
+                            bModel1
+                    <@ buildEvent
+
+
+
+        _ <- onEvent ee4 $ \model -> do
+            UI.setFocus (help) -- hack
+            _ <- element inputteren # set value ""
+            void $ liftIO $ do
+                case toJust (Main._unModel model) of
+                    Nothing -> return ()
+                    Just item'  -> do
+                        case (Main._photographees item') of
+                            (Photographee.CorrectPhotographees ys) -> do
+                                _ <- Chan.writeChan chan $ ( MFcker (item'))
+                                return ()
+                            (Photographee.ChangedPhotographees ys) -> do
+                                return ()
+                            (Photographee.NotFoundPhotographees ys) -> do
+                                return ()
+
+
+        _ <- onEvent ee2 $ \model -> do
+            void $ liftIO $ do
+                case toJust (Main._unModel model) of
+                    Nothing -> return ()
+                    Just item'  -> do
+                        --Location.writeLocationFile mLocationConfigFile (location i)
+                        model2 <- currentValue bModel1
+                        case toJust (Main._unModel model2) of
+                            Nothing -> do
+                                    _ <- Chan.writeChan chan $ ( WritePhotographees (Main._photographees item') (Main._dumpDir item'))
+                                    return $ ()
+                            Just item'' -> do
+                                if ((Main._photographees item') /= (Main._photographees item'')) then
+                                    void $ Chan.writeChan chan $ ( WritePhotographees (Main._photographees item') (Main._dumpDir item'))
+                                else
+                                    return $ ()
+
+        _ <- onEvent ee $ \model -> do
+            void $ liftIO $ do
+                case toJust (Main._unModel model) of
+                    Nothing -> return ()
+                    Just item'  -> do
+                        --Location.writeLocationFile mLocationConfigFile (location i)
+                        _ <- Chan.writeChan chan $ (WriteGrades ( Main._grades item'))
+                        return ()
+
 
         content <- UI.div
         liftIOLater $ do

@@ -1,6 +1,7 @@
 module Lib.Client.Main
     ( mainSection
     , mkModel
+    , selectPhotographeeF
     ) where
 import Control.DeepSeq
 
@@ -107,11 +108,27 @@ dumpFilesCounter _ _ translations dumpDir =
 
 
 ---------------------------------------------------------------------------------
-mainSection :: Env -> Window -> Translation -> Element -> Element -> Element -> Behavior Main.Model -> Element -> UI Element
-mainSection env@Env{..} win translations contentInner tabs' navigation bModel inputss = do
-    (input, view) <- sinkModel env win translations bModel inputss
+---mainSection :: Env -> Window -> Translation -> Element -> Element -> Element -> Behavior Main.Model -> Element -> UI Element
+mainSection env@Env{..} win translations contentInner tabs' navigation bModel inputss 
+    isOk changedButton changed' changed mkBuild' mkBuild build' photographerName content select currentPhotographee 
+    help findHelp inputSection selectSection count
+    bEditingInput
+    bEditingSelect
+    selectPhotographee
+    bEditingSelectPhotographee
+    ok
+    countPhotographees' = do
+        (input, view) <- sinkModel env win translations bModel inputss
+                            isOk changedButton changed' changed mkBuild' mkBuild build' photographerName content select currentPhotographee 
+                            help findHelp inputSection selectSection count
+                            bEditingInput
+                            bEditingSelect
+                            selectPhotographee
+                            bEditingSelectPhotographee
+                            ok
+                            countPhotographees'
 
-    element contentInner # set children [tabs', view, navigation]
+        element contentInner # set children [tabs', view, navigation]
 
 
 setBuild :: Env -> Translation -> Element -> Session.Session -> UI ()
@@ -158,59 +175,87 @@ selectPhotographeeF selected photographees' =
         ) (Photographee.toZip photographees')
 
 
-sinkModel :: Env -> Window -> Translation -> Behavior Main.Model -> Element -> UI (Element, Element)
-sinkModel env@Env{..} win translations bModel input = do
+--sinkModel :: Env -> Window -> Translation -> Behavior Main.Model -> Element -> UI (Element, Element)
+sinkModel env@Env{..} win translations bModel input 
+    isOk changedButton changed' changed mkBuild' mkBuild build' photographerName content select currentPhotographee 
+    help findHelp inputSection selectSection count
+    bEditingInput
+    bEditingSelect
+    selectPhotographee
+    bEditingSelectPhotographee
+    ok
+    countPhotographees' = do
+        liftIOLater $ do
+            model <- currentValue bModel
+            runUI win $ void $ do
+                case Main._unModel model of
+                    NotAsked -> do
+                        msg <- Lens.views starting string translations
+                        _ <- element content # set children [msg]
+                        return ()
+                    Loading -> do
+                        msg <- Lens.views loading string translations
+                        _ <- element content # set children [msg]
+                        return ()
+                    Failure e -> do
+                        msg <- Lens.views mainPageError string translations
+                        err <- UI.div #+ [string e]
+                        section <- UI.div #. "section" # set children [msg, err]
+                        _ <- element content # set children [section]
+                        return ()
 
-    let isOk = Lens.view isChanged translations
-    changedButton <- mkButton "mkChange" isOk
-    changed' <- UI.p
-    changed <- UI.div #. "section"
+                    Data item' -> do
+                        buildStatus <- UI.string $ Build.toString (Main._build item') translations
+                        _ <- element photographerName # set text (Lens.view Photographer.name (Main._photographer item'))
+                        _ <- element build' # set children [buildStatus]
+                        _ <- case (Main._build item') of
+                                (Build.DoneBuild _ _) -> do
+                                    runFunction  $ ffi "$(%1).removeAttr('disabled')" (mkBuild')
+                                (Build.Building _ _ ) ->void$ element mkBuild' # set (attr "disabled") "true"
+                                (Build.NoBuild) -> 
+                                    runFunction  $ ffi "$(%1).removeAttr('disabled')" (mkBuild')
+
+                        _ <- case (Main._photographees item') of
+                                (Photographee.ChangedPhotographees _) ->
+                                    void$ element mkBuild' # set (attr "disabled") "true"
+                                (Photographee.NotFoundPhotographees _) ->
+                                    void$ element mkBuild' # set (attr "disabled") "true"
+                                (Photographee.CorrectPhotographees _) ->
+                                        runFunction  $ ffi "$(%1).removeAttr('disabled')" (mkBuild')
+
+                        _ <- setBuild env translations mkBuild' (Main._session item')
+
+                        dumpFilesCounter' <- dumpFilesCounter env win translations (Main._dumpDir item')
+                        _ <- element count # set children [dumpFilesCounter']
+                        options <- CLocation.mkGrades env (Main._grades item')
+                        _ <- element select # set children [] #+ fmap element options
+
+                        photographeesList' <- photographeesList env win (Main._dumpDir item') (Main._photographees item')
+
+                        let _ = Photographee.toIdent (Main._photographees item')
+                        let name = Photographee.toName (Main._photographees item')
+                        _ <- element currentPhotographee # set text name
+
+                        isChanged <- setChanged env translations changed' changed changedButton (Main._photographees item')
+                        element ok # set children (maybeToList isChanged)
 
 
-    mkBuild' <- mkButton "mkBuild" ""
-    mkBuild <- UI.div #. "section" # set children [mkBuild']
 
-    build' <- UI.div #. "section"
+                        element countPhotographees' # set text (show (length (ListZipper.toList (Photographee.toZip ( Main._photographees item')))))
+                        ites <- (mkPhotographees env (Main._photographees item'))
+                        _ <- element selectPhotographee # set children [] #+ fmap element ites
+                        photographees' <- UI.div #. "section"
+                                        #+ [ UI.div #. "columns is-vcentered" #+ [element countPhotographees' #. "is-1 is-size-3 column", Lens.views countPhotographees string translations #. "column"]
+                                            , UI.div
+                                                #. "field"
+                                                #+ [ UI.p #. "control" #+ [UI.div #. "select" #+ [element selectPhotographee]]]
+                                        ]
 
-    photographerName <- UI.p #. "section has-text-info"
+                        _ <- element content # set children ([photographerName, build', mkBuild, count, ok, inputSection, selectSection, photographees'])
+                        return ()
 
-    content <- UI.div
-    select <- UI.select
-    currentPhotographee <- UI.h1 #. "is-size-4"
 
-    help <- string "Valgt: "
-    findHelp <- string "Søg: "
-    inputSection <- UI.div #. "section" # set children [help, currentPhotographee, findHelp, input]
-
-    selectSection <-
-        UI.div
-        #. "section"
-        #+ [ UI.div
-                #. "field is-horizontal"
-                #+ [ UI.div
-                    #. "field-body"
-                    #+ [ UI.div
-                        #. "field"
-                        #+ [UI.p #. "control" #+ [UI.div #. "select" #+ [element select]]]
-                        ]
-                ]
-            ]
-
-    count <- UI.div
-
-    bEditingInput <- bEditing input
-    bEditingSelect  <- bEditing select
-
-    selectPhotographee <- UI.select
-    bEditingSelectPhotographee <- bEditing selectPhotographee
-
-    ok <- UI.div
-
-    countPhotographees' <- UI.span
-
-    liftIOLater $ do
-        model <- currentValue bModel
-        runUI win $ void $ do
+        liftIOLater $ onChange bModel $ \model -> runUI win $ do
             case Main._unModel model of
                 NotAsked -> do
                     msg <- Lens.views starting string translations
@@ -226,263 +271,69 @@ sinkModel env@Env{..} win translations bModel input = do
                     section <- UI.div #. "section" # set children [msg, err]
                     _ <- element content # set children [section]
                     return ()
-
                 Data item' -> do
-                    buildStatus <- UI.string $ Build.toString (Main._build item') translations
-                    _ <- element photographerName # set text (Lens.view Photographer.name (Main._photographer item'))
-                    _ <- element build' # set children [buildStatus]
+                    dumpFilesCounter' <- dumpFilesCounter env win translations (Main._dumpDir item')
+                    _ <- element count # set children [dumpFilesCounter']
+
                     _ <- case (Main._build item') of
-                            (Build.DoneBuild _ _) -> do
+                            (Build.DoneBuild _ _) ->
                                 runFunction  $ ffi "$(%1).removeAttr('disabled')" (mkBuild')
                             (Build.Building _ _ ) ->void$ element mkBuild' # set (attr "disabled") "true"
                             (Build.NoBuild) -> 
                                 runFunction  $ ffi "$(%1).removeAttr('disabled')" (mkBuild')
 
                     _ <- case (Main._photographees item') of
-                       (Photographee.ChangedPhotographees _) ->
-                           void$ element mkBuild' # set (attr "disabled") "true"
-                       (Photographee.NotFoundPhotographees _) ->
-                           void$ element mkBuild' # set (attr "disabled") "true"
-                       (Photographee.CorrectPhotographees _) ->
-                            runFunction  $ ffi "$(%1).removeAttr('disabled')" (mkBuild')
+                        (Photographee.ChangedPhotographees _) ->
+                                void$ element mkBuild' # set (attr "disabled") "true"
+                        (Photographee.NotFoundPhotographees _) ->
+                                void$ element mkBuild' # set (attr "disabled") "true"
+                        (Photographee.CorrectPhotographees _) ->
+                                runFunction  $ ffi "$(%1).removeAttr('disabled')" (mkBuild')
 
-                    _ <- setBuild env translations mkBuild' (Main._session item')
+                    _ <- element photographerName # set text (Lens.view Photographer.name (Main._photographer item'))
+                    editingInput <- liftIO $ currentValue bEditingInput
+                    editingSelect <- liftIO $ currentValue bEditingSelect
 
-                    dumpFilesCounter' <- dumpFilesCounter env win translations (Main._dumpDir item')
-                    _ <- element count # set children [dumpFilesCounter']
-                    options <- CLocation.mkGrades env (Main._grades item')
-                    _ <- element select # set children [] #+ fmap element options
+                    buildStatus <- UI.string $ Build.toString (Main._build item') translations
+                    _ <- element build' # set children [buildStatus]
 
                     photographeesList' <- photographeesList env win (Main._dumpDir item') (Main._photographees item')
+
+                    editingSelectPhotographee <- liftIO $ currentValue bEditingSelectPhotographee
+
+                    when (not editingSelectPhotographee) $ void $ do
+                        ites <- (mkPhotographees env (Main._photographees item'))
+                        element selectPhotographee # set children [] #+ fmap element ites
 
                     let _ = Photographee.toIdent (Main._photographees item')
                     let name = Photographee.toName (Main._photographees item')
                     _ <- element currentPhotographee # set text name
 
+                    _ <- setBuild env translations mkBuild' (Main._session item')
                     isChanged <- setChanged env translations changed' changed changedButton (Main._photographees item')
                     element ok # set children (maybeToList isChanged)
 
 
+                    when (not editingSelect) $ void $ do
+                        options <- CLocation.mkGrades env (Main._grades item')
+                        element select # set children [] #+ fmap element options
+
+                    when (not editingInput) $ void $
+                        element input # set value ""
 
                     element countPhotographees' # set text (show (length (ListZipper.toList (Photographee.toZip ( Main._photographees item')))))
-                    ites <- (mkPhotographees env (Main._photographees item'))
-                    _ <- element selectPhotographee # set children [] #+ fmap element ites
-                    photographees' <- UI.div #. "section"
-                                    #+ [ UI.div #. "columns is-vcentered" #+ [element countPhotographees' #. "is-1 is-size-3 column", Lens.views countPhotographees string translations #. "column"]
-                                        , UI.div
+                    when (not (editingInput || editingSelect )) $ void $ do
+                        photographees' <- UI.div #. "section"
+                            #+ ([ UI.div
+                                        #+ [ UI.div #. "columns is-vcentered" #+ [element countPhotographees' #. "is-size-3 is-1 column", Lens.views countPhotographees string translations #. "column"]
+                                        ,UI.div
                                             #. "field"
                                             #+ [ UI.p #. "control" #+ [UI.div #. "select" #+ [element selectPhotographee]]]
-                                    ]
-
-                    _ <- element content # set children ([photographerName, build', mkBuild, count, ok, inputSection, selectSection, photographees'])
-                    return ()
-
-
-    liftIOLater $ onChange bModel $ \model -> runUI win $ do
-        case Main._unModel model of
-            NotAsked -> do
-                msg <- Lens.views starting string translations
-                _ <- element content # set children [msg]
-                return ()
-            Loading -> do
-                msg <- Lens.views loading string translations
-                _ <- element content # set children [msg]
-                return ()
-            Failure e -> do
-                msg <- Lens.views mainPageError string translations
-                err <- UI.div #+ [string e]
-                section <- UI.div #. "section" # set children [msg, err]
-                _ <- element content # set children [section]
-                return ()
-            Data item' -> do
-                dumpFilesCounter' <- dumpFilesCounter env win translations (Main._dumpDir item')
-                _ <- element count # set children [dumpFilesCounter']
-
-                _ <- case (Main._build item') of
-                        (Build.DoneBuild _ _) ->
-                            runFunction  $ ffi "$(%1).removeAttr('disabled')" (mkBuild')
-                        (Build.Building _ _ ) ->void$ element mkBuild' # set (attr "disabled") "true"
-                        (Build.NoBuild) -> 
-                            runFunction  $ ffi "$(%1).removeAttr('disabled')" (mkBuild')
-
-                _ <- case (Main._photographees item') of
-                       (Photographee.ChangedPhotographees _) ->
-                            void$ element mkBuild' # set (attr "disabled") "true"
-                       (Photographee.NotFoundPhotographees _) ->
-                            void$ element mkBuild' # set (attr "disabled") "true"
-                       (Photographee.CorrectPhotographees _) ->
-                            runFunction  $ ffi "$(%1).removeAttr('disabled')" (mkBuild')
-
-                _ <- element photographerName # set text (Lens.view Photographer.name (Main._photographer item'))
-                editingInput <- liftIO $ currentValue bEditingInput
-                editingSelect <- liftIO $ currentValue bEditingSelect
-
-                buildStatus <- UI.string $ Build.toString (Main._build item') translations
-                _ <- element build' # set children [buildStatus]
-
-                photographeesList' <- photographeesList env win (Main._dumpDir item') (Main._photographees item')
-
-                editingSelectPhotographee <- liftIO $ currentValue bEditingSelectPhotographee
-
-                when (not editingSelectPhotographee) $ void $ do
-                    ites <- (mkPhotographees env (Main._photographees item'))
-                    element selectPhotographee # set children [] #+ fmap element ites
-
-                let _ = Photographee.toIdent (Main._photographees item')
-                let name = Photographee.toName (Main._photographees item')
-                _ <- element currentPhotographee # set text name
-
-                _ <- setBuild env translations mkBuild' (Main._session item')
-                isChanged <- setChanged env translations changed' changed changedButton (Main._photographees item')
-                element ok # set children (maybeToList isChanged)
+                                        ]
+                                        ])
+                        _ <- element content # set children ([photographerName, build', mkBuild, count, ok, inputSection, selectSection, photographees'])
+                        UI.setFocus input
+                        return ()
 
 
-                when (not editingSelect) $ void $ do
-                    options <- CLocation.mkGrades env (Main._grades item')
-                    element select # set children [] #+ fmap element options
-
-                when (not editingInput) $ void $
-                    element input # set value ""
-
-                element countPhotographees' # set text (show (length (ListZipper.toList (Photographee.toZip ( Main._photographees item')))))
-                when (not (editingInput || editingSelect )) $ void $ do
-                    photographees' <- UI.div #. "section"
-                        #+ ([ UI.div
-                                    #+ [ UI.div #. "columns is-vcentered" #+ [element countPhotographees' #. "is-size-3 is-1 column", Lens.views countPhotographees string translations #. "column"]
-                                       ,UI.div
-                                        #. "field"
-                                        #+ [ UI.p #. "control" #+ [UI.div #. "select" #+ [element selectPhotographee]]]
-                                    ]
-                                    ])
-                    _ <- element content # set children ([photographerName, build', mkBuild, count, ok, inputSection, selectSection, photographees'])
-                    UI.setFocus input
-                    return ()
-
-
-    let eSelect   = selectPhotographeeF <$> filterJust (selectionChange' selectPhotographee)
-
-    let eSelectGrade = CLocation.selectGrade <$> filterJust (selectionChange' select)
-    let eFind = Photographee.tryFindById <$> UI.valueChange input
-
-    let gradeEvent = concatenate' <$> unions' (eSelectGrade :| [])
-    let findEvent = concatenate' <$> unions' (eFind :| [])
-    let ee  = filterJust
-                $   fmap
-                        (\m f -> case toJust (Main._unModel m) of
-                            Nothing -> Nothing
-                            Just x -> Just $ Main.Model $ Data $ Lens.over Main.grades f x
-                        )
-                        bModel
-                <@> gradeEvent
-
-
-    let ee2 = filterJust
-                $   fmap
-                        (\m f -> case toJust (Main._unModel m) of
-                            Nothing -> Nothing
-                            Just x -> Just $ Main.Model $ Data $ Lens.over Main.photographees f x
-                        )
-                        bModel
-                <@> findEvent
-
-    let ee3 = filterJust
-                $   fmap
-                        (\m f -> case toJust (Main._unModel m) of
-                            Nothing -> Nothing
-                            Just x -> Just $ Main.Model $ Data $ Lens.over Main.photographees f x
-                        )
-                        bModel
-                <@> eSelect
-
-
-
-    _ <- onEvent ee3 $ \model -> do
-        void $ liftIO $ do
-            case toJust (Main._unModel model) of
-                Nothing -> return ()
-                Just item'  -> do
-                    --Location.writeLocationFile mLocationConfigFile (location i)
-                    _ <- Chan.writeChan chan (WritePhotographees (Main._photographees item') (Main._dumpDir item'))
-                    return ()
-
-
-    let enterKeydown = filterJust $ (\keycode -> if (keycode == 13) then Just () else Nothing) <$> (UI.keydown input)
-
-    let buildClick = seq <$> UI.click mkBuild'
-
-    let changeOk = UI.click changedButton
-
-    let ee5 = filterJust
-                $   fmap
-                        (\m -> case toJust (Main._unModel m) of
-                            Nothing -> Nothing
-                            Just x -> Just (Main.Model (Data x))
-                        )
-                        bModel
-                <@ changeOk
-
-    _ <- onEvent ee5 $ \model -> do
-        void $ liftIO $ do
-            case toJust (Main._unModel model) of
-                Nothing -> return ()
-                Just item'  -> do
-                    _ <- Chan.writeChan chan $ ( WritePhotographeesOK (Main._photographees item') )
-                    return ()
-
-    let buildEvent = concatenate' <$> unions' (buildClick :| [fmap const enterKeydown])
-
-    let ee4 = filterJust
-                $   fmap
-                        (\m -> case toJust (Main._unModel m) of
-                            Nothing -> Nothing
-                            Just x -> Just (Main.Model (Data x))
-                        )
-                        bModel
-                <@ buildEvent
-
-
-
-    _ <- onEvent ee4 $ \model -> do
-        UI.setFocus (help) -- hack
-        _ <- element input # set value ""
-        void $ liftIO $ do
-            case toJust (Main._unModel model) of
-                Nothing -> return ()
-                Just item'  -> do
-                    case (Main._photographees item') of
-                        (Photographee.CorrectPhotographees ys) -> do
-                            _ <- Chan.writeChan chan $ ( MFcker (item'))
-                            return ()
-                        (Photographee.ChangedPhotographees ys) -> do
-                            return ()
-                        (Photographee.NotFoundPhotographees ys) -> do
-                            return ()
-
-
-    _ <- onEvent ee2 $ \model -> do
-        void $ liftIO $ do
-            case toJust (Main._unModel model) of
-                Nothing -> return ()
-                Just item'  -> do
-                    --Location.writeLocationFile mLocationConfigFile (location i)
-                    model2 <- currentValue bModel
-                    case toJust (Main._unModel model2) of
-                        Nothing -> do
-                                _ <- Chan.writeChan chan $ ( WritePhotographees (Main._photographees item') (Main._dumpDir item'))
-                                return $ ()
-                        Just item'' -> do
-                            if ((Main._photographees item') /= (Main._photographees item'')) then
-                                void $ Chan.writeChan chan $ ( WritePhotographees (Main._photographees item') (Main._dumpDir item'))
-                            else
-                                return $ ()
-
-    _ <- onEvent ee $ \model -> do
-        void $ liftIO $ do
-            case toJust (Main._unModel model) of
-                Nothing -> return ()
-                Just item'  -> do
-                    --Location.writeLocationFile mLocationConfigFile (location i)
-                    _ <- Chan.writeChan chan $ (WriteGrades ( Main._grades item'))
-                    return ()
-
-    return (input, content)
+        return (input, content)
