@@ -33,6 +33,8 @@ module Lib.Photographee
     , tryFindById
     ) where
 
+import Data.Char
+
 import Control.Concurrent.MVar.Strict
 import Data.Csv
 import Control.DeepSeq
@@ -100,14 +102,14 @@ tryFindById s xs =
         case xs of
             (CorrectPhotographees ys) ->
                 let 
-                    found = ListZipper.findFirst (lookup' (s)) ys
+                    found = ListZipper.findFirst (lookup' (fmap toUpper s)) ys
                 in 
                     case found of
                         Nothing -> NotFoundPhotographees (toZip xs)
                         Just zs -> CorrectPhotographees (zs)
             (ChangedPhotographees ys) ->
                 let 
-                    found = ListZipper.findFirst (lookup' s) ys
+                    found = ListZipper.findFirst (lookup' (fmap toUpper s)) ys
                 in 
                     case found of
                         Nothing -> NotFoundPhotographees (toZip xs)
@@ -115,7 +117,7 @@ tryFindById s xs =
 
             (NotFoundPhotographees ys) ->
                 let 
-                    found = ListZipper.findFirst (lookup' s) ys
+                    found = ListZipper.findFirst (lookup' (fmap toUpper s)) ys
                 in 
                     case found of
                         Nothing -> NotFoundPhotographees (toZip xs)
