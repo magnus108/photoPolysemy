@@ -107,11 +107,11 @@ dumpFilesCounter _ _ translations dumpDir =
 
 
 ---------------------------------------------------------------------------------
-mainSection :: Env -> Window -> Translation -> Element -> Element -> Behavior Main.Model -> Element -> UI Element
-mainSection env@Env{..} win translations tabs' navigation bModel inputss = do
+mainSection :: Env -> Window -> Translation -> Element -> Element -> Element -> Behavior Main.Model -> Element -> UI Element
+mainSection env@Env{..} win translations contentInner tabs' navigation bModel inputss = do
     (input, view) <- sinkModel env win translations bModel inputss
 
-    UI.div # set children [tabs', view, navigation]
+    element contentInner # set children [tabs', view, navigation]
 
 
 setBuild :: Env -> Translation -> Element -> Session.Session -> UI ()

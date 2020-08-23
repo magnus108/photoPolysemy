@@ -40,7 +40,7 @@ parseRating filepath = do
 
 data Error
     = Exactly1With5
-    | Atleast8With1
+    | Atleast5With1
     | CouldNotReadDoneshootingDir
     deriving (Show,Eq)
 
@@ -54,7 +54,7 @@ translationError :: Error -> Translation.Translation -> String
 translationError err = Lens.view translator
     where translator = case err of
             Exactly1With5 -> Translation.exactly1With5
-            Atleast8With1 -> Translation.atleast8With1
+            Atleast5With1 -> Translation.atleast5With1
             CouldNotReadDoneshootingDir -> Translation.couldNotReadDoneshootingDir
 
 
@@ -87,7 +87,7 @@ controlXMP item' = do
 
 
     let gg = fmap (\i -> if (1 == count Rating.five (snd i)) then Nothing else Just (i, Exactly1With5)) parsedAndRdy
-    let gg2 = fmap (\i -> if length (filter (\i' -> Rating.toInt i' >= 1) (snd i)) > 8 then Nothing else Just (i, Atleast8With1)) parsedAndRdy
+    let gg2 = fmap (\i -> if length (filter (\i' -> Rating.toInt i' >= 1) (snd i)) > 5 then Nothing else Just (i, Atleast5With1)) parsedAndRdy
 
     let allErro = fmap (\i -> (fst (fst( fst i)), snd i)) $ catMaybes $ gg++gg2
     

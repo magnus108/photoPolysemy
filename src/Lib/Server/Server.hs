@@ -95,6 +95,9 @@ run port env@Env{..} translations bDoneshootingDir bBuild eGrades bLocationConfi
         inputteren <- UI.input #. "input"
 
 
+        contentInner <- UI.div
+        mainSection' <- CMain.mainSection env win translations contentInner tabs' navigation bModel1 inputteren
+
         dumpSection' <- dumpSection env win translations tabs' navigation eDump
         doneshootingSection' <- doneshootingSection env win translations tabs' navigation eDoneshooting
         photographersSection' <- photographersSection env win translations tabs' navigation bPhotographers
@@ -104,7 +107,6 @@ run port env@Env{..} translations bDoneshootingDir bBuild eGrades bLocationConfi
         dagsdatoSection' <- dagsdatoSection env win translations tabs' navigation eDagsdato
         dagsdatoBackupSection' <- dagsdatoBackupSection env win translations tabs' navigation  eDagsdatoBackup
         locationSection' <- CLocation.locationSection env win translations tabs' navigation bModelLocation1
-        mainSection' <- CMain.mainSection env win translations tabs' navigation bModel1 inputteren
         controlSection' <- controlSection env win translations tabs' navigation bModel2
         insertPhotographeeSection' <- InsertPhotographee.insertPhotographeeSection env win translations tabs' navigation bModelInserter1
 
