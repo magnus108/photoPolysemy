@@ -60,6 +60,7 @@
 ,"_doneBuild" : "Færdigt flyt"
 ,"_building" : "Bygger"
 ,"_noBuild" : "Intet byg"
+,"_noJpgBuild" : "Mangler jpg"
 ,"_controlError" : "Der er fejl med kontrol"
 ,"_countPhotographees" : "Elever"
 ,"_exactly1With5" : "1 med 5"

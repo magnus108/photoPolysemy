@@ -28,6 +28,7 @@ data Build
     = DoneBuild Photographee.Photographee String
     | Building Photographee.Photographee String
     | NoBuild
+    | NoJpgBuild
     deriving (Eq, Show)
     deriving (Generic)
     deriving (FromJSON, ToJSON)
@@ -42,10 +43,12 @@ toString build translation = Lens.view translator translation ++ ". " ++ info
                 (DoneBuild _ _) -> Translation.doneBuild
                 (Building _ _) -> Translation.building
                 NoBuild -> Translation.noBuild
+                NoJpgBuild -> Translation.noJpgBuild
         info = case build of
                 (DoneBuild photographee x) -> Photographee.toName' photographee ++ " " ++ x
                 (Building photographee x) -> Photographee.toName' photographee ++ " " ++ x
                 NoBuild -> ""
+                NoJpgBuild ->"" 
 
 
 getBuild' :: (MonadIO m, MonadThrow m) => FilePath -> m (Either String Build)

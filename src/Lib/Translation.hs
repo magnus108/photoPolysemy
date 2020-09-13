@@ -15,6 +15,7 @@ module Lib.Translation
     , doneBuild
     , building
     , noBuild
+    , noJpgBuild
     , build
     , buildSingle
     , buildGroup
@@ -147,6 +148,7 @@ data Translation = Translation { _loading :: String
                                , _doneBuild :: String
                                , _building :: String
                                , _noBuild :: String
+                               , _noJpgBuild :: String
                                , _controlError :: String
                                , _exactly1With5 :: String
                                , _atleast5With1 :: String

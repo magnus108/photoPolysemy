@@ -214,6 +214,8 @@ sinkModel env@Env{..} win translations bModel input
                                 (Build.Building _ _ ) ->void$ element mkBuild' # set (attr "disabled") "true"
                                 (Build.NoBuild) -> 
                                     runFunction  $ ffi "$(%1).removeAttr('disabled')" (mkBuild')
+                                (Build.NoJpgBuild) -> 
+                                    runFunction  $ ffi "$(%1).removeAttr('disabled')" (mkBuild')
 
                         _ <- case (Main._photographees item') of
                                 (Photographee.ChangedPhotographees _) ->
@@ -280,6 +282,8 @@ sinkModel env@Env{..} win translations bModel input
                                 runFunction  $ ffi "$(%1).removeAttr('disabled')" (mkBuild')
                             (Build.Building _ _ ) ->void$ element mkBuild' # set (attr "disabled") "true"
                             (Build.NoBuild) -> 
+                                runFunction  $ ffi "$(%1).removeAttr('disabled')" (mkBuild')
+                            (Build.NoJpgBuild) -> 
                                 runFunction  $ ffi "$(%1).removeAttr('disabled')" (mkBuild')
 
                     _ <- case (Main._photographees item') of

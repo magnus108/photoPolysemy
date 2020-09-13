@@ -8,6 +8,7 @@ module Lib.Server.Build
     , mkDoneshootingPathJpg
     ) where
 
+import qualified System.Directory as SD
 import System.Directory
 import qualified Lib.App as App
 
@@ -213,8 +214,12 @@ entry messages mBuildFile mDumpFile item = do
 
     shaken <- try $ myShake (opts messages photographee) date item :: IO (Either SomeException ())
     case shaken of
-        Left _ -> 
-            Chan.writeChan messages (App.BuilderMessage (Build.NoBuild))
+        Left e ->  do
+            case show e of
+                "user error (missingjpg)" ->  do
+                    Chan.writeChan messages (App.BuilderMessage (Build.NoJpgBuild))
+                _ ->
+                    Chan.writeChan messages (App.BuilderMessage (Build.NoBuild))
         Right _ -> do
             Chan.writeChan messages (App.BuilderMessage (Build.DoneBuild photographee ("")))
             --HACK
@@ -237,22 +242,25 @@ myShake opts' time item = do
 
     let iindex = length count
 
-    let tmp = case sortDir  of
+    tmp <- case sortDir  of
             [] -> error "empty"
-            xss ->  Data.List.Index.imap (\index' cr -> do 
+            xss ->  Data.List.Index.imapM (\index' cr -> do 
 
                 let index'' = iindex + index' + 1
                 let jpg = cr -<.> "jpg"
+                eh <- SD.doesFileExist (root </> jpg)
+                case eh of
+                    True -> do
+                        let doneshootingCr = mkDoneshootingPath index'' cr item
+                        let doneshootingJpg = mkDoneshootingPathJpg index'' jpg item
 
-                let doneshootingCr = mkDoneshootingPath index'' cr item
-                let doneshootingJpg = mkDoneshootingPathJpg index'' jpg item
+                        let dagsdatoCr = mkDagsdatoPath cr time item
+                        let dagsdatoJpg = mkDagsdatoPath jpg time item
 
-                let dagsdatoCr = mkDagsdatoPath cr time item
-                let dagsdatoJpg = mkDagsdatoPath jpg time item
-
-                let dagsdatoBackupCr = mkDagsdatoBackupPath cr time item
-                let dagsdatoBackupJpg = mkDagsdatoBackupPath jpg time item
-                ((cr, (doneshootingCr,dagsdatoCr, dagsdatoBackupCr)), (jpg, (doneshootingJpg, dagsdatoJpg, dagsdatoBackupJpg)))
+                        let dagsdatoBackupCr = mkDagsdatoBackupPath cr time item
+                        let dagsdatoBackupJpg = mkDagsdatoBackupPath jpg time item
+                        return ((cr, (doneshootingCr,dagsdatoCr, dagsdatoBackupCr)), (jpg, (doneshootingJpg, dagsdatoJpg, dagsdatoBackupJpg)))
+                    False -> fail "missingjpg"
                 ) xss
 
     case tmp of
